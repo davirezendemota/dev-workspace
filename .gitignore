@@ -1,0 +1,9 @@
+# Ignore tudo por padrão
+*
+
+# Exceto estes arquivos/pastas
+!ai.md
+!.ai-agents/
+!.ai-agents/**
+!.gitignore
+!README.md
