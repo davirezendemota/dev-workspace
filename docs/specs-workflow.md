@@ -1,4 +1,4 @@
-# Wiki do `.specs`
+# Documentação do `.specs`
 
 O `.specs` é um formato versionado para manter requisitos, critérios de aceite e progresso de entrega próximos ao código. Ele permite que pessoas e agentes de IA compartilhem a mesma fonte de contexto sem misturar a descrição do produto com o estado da implementação.
 

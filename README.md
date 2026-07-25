@@ -6,7 +6,7 @@
 Dashboard local para gerenciar projetos, agentes de IA e specs com rastreamento de progresso.
 <br/>
 <br/>
-<a href="https://github.com/davirezendemota/dev-workspace/tree/main/.specs"><strong>Explore the docs »</strong></a>
+<a href="./docs/specs-workflow.md"><strong>Documentação do .specs »</strong></a>
 <br/>
 <br/>
   
@@ -103,7 +103,7 @@ Siga os passos abaixo para rodar o Dev Workspace localmente ou via Docker Compos
 2. Na aba **Projects**, adicione projetos Manual, Manual · repo ou GitHub.
 3. Na aba **Agents**, cadastre agentes com instruções em Markdown.
 4. Use o **AI input** na aba Projects para perguntas contextuais (requer IA configurada).
-5. Consulte `.specs/README.md` para o fluxo de specs e checklist de entrega.
+5. Consulte a [documentação do `.specs`](./docs/specs-workflow.md) para entender a estrutura, o fluxo e como reutilizá-lo em outros projetos.
 
 Comandos úteis de agente (Cursor/Claude): `/bootstrap-specs`, `/update-specs`, `/new-spec`, `/spec-checklist`.
 ## Roadmap
@@ -113,6 +113,7 @@ Comandos úteis de agente (Cursor/Claude): `/bootstrap-specs`, `/update-specs`, 
 - [x] CRUD de agentes
 - [x] AI input na aba Projects
 - [x] AI summary de status do projeto
+- [x] Checklist editável para projetos Manual (sem repo)
 - [ ] Autenticação nos endpoints da API
 - [ ] Edição completa do JSON de projeto pela UI
 - [ ] Re-sync periódica de projetos GitHub
