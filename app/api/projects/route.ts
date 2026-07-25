@@ -1,5 +1,8 @@
 import { errorResponse } from '@/app/lib/server/api-error';
-import { refreshStaleProjectSummaries } from '@/app/lib/server/project-ai-summary';
+import {
+  bootstrapGithubProject,
+  refreshStaleProjectSummaries,
+} from '@/app/lib/server/project-ai-summary';
 import {
   createProject,
   listProjects,
@@ -27,6 +30,10 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ProjectCreateInput;
     const project = await createProject(body);
+    if (body.source_type === 'github') {
+      const bootstrapped = await bootstrapGithubProject(project.id);
+      return Response.json(bootstrapped, { status: 201 });
+    }
     return Response.json(project, { status: 201 });
   } catch (error) {
     return errorResponse(error);

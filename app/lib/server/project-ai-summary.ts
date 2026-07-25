@@ -48,6 +48,30 @@ export function isAiSummaryStale(
   return Date.now() - timestamp > ONE_DAY_MS;
 }
 
+export async function bootstrapGithubProject(
+  projectId: string,
+): Promise<ProjectResponse> {
+  await getProjectSpecChecklist(projectId);
+
+  if (!isAiConfigured()) {
+    const project = getProject(projectId);
+    if (!project) {
+      throw new ApiError(404, 'Project not found');
+    }
+    return project;
+  }
+
+  try {
+    return await generateProjectAiSummary(projectId);
+  } catch {
+    const project = getProject(projectId);
+    if (!project) {
+      throw new ApiError(404, 'Project not found');
+    }
+    return project;
+  }
+}
+
 export async function generateProjectAiSummary(
   projectId: string,
 ): Promise<ProjectResponse> {
