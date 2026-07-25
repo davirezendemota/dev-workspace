@@ -260,16 +260,12 @@ export default function ProjectTasks({ project, refreshKey = 0 }: ProjectTasksPr
               color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
             }}
           >
-            {project.sourceType === 'local' || project.sourceType === 'local_repo' ? (
+            {project.sourceType === 'local' ||
+            project.sourceType === 'local_repo' ||
+            project.sourceType === 'github' ? (
               <>Tarefas embutidas no JSON do projeto (workspace_data).</>
             ) : (
-              <>
-                Tarefas persistidas em{' '}
-                <span className="text-[var(--color-text)]">
-                  {tasksPath ?? project.tasksPath ?? 'tasks.json'}
-                </span>
-                {project.sourceType === 'github' ? ' no repositório GitHub.' : ''}
-              </>
+              <>Tarefas persistidas localmente.</>
             )}
           </p>
         </div>

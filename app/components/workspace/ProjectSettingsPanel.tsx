@@ -25,7 +25,7 @@ function sourceDescription(source: ProjectSource): string {
   if (source === 'local_repo') {
     return 'Projeto com referência a um repositório local no disco.';
   }
-  return 'Projeto sincronizado a partir do GitHub.';
+  return 'Projeto GitHub — specs via spec-checklist; tasks no JSON local.';
 }
 
 export default function ProjectSettingsPanel({
@@ -41,13 +41,11 @@ export default function ProjectSettingsPanel({
   const [specChecklistPath, setSpecChecklistPath] = useState(
     project.specChecklistPath ?? '.specs/spec-checklist.json',
   );
-  const [tasksPath, setTasksPath] = useState(project.tasksPath ?? 'tasks.json');
   const [localPath, setLocalPath] = useState(project.localRepoPath ?? '');
   const [repoUrl, setRepoUrl] = useState(project.githubRepoUrl ?? '');
   const [pat, setPat] = useState('');
   const [hasGithubPat, setHasGithubPat] = useState(project.hasGithubPat ?? false);
   const [branch, setBranch] = useState(project.githubBranch ?? 'main');
-  const [filePath, setFilePath] = useState(project.githubFilePath ?? 'project.json');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,13 +55,11 @@ export default function ProjectSettingsPanel({
     setProjectId(project.id);
     setSpecProjectId(project.specProjectId ?? '');
     setSpecChecklistPath(project.specChecklistPath ?? '.specs/spec-checklist.json');
-    setTasksPath(project.tasksPath ?? 'tasks.json');
     setLocalPath(project.localRepoPath ?? '');
     setRepoUrl(project.githubRepoUrl ?? '');
     setPat('');
     setHasGithubPat(project.hasGithubPat ?? false);
     setBranch(project.githubBranch ?? 'main');
-    setFilePath(project.githubFilePath ?? 'project.json');
     setError(null);
   }, [project]);
 
@@ -82,8 +78,8 @@ export default function ProjectSettingsPanel({
     }
 
     if (source === 'github') {
-      if (!repoUrl.trim() || !branch.trim() || !filePath.trim()) {
-        setError('Preencha link do repo, branch e caminho do arquivo.');
+      if (!repoUrl.trim() || !branch.trim()) {
+        setError('Preencha link do repo e branch.');
         return;
       }
       if (!hasGithubPat && !pat.trim()) {
@@ -99,10 +95,6 @@ export default function ProjectSettingsPanel({
       spec_checklist_path: specChecklistPath.trim() || '.specs/spec-checklist.json',
     };
 
-    if (source === 'github') {
-      payload.tasks_path = tasksPath.trim() || 'tasks.json';
-    }
-
     if (source === 'local_repo') {
       payload.local_path = localPath.trim();
     }
@@ -110,7 +102,6 @@ export default function ProjectSettingsPanel({
     if (source === 'github') {
       payload.github_repo_url = repoUrl.trim();
       payload.github_branch = branch.trim();
-      payload.github_file_path = filePath.trim();
       if (pat.trim()) {
         payload.github_pat = pat.trim();
       }
@@ -303,23 +294,6 @@ export default function ProjectSettingsPanel({
           </Field>
         ) : null}
 
-        {source === 'github' ? (
-          <Field
-            label="Caminho do tasks.json"
-            htmlFor="ps-tasks-path"
-            hint="Caminho relativo ao repositório no GitHub. Padrão: tasks.json"
-          >
-            <input
-              id="ps-tasks-path"
-              className="input"
-              value={tasksPath}
-              onChange={(e) => setTasksPath(e.target.value)}
-              placeholder="tasks.json"
-              disabled={busy}
-              autoComplete="off"
-            />
-          </Field>
-        ) : null}
       </section>
 
       {source === 'local_repo' ? (
@@ -407,18 +381,6 @@ export default function ProjectSettingsPanel({
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
                 placeholder="main"
-                disabled={busy}
-                required
-              />
-            </Field>
-
-            <Field label="Caminho do project.json" htmlFor="ps-gh-path">
-              <input
-                id="ps-gh-path"
-                className="input"
-                value={filePath}
-                onChange={(e) => setFilePath(e.target.value)}
-                placeholder="project.json"
                 disabled={busy}
                 required
               />

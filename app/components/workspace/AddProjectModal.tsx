@@ -8,10 +8,11 @@ export type CreateProjectPayload = {
   source_type: ProjectSource;
   json_content?: Record<string, unknown>;
   local_path?: string;
+  spec_project_id?: string;
+  spec_checklist_path?: string;
   github_repo_url?: string;
   github_pat?: string;
   github_branch?: string;
-  github_file_path?: string;
 };
 
 export type ProjectApiResponse = {
@@ -64,7 +65,7 @@ function sourceDescription(source: ProjectSource): string {
   if (source === 'local_repo') {
     return 'Projeto manual com referência a um repositório local no disco.';
   }
-  return 'Sincronize o project.json a partir do GitHub.';
+  return 'Conecte um repositório GitHub para specs via .specs/spec-checklist.json; tasks ficam no JSON local.';
 }
 
 export default function AddProjectModal({
@@ -85,7 +86,8 @@ export default function AddProjectModal({
   const [repoUrl, setRepoUrl] = useState('');
   const [pat, setPat] = useState('');
   const [branch, setBranch] = useState('main');
-  const [filePath, setFilePath] = useState('project.json');
+  const [specProjectId, setSpecProjectId] = useState('');
+  const [specChecklistPath, setSpecChecklistPath] = useState('.specs/spec-checklist.json');
 
   useEffect(() => {
     if (!open) return;
@@ -112,7 +114,8 @@ export default function AddProjectModal({
     setRepoUrl('');
     setPat('');
     setBranch('main');
-    setFilePath('project.json');
+    setSpecProjectId('');
+    setSpecChecklistPath('.specs/spec-checklist.json');
     setError(null);
   };
 
@@ -166,16 +169,22 @@ export default function AddProjectModal({
         local_path: localPath.trim(),
       };
     } else {
-      if (!repoUrl.trim() || !pat.trim() || !branch.trim() || !filePath.trim()) {
-        setError('Preencha link do repo, PAT, branch e caminho do arquivo.');
+      const json_content = buildManualJson();
+      if (!json_content) return;
+      if (!repoUrl.trim() || !pat.trim() || !branch.trim()) {
+        setError('Preencha link do repo, PAT e branch.');
         return;
       }
       payload = {
         source_type: 'github',
+        json_content,
         github_repo_url: repoUrl.trim(),
         github_pat: pat.trim(),
         github_branch: branch.trim(),
-        github_file_path: filePath.trim(),
+        ...(specProjectId.trim() ? { spec_project_id: specProjectId.trim() } : {}),
+        ...(specChecklistPath.trim()
+          ? { spec_checklist_path: specChecklistPath.trim() }
+          : {}),
       };
     }
 
@@ -207,7 +216,7 @@ export default function AddProjectModal({
       const created: ProjectApiResponse = await response.json();
       toast.success(
         source === 'github'
-          ? 'Projeto sincronizado do GitHub.'
+          ? 'Projeto GitHub adicionado.'
           : 'project.json criado na pasta de projetos.',
       );
       resetForm();
@@ -304,9 +313,32 @@ export default function AddProjectModal({
 
             {source === 'github' ? (
               <div className="flex flex-col gap-4">
-                <Field label="Link do repositório" htmlFor="gh-repo">
+                <Field label="Nome" htmlFor="gh-name">
                   <input
                     ref={firstFieldRef}
+                    id="gh-name"
+                    className="input"
+                    value={manual.name}
+                    onChange={(e) => updateManual('name', e.target.value)}
+                    placeholder="Acme API"
+                    disabled={submitting}
+                    required
+                  />
+                </Field>
+
+                <Field label="Client (opcional)" htmlFor="gh-client">
+                  <input
+                    id="gh-client"
+                    className="input"
+                    value={manual.client}
+                    onChange={(e) => updateManual('client', e.target.value)}
+                    placeholder="Acme"
+                    disabled={submitting}
+                  />
+                </Field>
+
+                <Field label="Link do repositório" htmlFor="gh-repo">
+                  <input
                     id="gh-repo"
                     className="input"
                     value={repoUrl}
@@ -349,18 +381,38 @@ export default function AddProjectModal({
                     />
                   </Field>
 
-                  <Field label="Caminho do arquivo no repo" htmlFor="gh-path">
+                  <Field
+                    label="ID no spec-checklist"
+                    htmlFor="gh-spec-project-id"
+                    hint="Opcional — projects[].id no checklist remoto."
+                  >
                     <input
-                      id="gh-path"
+                      id="gh-spec-project-id"
                       className="input"
-                      value={filePath}
-                      onChange={(e) => setFilePath(e.target.value)}
-                      placeholder="project.json"
+                      value={specProjectId}
+                      onChange={(e) => setSpecProjectId(e.target.value)}
+                      placeholder="workspace"
                       disabled={submitting}
-                      required
+                      autoComplete="off"
                     />
                   </Field>
                 </div>
+
+                <Field
+                  label="Caminho do spec-checklist"
+                  htmlFor="gh-spec-checklist-path"
+                  hint="Padrão: .specs/spec-checklist.json"
+                >
+                  <input
+                    id="gh-spec-checklist-path"
+                    className="input"
+                    value={specChecklistPath}
+                    onChange={(e) => setSpecChecklistPath(e.target.value)}
+                    placeholder=".specs/spec-checklist.json"
+                    disabled={submitting}
+                    autoComplete="off"
+                  />
+                </Field>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
@@ -436,10 +488,10 @@ export default function AddProjectModal({
             <button type="submit" className="btn btn-primary" disabled={submitting}>
               {submitting
                 ? source === 'github'
-                  ? 'Sincronizando…'
+                  ? 'Carregando specs e resumo…'
                   : 'Criando…'
                 : source === 'github'
-                  ? 'Sincronizar e adicionar'
+                  ? 'Adicionar projeto'
                   : 'Criar projeto'}
             </button>
           </footer>
