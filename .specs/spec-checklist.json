@@ -25,7 +25,8 @@
                 "AC3"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC2",
@@ -55,27 +56,30 @@
               "description": "Envio vazio ignorado",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC5",
               "description": "Aviso de projeto referenciado e scroll até o card correspondente",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "ce01d4867965ca57cb382e161241578d5cf838b7"
             },
             {
               "ac": "AC6",
               "description": "Aviso de projeto referenciado dispensado ao clicar na tela",
-              "status": "todo",
+              "status": "done",
               "after": [
                 "AC5"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "ce01d4867965ca57cb382e161241578d5cf838b7"
             }
           ]
         },
@@ -93,49 +97,56 @@
               "description": "Settings carrega e exibe valores atuais",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC2",
               "description": "Salvar projects_folder e agents_folder com validação",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC3",
               "description": "Salvar provider, modelo e token de IA",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC4",
               "description": "Token nunca exposto no GET (has_ai_token)",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC5",
               "description": "Erro 400 para pasta inválida",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC6",
               "description": "Seção Resumo de projetos exibe prompt atual com badge Padrão/Personalizado",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC7",
               "description": "Salvar ai_project_summary_prompt customizado em config.json",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC8",
@@ -145,7 +156,8 @@
                 "AC7"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             }
           ]
         },
@@ -171,49 +183,56 @@
                 }
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC2",
               "description": "Criação Manual grava {slug}.json sem repositório",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC3",
               "description": "Criação Manual · repo grava _meta.local_path",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC4",
               "description": "Criação GitHub com fetch + arquivo local",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC5",
               "description": "Conflito 409 se slug já existir",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC6",
               "description": "PAT nunca exposto (has_github_pat)",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC7",
               "description": "Modal com três modos: Manual, Manual · repo e GitHub",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             }
           ]
         },
@@ -231,21 +250,24 @@
               "description": "Bloco IA no card exibe resumo do campo ai",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC2",
               "description": "Overflow com máx. 2 linhas e chevron expandir/recolher",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC3",
               "description": "Botão atualizar visível ao hover no bloco IA",
               "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC4",
@@ -255,7 +277,8 @@
                 "AC3"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC5",
@@ -268,7 +291,8 @@
                 }
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC6",
@@ -278,7 +302,8 @@
                 "AC5"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC7",
@@ -288,7 +313,8 @@
                 "AC5"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC8",
@@ -301,7 +327,8 @@
                 }
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             }
           ]
         },
@@ -491,37 +518,41 @@
             {
               "ac": "AC1",
               "description": "Schema aceita commit de conclusão válido somente em itens done",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "a158116da1a0749391dbfb53d79793e27eb70dac"
             },
             {
               "ac": "AC2",
               "description": "API resolve data/hora via Git CLI local ou GitHub API com PAT",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             },
             {
               "ac": "AC3",
               "description": "Automações preenchem o commit ao concluir e o removem ao reabrir",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "a158116da1a0749391dbfb53d79793e27eb70dac"
             },
             {
               "ac": "AC4",
               "description": "Documentação explica campos, compatibilidade e fluxo de commits",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "a158116da1a0749391dbfb53d79793e27eb70dac"
             }
           ]
         },
         {
           "specId": "008",
-          "specFile": "features/008-projects_local-checklist.md",
-          "title": "Checklist local simples para projetos Manual",
+          "specFile": "features/008-projects_tasks.md",
+          "title": "Tasks simples para projetos",
           "after": [
             "003",
             "006"
@@ -530,57 +561,64 @@
             {
               "ac": "AC1",
               "description": "Aba Checklist visível somente para projetos local",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "d89a02f3313420b899369c65c728d8d35ccf94c2"
             },
             {
               "ac": "AC2",
               "description": "Sidecar ausente retorna checklist vazio",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             },
             {
               "ac": "AC3",
               "description": "Adicionar, renomear e remover itens persiste no sidecar",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "d89a02f3313420b899369c65c728d8d35ccf94c2"
             },
             {
               "ac": "AC4",
               "description": "Marcar/desmarcar item persiste booleano done",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "d89a02f3313420b899369c65c728d8d35ccf94c2"
             },
             {
               "ac": "AC5",
               "description": "Sidecars não aparecem em GET /api/projects",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             },
             {
               "ac": "AC6",
               "description": "API rejeita local_repo e github",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             },
             {
               "ac": "AC7",
               "description": "Remoção do projeto exclui o sidecar",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             }
           ]
         },
@@ -595,59 +633,65 @@
             {
               "ac": "AC1",
               "description": "Aba Settings exibe formulário de metadados do projeto",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "d89a02f3313420b899369c65c728d8d35ccf94c2"
             },
             {
               "ac": "AC2",
               "description": "Edição de local_path persiste em _meta",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             },
             {
               "ac": "AC3",
               "description": "Edição de spec_project_id persiste em _meta",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             },
             {
               "ac": "AC4",
               "description": "Troca para GitHub grava source_type e campos GitHub",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             },
             {
               "ac": "AC5",
               "description": "Alteração do ID do projeto renomeia o arquivo JSON",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             },
             {
               "ac": "AC6",
               "description": "PAT existente mantido quando campo fica em branco",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC4"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             }
           ]
         }
