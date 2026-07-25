@@ -1,0 +1,23 @@
+services:
+  app:
+    platform: linux/amd64
+    container_name: dev_workspace_app_local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    restart: unless-stopped
+    ports:
+      - "${WORKSPACE_PORT}:3000"
+    environment:
+      - NODE_ENV=development
+      - WORKSPACE_CONFIG_PATH=/data/config.json
+      - WORKSPACE_PROJECTS_PATH=/data/projects
+      - WORKSPACE_AGENTS_PATH=/data/agents
+      - WORKSPACE_LOCAL_ROOT=/workspace
+    volumes:
+      - .:/app
+      - ./workspace_data:/data
+      - ../:/workspace:ro
+      - /app/.next
+    command: sh -c "npm install && npm run dev"
