@@ -21,11 +21,13 @@ export type ProjectApiResponse = {
   json_data: Record<string, unknown>;
   local_file_path: string | null;
   local_path: string | null;
+  local_path_relative: string | null;
   github_repo_url: string | null;
   github_branch: string | null;
   github_file_path: string | null;
   spec_project_id: string | null;
   spec_checklist_path: string | null;
+  tasks_path: string | null;
   has_github_pat: boolean;
   last_synced_at: string | null;
   created_at: string | null;
@@ -135,7 +137,7 @@ export default function AddProjectModal({
       ai: '',
       topDate: '—',
       checkpoints: [],
-      checklist: [],
+      tasks: [],
       lastInteractionDays: 0,
       openDemands: 0,
     };

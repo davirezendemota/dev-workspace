@@ -25,6 +25,7 @@ export type Project = {
   localRepoPath?: string | null;
   specProjectId?: string | null;
   specChecklistPath?: string | null;
+  tasksPath?: string | null;
   hasGithubPat?: boolean;
   lastSyncedAt?: string | null;
 };
@@ -37,27 +38,18 @@ export function mapApiProjectToCard(api: {
   json_data: Record<string, unknown>;
   local_file_path?: string | null;
   local_path?: string | null;
+  local_path_relative?: string | null;
   github_repo_url?: string | null;
   github_branch?: string | null;
   github_file_path?: string | null;
   spec_project_id?: string | null;
   spec_checklist_path?: string | null;
+  tasks_path?: string | null;
   has_github_pat?: boolean;
   last_synced_at?: string | null;
 }): Project {
   const data = api.json_data ?? {};
-  const checklistRaw = Array.isArray(data.checklist) ? data.checklist : [];
-  const checklist: ChecklistItem[] = checklistRaw.map((item) => {
-    if (item && typeof item === 'object') {
-      const row = item as Record<string, unknown>;
-      return {
-        label: String(row.label ?? 'Item'),
-        done: Boolean(row.done),
-        date: String(row.date ?? '—'),
-      };
-    }
-    return { label: String(item), done: false, date: '—' };
-  });
+  const checklist: ChecklistItem[] = [];
 
   const checkpoints = Array.isArray(data.checkpoints)
     ? data.checkpoints.map((c) => String(c))
@@ -68,9 +60,11 @@ export function mapApiProjectToCard(api: {
     : null;
 
   const repoFromLocal =
-    api.local_path && api.local_path.trim()
-      ? api.local_path.trim()
-      : null;
+    api.local_path_relative && api.local_path_relative.trim()
+      ? api.local_path_relative.trim()
+      : api.local_path && api.local_path.trim()
+        ? api.local_path.trim()
+        : null;
 
   const repoFromData =
     typeof data.repo === 'string' && data.repo.trim() ? data.repo.trim() : null;
@@ -99,6 +93,7 @@ export function mapApiProjectToCard(api: {
     localRepoPath: api.local_path ?? null,
     specProjectId: api.spec_project_id ?? null,
     specChecklistPath: api.spec_checklist_path ?? null,
+    tasksPath: api.tasks_path ?? null,
     hasGithubPat: api.has_github_pat ?? false,
     lastSyncedAt: api.last_synced_at ?? null,
   };

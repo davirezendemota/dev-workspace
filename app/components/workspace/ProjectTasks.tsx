@@ -1,23 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/app/lib/utils';
 import type { Project } from './data';
 
-type LocalChecklistItem = {
+type TaskItem = {
   id: string;
   label: string;
   done: boolean;
 };
 
-type LocalChecklistDocument = {
+type TasksDocument = {
   version: 1;
-  items: LocalChecklistItem[];
+  items: TaskItem[];
+  tasks_path?: string;
+  source?: string;
+  updated_at?: string | null;
 };
 
-type ProjectLocalChecklistProps = {
+type ProjectTasksProps = {
   project: Project;
+  refreshKey?: number;
 };
 
 function createItemId(): string {
@@ -27,8 +31,57 @@ function createItemId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export default function ProjectLocalChecklist({ project }: ProjectLocalChecklistProps) {
-  const [items, setItems] = useState<LocalChecklistItem[]>([]);
+const iconBtnStyle: CSSProperties = {
+  width: 34,
+  minHeight: 34,
+  padding: 0,
+  justifyContent: 'center',
+  border: 'none',
+};
+
+function IconEdit() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  );
+}
+
+export default function ProjectTasks({ project, refreshKey = 0 }: ProjectTasksProps) {
+  const [items, setItems] = useState<TaskItem[]>([]);
+  const [tasksPath, setTasksPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +89,7 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState('');
   const queueRef = useRef<Promise<void>>(Promise.resolve());
-  const itemsRef = useRef<LocalChecklistItem[]>([]);
+  const itemsRef = useRef<TaskItem[]>([]);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -46,7 +99,11 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/projects/${project.id}/local-checklist`);
+      const freshGithub = project.sourceType === 'github';
+      const url = freshGithub
+        ? `/api/projects/${project.id}/tasks?r=${refreshKey}&t=${Date.now()}`
+        : `/api/projects/${project.id}/tasks`;
+      const response = await fetch(url, { cache: 'no-store' });
       if (!response.ok) {
         let detail = `Erro ${response.status}`;
         try {
@@ -57,32 +114,34 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
         }
         throw new Error(detail);
       }
-      const data = (await response.json()) as LocalChecklistDocument;
+      const data = (await response.json()) as TasksDocument;
       setItems(Array.isArray(data.items) ? data.items : []);
+      setTasksPath(data.tasks_path ?? project.tasksPath ?? null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível carregar o checklist.');
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar as tasks.');
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }, [project.id]);
+  }, [project.id, project.sourceType, project.tasksPath, refreshKey]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const persist = useCallback(
-    (nextItems: LocalChecklistItem[]) => {
+    (nextItems: TaskItem[]) => {
       itemsRef.current = nextItems;
       setItems(nextItems);
       setSaving(true);
       setError(null);
 
       const run = async () => {
-        const response = await fetch(`/api/projects/${project.id}/local-checklist`, {
+        const response = await fetch(`/api/projects/${project.id}/tasks`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ version: 1, items: nextItems }),
+          cache: 'no-store',
         });
 
         if (!response.ok) {
@@ -96,16 +155,17 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
           throw new Error(detail);
         }
 
-        const data = (await response.json()) as LocalChecklistDocument;
+        const data = (await response.json()) as TasksDocument;
         setItems(Array.isArray(data.items) ? data.items : nextItems);
+        setTasksPath(data.tasks_path ?? tasksPath);
       };
 
       const queued = queueRef.current
         .catch(() => undefined)
         .then(run)
         .catch((err) => {
-          setError(err instanceof Error ? err.message : 'Não foi possível salvar o checklist.');
-          toast.error('Falha ao salvar checklist');
+          setError(err instanceof Error ? err.message : 'Não foi possível salvar as tasks.');
+          toast.error('Falha ao salvar tasks');
           void load();
         })
         .finally(() => {
@@ -116,7 +176,7 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
 
       queueRef.current = queued;
     },
-    [load, project.id],
+    [load, project.id, tasksPath],
   );
 
   const handleAdd = (e: React.FormEvent) => {
@@ -143,7 +203,7 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
     persist(next);
   };
 
-  const handleStartEdit = (item: LocalChecklistItem) => {
+  const handleStartEdit = (item: TaskItem) => {
     if (saving) return;
     setEditingId(item.id);
     setEditingLabel(item.label);
@@ -175,7 +235,7 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
 
   const handleRemove = (id: string, label: string) => {
     if (saving) return;
-    if (!window.confirm(`Remover o item "${label}"?`)) return;
+    if (!window.confirm(`Remover a task "${label}"?`)) return;
     const next = itemsRef.current.filter((item) => item.id !== id);
     if (editingId === id) handleCancelEdit();
     persist(next);
@@ -191,7 +251,7 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
             className="text-[18px] font-semibold"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
-            Checklist
+            Tasks
           </h3>
           <p
             className="mt-1 text-[13px]"
@@ -200,7 +260,17 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
               color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
             }}
           >
-            Itens simples do projeto Manual — sem vínculo com repositório, issues ou PRs.
+            {project.sourceType === 'local' || project.sourceType === 'local_repo' ? (
+              <>Tarefas embutidas no JSON do projeto (workspace_data).</>
+            ) : (
+              <>
+                Tarefas persistidas em{' '}
+                <span className="text-[var(--color-text)]">
+                  {tasksPath ?? project.tasksPath ?? 'tasks.json'}
+                </span>
+                {project.sourceType === 'github' ? ' no repositório GitHub.' : ''}
+              </>
+            )}
           </p>
         </div>
         <div
@@ -210,7 +280,7 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
             color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
           }}
         >
-          {saving ? 'Salvando…' : `${doneCount}/${items.length} concluídos`}
+          {saving ? 'Salvando…' : `${doneCount}/${items.length} concluídas`}
         </div>
       </div>
 
@@ -233,10 +303,10 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
           className="input flex-1"
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
-          placeholder="Novo item…"
+          placeholder="Nova task…"
           maxLength={200}
           disabled={loading || saving}
-          aria-label="Novo item do checklist"
+          aria-label="Nova task"
         />
         <button
           type="submit"
@@ -255,7 +325,7 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
             fontFamily: 'var(--font-body)',
           }}
         >
-          Carregando checklist…
+          Carregando tasks…
         </p>
       ) : items.length === 0 ? (
         <div
@@ -265,8 +335,8 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
             fontFamily: 'var(--font-body)',
           }}
         >
-          <p className="text-sm">Nenhum item ainda.</p>
-          <p className="mt-1 text-xs">Adicione tarefas simples para acompanhar este projeto Manual.</p>
+          <p className="text-sm">Nenhuma task ainda.</p>
+          <p className="mt-1 text-xs">Adicione tarefas simples para acompanhar este projeto.</p>
         </div>
       ) : (
         <ul className="border border-[var(--color-divider)]">
@@ -322,7 +392,7 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
                       }
                       if (e.key === 'Escape') handleCancelEdit();
                     }}
-                    aria-label="Renomear item"
+                    aria-label="Renomear task"
                   />
                 ) : (
                   <span
@@ -363,19 +433,25 @@ export default function ProjectLocalChecklist({ project }: ProjectLocalChecklist
                     <>
                       <button
                         type="button"
-                        className="btn"
+                        className="fbtn"
+                        style={iconBtnStyle}
                         disabled={saving}
                         onClick={() => handleStartEdit(item)}
+                        aria-label={`Renomear ${item.label}`}
+                        title="Renomear"
                       >
-                        Renomear
+                        <IconEdit />
                       </button>
                       <button
                         type="button"
-                        className="btn"
+                        className="fbtn"
+                        style={iconBtnStyle}
                         disabled={saving}
                         onClick={() => handleRemove(item.id, item.label)}
+                        aria-label={`Remover ${item.label}`}
+                        title="Remover"
                       >
-                        Remover
+                        <IconTrash />
                       </button>
                     </>
                   )}

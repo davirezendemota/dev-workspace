@@ -4,9 +4,9 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { cn } from '@/app/lib/utils';
 import type { ProjectApiResponse } from './AddProjectModal';
 import type { Project } from './data';
-import ProjectLocalChecklist from './ProjectLocalChecklist';
+import ProjectTasks from './ProjectTasks';
 import ProjectSettingsPanel from './ProjectSettingsPanel';
-import ProjectStatusDashboard from './ProjectStatusDashboard';
+import ProjectSpecChecklist from './ProjectSpecChecklist';
 
 type ProjectDetailModalProps = {
   project: Project | null;
@@ -14,34 +14,27 @@ type ProjectDetailModalProps = {
   onUpdated?: (project: ProjectApiResponse) => void;
 };
 
-type TabId = 'dashboard' | 'checklist' | 'settings';
+type TabId = 'spec-checklist' | 'tasks' | 'settings';
 
 export default function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetailModalProps) {
   const titleId = useId();
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabId>('spec-checklist');
+  const [tasksRefreshKey, setTasksRefreshKey] = useState(0);
 
-  const tabs = useMemo(() => {
-    const base: { id: TabId; label: string }[] = [
-      { id: 'dashboard', label: 'Dashboard' },
+  const tabs = useMemo(
+    (): { id: TabId; label: string }[] => [
+      { id: 'spec-checklist', label: 'Spec checklist' },
+      { id: 'tasks', label: 'Tasks' },
       { id: 'settings', label: 'Settings' },
-    ];
-    if (project?.sourceType === 'local') {
-      base.splice(1, 0, { id: 'checklist', label: 'Checklist' });
-    }
-    return base;
-  }, [project?.sourceType]);
+    ],
+    [],
+  );
 
   useEffect(() => {
     if (!project) return;
-    setActiveTab('dashboard');
+    setActiveTab('spec-checklist');
+    setTasksRefreshKey((key) => key + 1);
   }, [project]);
-
-  useEffect(() => {
-    if (!project) return;
-    if (activeTab === 'checklist' && project.sourceType !== 'local') {
-      setActiveTab('dashboard');
-    }
-  }, [activeTab, project]);
 
   useEffect(() => {
     if (!project) return;
@@ -53,6 +46,8 @@ export default function ProjectDetailModal({ project, onClose, onUpdated }: Proj
   }, [project, onClose]);
 
   if (!project) return null;
+
+  const mountTasks = activeTab === 'tasks' || project.sourceType === 'github';
 
   return (
     <div
@@ -131,9 +126,11 @@ export default function ProjectDetailModal({ project, onClose, onUpdated }: Proj
         </nav>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7">
-          {activeTab === 'dashboard' ? <ProjectStatusDashboard project={project} /> : null}
-          {activeTab === 'checklist' && project.sourceType === 'local' ? (
-            <ProjectLocalChecklist project={project} />
+          {activeTab === 'spec-checklist' ? <ProjectSpecChecklist project={project} /> : null}
+          {mountTasks ? (
+            <div className={activeTab === 'tasks' ? undefined : 'hidden'} aria-hidden={activeTab !== 'tasks'}>
+              <ProjectTasks project={project} refreshKey={tasksRefreshKey} />
+            </div>
           ) : null}
           {activeTab === 'settings' ? (
             <ProjectSettingsPanel

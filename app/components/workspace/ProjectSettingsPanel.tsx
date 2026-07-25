@@ -37,6 +37,7 @@ export default function ProjectSettingsPanel({
   const [specChecklistPath, setSpecChecklistPath] = useState(
     project.specChecklistPath ?? '.specs/spec-checklist.json',
   );
+  const [tasksPath, setTasksPath] = useState(project.tasksPath ?? 'tasks.json');
   const [localPath, setLocalPath] = useState(project.localRepoPath ?? '');
   const [repoUrl, setRepoUrl] = useState(project.githubRepoUrl ?? '');
   const [pat, setPat] = useState('');
@@ -51,6 +52,7 @@ export default function ProjectSettingsPanel({
     setProjectId(project.id);
     setSpecProjectId(project.specProjectId ?? '');
     setSpecChecklistPath(project.specChecklistPath ?? '.specs/spec-checklist.json');
+    setTasksPath(project.tasksPath ?? 'tasks.json');
     setLocalPath(project.localRepoPath ?? '');
     setRepoUrl(project.githubRepoUrl ?? '');
     setPat('');
@@ -91,6 +93,10 @@ export default function ProjectSettingsPanel({
       spec_project_id: specProjectId.trim(),
       spec_checklist_path: specChecklistPath.trim() || '.specs/spec-checklist.json',
     };
+
+    if (source === 'github') {
+      payload.tasks_path = tasksPath.trim() || 'tasks.json';
+    }
 
     if (source === 'local_repo') {
       payload.local_path = localPath.trim();
@@ -245,6 +251,24 @@ export default function ProjectSettingsPanel({
               value={specChecklistPath}
               onChange={(e) => setSpecChecklistPath(e.target.value)}
               placeholder=".specs/spec-checklist.json"
+              disabled={saving}
+              autoComplete="off"
+            />
+          </Field>
+        ) : null}
+
+        {source === 'github' ? (
+          <Field
+            label="Caminho do tasks.json"
+            htmlFor="ps-tasks-path"
+            hint="Caminho relativo ao repositório no GitHub. Padrão: tasks.json"
+          >
+            <input
+              id="ps-tasks-path"
+              className="input"
+              value={tasksPath}
+              onChange={(e) => setTasksPath(e.target.value)}
+              placeholder="tasks.json"
               disabled={saving}
               autoComplete="off"
             />
