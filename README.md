@@ -29,6 +29,21 @@ Principais capacidades:
 - **Specs workflow** — requisitos em `.specs/features/*.md` e progresso em `spec-checklist.json`
 
 A fonte da verdade dos projetos é o filesystem (`projects/*.json`), compatível com Docker e desenvolvimento no host.
+
+## Screenshots
+
+### Projects
+
+<img src="./public/screenshots/projects.png" alt="Dashboard de projetos com resumos de IA, checkpoints e checklist" width="100%">
+
+### Agents
+
+<img src="./public/screenshots/agents.png" alt="Biblioteca de agentes de IA reutilizáveis" width="100%">
+
+### Settings
+
+<img src="./public/screenshots/settings.png" alt="Configurações do workspace, provedor de IA e prompt de resumo" width="100%">
+
 ### Built With
 
 Principais tecnologias usadas no projeto:
@@ -118,6 +133,15 @@ Fluxo sugerido:
 3. Commit (`git commit -m 'feat: descreva a mudança'`)
 4. Push (`git push origin feature/minha-feature`)
 5. Abra um Pull Request
+
+## Contributors
+
+Obrigado a todas as pessoas que contribuíram para este projeto:
+
+<a href="https://github.com/davirezendemota/dev-workspace/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=davirezendemota/dev-workspace" alt="Contributors">
+</a>
+
 ## License
 
 Distributed under the MIT License. See [MIT License](https://opensource.org/licenses/MIT) for more information.
