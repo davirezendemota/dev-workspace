@@ -179,12 +179,14 @@ async function callOpenAiCompatible(
     }),
   });
 
-  const body = await readJsonBody(response);
+  const body = (await readJsonBody(response)) as {
+    choices?: Array<{ message?: { content?: unknown } }>;
+  };
   if (!response.ok) {
     throw providerError(body, response.status);
   }
 
-  const content = body?.choices?.[0]?.message?.content;
+  const content = body.choices?.[0]?.message?.content;
   if (typeof content !== 'string' || !content.trim()) {
     throw new ApiError(502, 'A IA retornou uma resposta vazia.');
   }
@@ -214,13 +216,15 @@ async function callAnthropic(
     }),
   });
 
-  const body = await readJsonBody(response);
+  const body = (await readJsonBody(response)) as {
+    content?: Array<{ type?: string; text?: string }>;
+  };
   if (!response.ok) {
     throw providerError(body, response.status);
   }
 
-  const text = body?.content?.find(
-    (item: { type?: string; text?: string }) => item.type === 'text',
+  const text = body.content?.find(
+    (item) => item.type === 'text',
   )?.text;
 
   if (typeof text !== 'string' || !text.trim()) {
@@ -249,13 +253,15 @@ async function callGoogleGemini(
     },
   );
 
-  const body = await readJsonBody(response);
+  const body = (await readJsonBody(response)) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
   if (!response.ok) {
     throw providerError(body, response.status);
   }
 
-  const text = body?.candidates?.[0]?.content?.parts
-    ?.map((part: { text?: string }) => part.text ?? '')
+  const text = body.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text ?? '')
     .join('')
     .trim();
 
@@ -288,13 +294,15 @@ async function callCohere(
     }),
   });
 
-  const body = await readJsonBody(response);
+  const body = (await readJsonBody(response)) as {
+    message?: { content?: Array<{ text?: string }> };
+  };
   if (!response.ok) {
     throw providerError(body, response.status);
   }
 
-  const text = body?.message?.content
-    ?.map((part: { text?: string }) => part.text ?? '')
+  const text = body.message?.content
+    ?.map((part) => part.text ?? '')
     .join('')
     .trim();
 

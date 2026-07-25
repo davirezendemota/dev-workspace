@@ -1,5 +1,5 @@
 const REPO_RE =
-  /(?:https?:\/\/)?(?:www\.)?github\.com[/:](?<owner>[^/]+)\/(?<repo>[^/#?\s]+)/i;
+  /(?:https?:\/\/)?(?:www\.)?github\.com[/:]([^/]+)\/([^/#?\s]+)/i;
 
 export function parseGithubRepo(repoUrl: string): [string, string] {
   let cleaned = repoUrl.trim().replace(/\/$/, '');
@@ -8,8 +8,8 @@ export function parseGithubRepo(repoUrl: string): [string, string] {
   }
 
   const match = REPO_RE.exec(cleaned);
-  if (match?.groups?.owner && match.groups.repo) {
-    return [match.groups.owner, match.groups.repo.replace(/\.git$/, '')];
+  if (match?.[1] && match[2]) {
+    return [match[1], match[2].replace(/\.git$/, '')];
   }
 
   const parts = cleaned.split('/');
