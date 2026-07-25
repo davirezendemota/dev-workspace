@@ -8,6 +8,8 @@ import type { Project, ProjectSource } from './data';
 type ProjectSettingsPanelProps = {
   project: Project;
   onUpdated: (project: ProjectApiResponse) => void;
+  onDeleted: (id: string) => void;
+  onClose: () => void;
 };
 
 const SOURCE_OPTIONS: { id: ProjectSource; label: string }[] = [
@@ -29,6 +31,8 @@ function sourceDescription(source: ProjectSource): string {
 export default function ProjectSettingsPanel({
   project,
   onUpdated,
+  onDeleted,
+  onClose,
 }: ProjectSettingsPanelProps) {
   const formId = useId();
   const [source, setSource] = useState<ProjectSource>(project.sourceType ?? 'local');
@@ -45,6 +49,7 @@ export default function ProjectSettingsPanel({
   const [branch, setBranch] = useState(project.githubBranch ?? 'main');
   const [filePath, setFilePath] = useState(project.githubFilePath ?? 'project.json');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -142,6 +147,47 @@ export default function ProjectSettingsPanel({
     }
   };
 
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        `Remover o projeto "${project.name}" da lista? O arquivo JSON será renomeado para .json.backup e deixará de aparecer no app.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      setError(null);
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        let detail = `Erro ${response.status}`;
+        try {
+          const body = await response.json();
+          if (typeof body?.detail === 'string') detail = body.detail;
+        } catch {
+          /* ignore */
+        }
+        throw new Error(detail);
+      }
+
+      toast.success('Projeto removido da lista.');
+      onDeleted(project.id);
+      onClose();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Não foi possível apagar o projeto.';
+      setError(message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const busy = saving || deleting;
+
   return (
     <form id={formId} onSubmit={handleSubmit} className="mx-auto flex w-full max-w-[640px] flex-col gap-6">
       <div>
@@ -187,7 +233,7 @@ export default function ProjectSettingsPanel({
               type="button"
               className={source === option.id ? 'tag tag-accent' : 'tag tag-outline'}
               onClick={() => setSource(option.id)}
-              disabled={saving}
+              disabled={busy}
             >
               {option.label}
             </button>
@@ -217,7 +263,7 @@ export default function ProjectSettingsPanel({
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
             placeholder="meu-projeto"
-            disabled={saving}
+            disabled={busy}
             required
             autoComplete="off"
           />
@@ -234,7 +280,7 @@ export default function ProjectSettingsPanel({
             value={specProjectId}
             onChange={(e) => setSpecProjectId(e.target.value)}
             placeholder="workspace"
-            disabled={saving}
+            disabled={busy}
             autoComplete="off"
           />
         </Field>
@@ -251,7 +297,7 @@ export default function ProjectSettingsPanel({
               value={specChecklistPath}
               onChange={(e) => setSpecChecklistPath(e.target.value)}
               placeholder=".specs/spec-checklist.json"
-              disabled={saving}
+              disabled={busy}
               autoComplete="off"
             />
           </Field>
@@ -269,7 +315,7 @@ export default function ProjectSettingsPanel({
               value={tasksPath}
               onChange={(e) => setTasksPath(e.target.value)}
               placeholder="tasks.json"
-              disabled={saving}
+              disabled={busy}
               autoComplete="off"
             />
           </Field>
@@ -299,7 +345,7 @@ export default function ProjectSettingsPanel({
               value={localPath}
               onChange={(e) => setLocalPath(e.target.value)}
               placeholder="/Users/voce/workspace/meu-projeto"
-              disabled={saving}
+              disabled={busy}
               required
             />
           </Field>
@@ -325,7 +371,7 @@ export default function ProjectSettingsPanel({
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
               placeholder="https://github.com/owner/repo"
-              disabled={saving}
+              disabled={busy}
               required
               autoComplete="off"
             />
@@ -347,7 +393,7 @@ export default function ProjectSettingsPanel({
               value={pat}
               onChange={(e) => setPat(e.target.value)}
               placeholder={hasGithubPat ? '••••••••' : 'ghp_…'}
-              disabled={saving}
+              disabled={busy}
               required={!hasGithubPat}
               autoComplete="off"
             />
@@ -361,7 +407,7 @@ export default function ProjectSettingsPanel({
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
                 placeholder="main"
-                disabled={saving}
+                disabled={busy}
                 required
               />
             </Field>
@@ -373,7 +419,7 @@ export default function ProjectSettingsPanel({
                 value={filePath}
                 onChange={(e) => setFilePath(e.target.value)}
                 placeholder="project.json"
-                disabled={saving}
+                disabled={busy}
                 required
               />
             </Field>
@@ -381,8 +427,43 @@ export default function ProjectSettingsPanel({
         </section>
       ) : null}
 
+      <section className="flex flex-col gap-3 border-t border-[var(--color-divider)] pt-6">
+        <h3
+          className="text-[12px] tracking-[0.08em] uppercase"
+          style={{
+            fontFamily: 'var(--font-heading)',
+            color: 'color-mix(in srgb, var(--color-text) 70%, transparent)',
+          }}
+        >
+          Zona de perigo
+        </h3>
+        <p
+          className="text-[13px] italic"
+          style={{
+            fontFamily: 'var(--font-body)',
+            color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+          }}
+        >
+          Remove o projeto da listagem renomeando o arquivo para .json.backup.
+        </p>
+        <div>
+          <button
+            type="button"
+            className="btn"
+            onClick={handleDelete}
+            disabled={busy}
+            style={{
+              color: 'var(--color-accent-800)',
+              borderColor: 'var(--color-accent)',
+            }}
+          >
+            {deleting ? 'Apagando…' : 'Apagar projeto'}
+          </button>
+        </div>
+      </section>
+
       <div className="flex justify-end border-t border-[var(--color-divider)] pt-6">
-        <button type="submit" className="btn btn-primary" disabled={saving}>
+        <button type="submit" className="btn btn-primary" disabled={busy}>
           {saving ? 'Salvando…' : 'Salvar configurações'}
         </button>
       </div>

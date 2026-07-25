@@ -413,6 +413,11 @@ export default function WorkspaceDashboard() {
     setSelectedProject(card);
   }, [selectedProject?.id]);
 
+  const handleProjectDeleted = (id: string) => {
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    setSelectedProject((current) => (current?.id === id ? null : current));
+  };
+
   const handleAiSummaryUpdated = useCallback((projectId: string, ai: string) => {
     setProjects((prev) =>
       prev.map((project) =>
@@ -935,6 +940,7 @@ export default function WorkspaceDashboard() {
             project={selectedProject}
             onClose={() => setSelectedProject(null)}
             onUpdated={handleProjectUpdated}
+            onDeleted={handleProjectDeleted}
           />
         </div>
       )}

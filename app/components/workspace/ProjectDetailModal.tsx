@@ -12,11 +12,12 @@ type ProjectDetailModalProps = {
   project: Project | null;
   onClose: () => void;
   onUpdated?: (project: ProjectApiResponse) => void;
+  onDeleted?: (id: string) => void;
 };
 
 type TabId = 'spec-checklist' | 'tasks' | 'settings';
 
-export default function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetailModalProps) {
+export default function ProjectDetailModal({ project, onClose, onUpdated, onDeleted }: ProjectDetailModalProps) {
   const titleId = useId();
   const [activeTab, setActiveTab] = useState<TabId>('spec-checklist');
   const [tasksRefreshKey, setTasksRefreshKey] = useState(0);
@@ -136,6 +137,8 @@ export default function ProjectDetailModal({ project, onClose, onUpdated }: Proj
             <ProjectSettingsPanel
               project={project}
               onUpdated={(updated) => onUpdated?.(updated)}
+              onDeleted={(id) => onDeleted?.(id)}
+              onClose={onClose}
             />
           ) : null}
         </div>
