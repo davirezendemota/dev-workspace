@@ -1,8 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import AiResponseSkeleton from '@/app/components/AiResponseSkeleton';
-import { cn } from '@/app/lib/utils';
 import ProjectAiSummary from './ProjectAiSummary';
 import AddProjectModal, { type ProjectApiResponse } from './AddProjectModal';
 import AddAgentModal from './AddAgentModal';
@@ -119,23 +118,18 @@ function detectProjectFromPrompt(prompt: string, projects: Project[]): string | 
 function ProjectCard({
   project,
   index,
-  highlighted = false,
   onExpand,
   onAiUpdated,
 }: {
   project: Project;
   index: number;
-  highlighted?: boolean;
   onExpand?: (project: Project) => void;
   onAiUpdated?: (projectId: string, ai: string) => void;
 }) {
   return (
     <article
       id={`project-card-${project.id}`}
-      className={cn(
-        'project-card group relative anim-fade-up flex h-full w-[330px] flex-none flex-col gap-[18px] border border-[var(--color-divider)] px-[22px] py-6',
-        highlighted && 'project-card-highlight',
-      )}
+      className="project-card group relative anim-fade-up flex h-full w-[330px] flex-none flex-col gap-[18px] border border-[var(--color-divider)] px-[22px] py-6"
       style={{ animationDelay: `${0.08 + index * 0.06}s` }}
     >
       {onExpand ? (
@@ -268,8 +262,10 @@ export default function WorkspaceDashboard() {
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
-  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [referencedProject, setReferencedProject] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -494,31 +490,26 @@ export default function WorkspaceDashboard() {
     );
   };
 
-  const highlightProject = useCallback((projectId: string) => {
-    if (highlightTimeoutRef.current) {
-      clearTimeout(highlightTimeoutRef.current);
-    }
-
+  const scrollToProject = useCallback((projectId: string) => {
     requestAnimationFrame(() => {
       document
         .getElementById(`project-card-${projectId}`)
         ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     });
-
-    setHighlightedProjectId(projectId);
-    highlightTimeoutRef.current = setTimeout(() => {
-      setHighlightedProjectId(null);
-      highlightTimeoutRef.current = null;
-    }, 5000);
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (highlightTimeoutRef.current) {
-        clearTimeout(highlightTimeoutRef.current);
-      }
+    if (!referencedProject) return;
+
+    const dismissReferencedProject = () => {
+      setReferencedProject(null);
     };
-  }, []);
+
+    document.addEventListener('click', dismissReferencedProject);
+    return () => {
+      document.removeEventListener('click', dismissReferencedProject);
+    };
+  }, [referencedProject]);
 
   const submitPrompt = async (text: string) => {
     if (!aiConfigured || aiLoading) return;
@@ -527,6 +518,7 @@ export default function WorkspaceDashboard() {
     if (!question) return;
 
     setLastQuestion(question);
+    setReferencedProject(null);
     setAiLoading(true);
     setAiError(null);
 
@@ -561,8 +553,10 @@ export default function WorkspaceDashboard() {
         (typeof data.referenced_project_id === 'string' && data.referenced_project_id) ||
         detectProjectFromPrompt(question, projects);
 
-      if (projectId && projects.some((project) => project.id === projectId)) {
-        highlightProject(projectId);
+      const referenced = projects.find((project) => project.id === projectId);
+      if (referenced) {
+        setReferencedProject({ id: referenced.id, name: referenced.name });
+        scrollToProject(referenced.id);
       }
     } catch (err) {
       const message =
@@ -744,6 +738,15 @@ export default function WorkspaceDashboard() {
                       >
                         {aiReply}
                       </p>
+                      {referencedProject ? (
+                        <p
+                          className="anim-fade-in m-0 mt-4 border-t border-[var(--color-divider)] pt-4 text-[14px]"
+                          style={{ fontFamily: 'var(--font-body)' }}
+                        >
+                          Projeto referenciado:{' '}
+                          <strong>{referencedProject.name}</strong>
+                        </p>
+                      ) : null}
                     </>
                   ) : null}
                 </div>
@@ -903,7 +906,6 @@ export default function WorkspaceDashboard() {
                 key={project.id}
                 project={project}
                 index={index}
-                highlighted={highlightedProjectId === project.id}
                 onExpand={setSelectedProject}
                 onAiUpdated={handleAiSummaryUpdated}
               />
