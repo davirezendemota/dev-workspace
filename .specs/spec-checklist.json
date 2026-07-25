@@ -560,30 +560,30 @@
           "checklist": [
             {
               "ac": "AC1",
-              "description": "Aba Checklist visível somente para projetos local",
+              "description": "Aba Tasks disponível para qualquer tipo de projeto",
               "status": "done",
               "issues": [],
               "prs": [],
-              "completedCommit": "d89a02f3313420b899369c65c728d8d35ccf94c2"
+              "completedCommit": "90b1e15ba260a7f015d6ad20fc5afb88f1dea3be"
             },
             {
               "ac": "AC2",
-              "description": "Sidecar ausente retorna checklist vazio",
+              "description": "Projeto manual sem tasks retorna lista vazia",
               "status": "done",
               "issues": [],
               "prs": [],
-              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
+              "completedCommit": "f6bf5b673831d8d49f9eeccb89bbc26308224bb0"
             },
             {
               "ac": "AC3",
-              "description": "Adicionar, renomear e remover itens persiste no sidecar",
+              "description": "CRUD de item em projeto manual persiste no JSON embutido",
               "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
               "prs": [],
-              "completedCommit": "d89a02f3313420b899369c65c728d8d35ccf94c2"
+              "completedCommit": "f6bf5b673831d8d49f9eeccb89bbc26308224bb0"
             },
             {
               "ac": "AC4",
@@ -594,31 +594,31 @@
               ],
               "issues": [],
               "prs": [],
-              "completedCommit": "d89a02f3313420b899369c65c728d8d35ccf94c2"
+              "completedCommit": "f6bf5b673831d8d49f9eeccb89bbc26308224bb0"
             },
             {
               "ac": "AC5",
-              "description": "Sidecars não aparecem em GET /api/projects",
+              "description": "Arquivo legado {id}.tasks.json migra e não aparece em GET /api/projects",
               "status": "done",
               "issues": [],
               "prs": [],
-              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
+              "completedCommit": "f6bf5b673831d8d49f9eeccb89bbc26308224bb0"
             },
             {
               "ac": "AC6",
-              "description": "API rejeita local_repo e github",
+              "description": "Legado checklist ou sidecar antigo migra para tasks embutido",
               "status": "done",
               "issues": [],
               "prs": [],
-              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
+              "completedCommit": "f6bf5b673831d8d49f9eeccb89bbc26308224bb0"
             },
             {
               "ac": "AC7",
-              "description": "Remoção do projeto exclui o sidecar",
+              "description": "Projeto GitHub com _meta.tasks_path customizado usa caminho remoto",
               "status": "done",
               "issues": [],
               "prs": [],
-              "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
+              "completedCommit": "f6bf5b673831d8d49f9eeccb89bbc26308224bb0"
             }
           ]
         },

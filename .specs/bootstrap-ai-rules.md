@@ -100,7 +100,7 @@ Se `specs-workflow.mdc` já existir com o mesmo propósito, fazer merge em vez d
 2. Substituir exemplo `workspace` se não for este projeto.
 3. **Remover** specs de exemplo que não correspondem a arquivos reais em `.specs/features/` **ou** que o usuário indicou como irrelevantes.
 4. Garantir que cada spec no JSON tem `specFile` existente e ACs alinhados ao `.md`.
-5. Preservar metadados de conclusão existentes; não inventar `completedCommit` para itens históricos.
+5. Garantir que todo AC `done` tenha `completedCommit` válido; reconciliar violações com evidência em `git log` ou rebaixar status (ver `/update-specs`).
 6. Atualizar `updatedAt` para a data atual (`YYYY-MM-DD`).
 7. Validar mentalmente contra `.specs/spec-checklist.schema.json`.
 
@@ -199,7 +199,7 @@ da IA. Repo: {nome}. Remover specs de exemplo. Instalar Cursor + Claude Code.
 | Comando | Ferramenta | Função |
 |---------|------------|--------|
 | `/bootstrap-specs` | Cursor, Claude Code | Executa o bootstrap completo (rules, CLAUDE.md, AGENTS.md, commands, skills, checklist) |
-| `/update-specs` | Cursor, Claude Code | Audita o código e sincroniza `features/*.md` + `spec-checklist.json` |
+| `/update-specs` | Cursor, Claude Code | Audita o código, sincroniza `features/*.md` + `spec-checklist.json` e reconcilia `completedCommit` em ACs `done` |
 | `/new-spec` | Cursor, Claude Code | Cria spec nova a partir do template e registra ACs no checklist |
 | `/spec-checklist` | Cursor, Claude Code | Inicia/conclui/bloqueia ACs; lista pendências ("inicie AC2 da spec 003") |
 
