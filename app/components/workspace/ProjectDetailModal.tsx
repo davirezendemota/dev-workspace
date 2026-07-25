@@ -1,0 +1,119 @@
+'use client';
+
+import { useEffect, useId, useState } from 'react';
+import { cn } from '@/app/lib/utils';
+import type { Project } from './data';
+import ProjectStatusDashboard from './ProjectStatusDashboard';
+
+type ProjectDetailModalProps = {
+  project: Project | null;
+  onClose: () => void;
+};
+
+const TABS = [{ id: 'dashboard', label: 'Dashboard' }] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+export default function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps) {
+  const titleId = useId();
+  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+
+  useEffect(() => {
+    if (!project) return;
+    setActiveTab('dashboard');
+  }, [project]);
+
+  useEffect(() => {
+    if (!project) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [project, onClose]);
+
+  if (!project) return null;
+
+  return (
+    <div
+      className="anim-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      role="presentation"
+    >
+      <button
+        type="button"
+        className="absolute inset-0 cursor-pointer border-0 backdrop-blur-[6px]"
+        style={{ background: 'color-mix(in srgb, var(--color-text) 28%, transparent)' }}
+        aria-label="Fechar"
+        onClick={onClose}
+      />
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="anim-fade-up relative z-10 flex max-h-[min(92vh,900px)] w-full max-w-[min(96vw,1180px)] flex-col border border-[var(--color-divider)] bg-[var(--color-bg)] shadow-[var(--shadow-lg)]"
+      >
+        <header className="flex flex-none items-start justify-between gap-4 border-b border-[var(--color-divider)] px-6 py-5 sm:px-8">
+          <div className="min-w-0">
+            <p className="chk mb-2">Projeto</p>
+            <h2
+              id={titleId}
+              className="truncate text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight"
+              style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}
+            >
+              {project.name}
+            </h2>
+            <p
+              className="mt-1.5 truncate text-[13px] italic"
+              style={{
+                fontFamily: 'var(--font-body)',
+                color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+              }}
+            >
+              {project.repo}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn flex-none"
+            onClick={onClose}
+            aria-label="Fechar"
+          >
+            ✕
+          </button>
+        </header>
+
+        <nav
+          className="flex flex-none gap-1 border-b border-[var(--color-divider)] px-6 sm:px-8"
+          aria-label="Abas do projeto"
+        >
+          {TABS.map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={cn(
+                  'relative px-4 py-3 text-[13px] transition-colors',
+                  active ? 'text-[var(--color-accent)]' : 'text-[var(--color-text)]',
+                )}
+                style={{ fontFamily: 'var(--font-heading)' }}
+                onClick={() => setActiveTab(tab.id)}
+                aria-current={active ? 'page' : undefined}
+              >
+                {tab.label}
+                {active ? (
+                  <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--color-accent)]" />
+                ) : null}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7">
+          {activeTab === 'dashboard' ? <ProjectStatusDashboard project={project} /> : null}
+        </div>
+      </div>
+    </div>
+  );
+}

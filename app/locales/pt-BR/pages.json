@@ -1,0 +1,15 @@
+{
+  "example": {
+    "title": "App Exemplo",
+    "description": "Esta é a página de exemplo.",
+    "nameLabel": "Nome",
+    "namePlaceholder": "Digite o nome",
+    "submitButton": "Salvar",
+    "saving": "Salvando...",
+    "loading": "Carregando...",
+    "backendOnline": "Backend online",
+    "backendOffline": "Backend offline",
+    "backendChecking": "Verificando..."
+  }
+}
+

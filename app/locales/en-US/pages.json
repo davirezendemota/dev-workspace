@@ -1,0 +1,15 @@
+{
+  "example": {
+    "title": "Example",
+    "description": "This is the example page.",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter the name",
+    "submitButton": "Save",
+    "saving": "Saving...",
+    "loading": "Loading...",
+    "backendOnline": "Backend online",
+    "backendOffline": "Backend offline",
+    "backendChecking": "Checking..."
+  }
+}
+
