@@ -6,9 +6,7 @@ import { ApiError } from './api-error';
 import { LOCAL_PROJECTS_MOUNT, serverEnv } from './env';
 import {
   fetchGithubCommitDate,
-  fetchGithubJsonFile,
   fetchGithubTextFile,
-  putGithubTextFile,
 } from './github-json';
 import { slugify } from './slugify';
 import { projectsFolder } from './workspace-config';
@@ -41,9 +39,12 @@ export type ProjectCreateInput = {
   source_type: ProjectSourceType;
   json_content?: string | Record<string, unknown> | null;
   local_path?: string | null;
+  spec_project_id?: string | null;
+  spec_checklist_path?: string | null;
   github_repo_url?: string | null;
   github_pat?: string | null;
   github_branch?: string | null;
+  /** @deprecated GitHub projects no longer sync project.json from the repo */
   github_file_path?: string | null;
 };
 
@@ -107,30 +108,45 @@ export async function createProject(
     return fileToResponse(filePath);
   }
 
+  const jsonData = parseJsonContent(data.json_content);
+  const name = requireNameFromJson(jsonData);
+  const body = stripRepoFields(jsonData);
+  const checklistPath =
+    typeof data.spec_checklist_path === 'string' && data.spec_checklist_path.trim()
+      ? data.spec_checklist_path.trim().replace(/^\//, '')
+      : DEFAULT_CHECKLIST_PATH;
+
   try {
-    const jsonData = await fetchGithubJsonFile({
+    await fetchGithubTextFile({
       repoUrl: data.github_repo_url!,
       pat: data.github_pat!,
       branch: data.github_branch!,
-      filePath: data.github_file_path!,
+      filePath: checklistPath,
     });
-    const name = requireNameFromJson(jsonData);
-    const payload = withMeta(jsonData, {
-      source_type: 'github',
-      github_repo_url: data.github_repo_url!.trim(),
-      github_pat: data.github_pat!.trim(),
-      github_branch: data.github_branch!.trim(),
-      github_file_path: data.github_file_path!.trim(),
-      last_synced_at: new Date().toISOString(),
-    });
-    const filePath = writeProjectFile(name, payload);
-    return fileToResponse(filePath);
   } catch (error) {
     throw new ApiError(
       400,
-      error instanceof Error ? error.message : 'Falha ao buscar projeto no GitHub.',
+      error instanceof Error
+        ? error.message
+        : 'Falha ao buscar spec-checklist no GitHub.',
     );
   }
+
+  const meta: Record<string, unknown> = {
+    source_type: 'github',
+    github_repo_url: data.github_repo_url!.trim(),
+    github_pat: data.github_pat!.trim(),
+    github_branch: data.github_branch!.trim(),
+    spec_checklist_path: checklistPath,
+    last_synced_at: new Date().toISOString(),
+  };
+  if (typeof data.spec_project_id === 'string' && data.spec_project_id.trim()) {
+    meta.spec_project_id = data.spec_project_id.trim();
+  }
+
+  const payload = withMeta(body, meta);
+  const filePath = writeProjectFile(name, payload);
+  return fileToResponse(filePath);
 }
 
 export function updateProject(
@@ -187,29 +203,35 @@ export async function syncProject(id: string): Promise<ProjectResponse> {
   const repo = meta.github_repo_url;
   const pat = meta.github_pat;
   const branch = meta.github_branch;
-  const remoteFilePath = meta.github_file_path;
-  if (!repo || !pat || !branch || !remoteFilePath) {
+  if (!repo || !pat || !branch) {
     throw new ApiError(400, 'Configuração GitHub incompleta para sincronizar.');
   }
 
+  const checklistPath =
+    typeof meta.spec_checklist_path === 'string' && meta.spec_checklist_path.trim()
+      ? meta.spec_checklist_path.trim().replace(/^\//, '')
+      : DEFAULT_CHECKLIST_PATH;
+
   try {
-    const jsonData = await fetchGithubJsonFile({
+    await fetchGithubTextFile({
       repoUrl: String(repo),
       pat: String(pat),
       branch: String(branch),
-      filePath: String(remoteFilePath),
+      filePath: checklistPath,
     });
-    requireNameFromJson(jsonData);
     meta.last_synced_at = new Date().toISOString();
+    delete meta.github_file_path;
+    delete meta.tasks_path;
+    delete meta.checklist_path;
     const body = Object.fromEntries(
-      Object.entries(jsonData).filter(([key]) => key !== META_KEY),
+      Object.entries(current).filter(([key]) => key !== META_KEY),
     );
     overwriteJsonFile(filePath, withMeta(body, meta));
     return fileToResponse(filePath);
   } catch (error) {
     throw new ApiError(
       400,
-      error instanceof Error ? error.message : 'Falha ao sincronizar projeto.',
+      error instanceof Error ? error.message : 'Falha ao sincronizar spec-checklist.',
     );
   }
 }
@@ -304,15 +326,14 @@ function resolveProjectTasksPath(
 }
 
 function resolveProjectTasksPathForResponse(
-  meta: Record<string, unknown>,
-  sourceType: ProjectSourceType,
+  _meta: Record<string, unknown>,
+  _sourceType: ProjectSourceType,
 ): string | null {
-  if (sourceType === 'local' || sourceType === 'local_repo') return null;
-  return resolveProjectTasksPath(meta, sourceType);
+  return null;
 }
 
-function usesEmbeddedProjectTasks(sourceType: ProjectSourceType): boolean {
-  return sourceType === 'local' || sourceType === 'local_repo';
+function usesEmbeddedProjectTasks(_sourceType: ProjectSourceType): boolean {
+  return true;
 }
 
 function createTaskItemId(): string {
@@ -396,9 +417,6 @@ function parseProjectTasksDocument(raw: unknown): {
   return { version: 1, items };
 }
 
-function serializeProjectTasksDocument(items: ProjectTaskItem[]): string {
-  return `${JSON.stringify({ version: 1, items }, null, 2)}\n`;
-}
 
 function overwriteJsonFileAtomic(
   filePath: string,
@@ -530,35 +548,12 @@ function resolveProjectTasksContext(id: string): ProjectTasksContext {
       : {};
   const sourceType = resolveSourceType(meta);
 
-  if (usesEmbeddedProjectTasks(sourceType)) {
-    return {
-      id,
-      sourceType,
-      tasksPath: null,
-      workspaceFilePath: null,
-      github: null,
-    };
-  }
-
-  const tasksPath = resolveProjectTasksPath(meta, sourceType);
-
-  const repo = meta.github_repo_url;
-  const pat = meta.github_pat;
-  const branch = meta.github_branch;
-  if (!repo || !pat || !branch) {
-    throw new ApiError(400, 'Configuração GitHub incompleta para tasks.');
-  }
-
   return {
     id,
     sourceType,
-    tasksPath,
+    tasksPath: null,
     workspaceFilePath: null,
-    github: {
-      repoUrl: String(repo),
-      pat: String(pat),
-      branch: String(branch),
-    },
+    github: null,
   };
 }
 
@@ -637,51 +632,71 @@ function migrateEmbeddedProjectTasks(
   }
 }
 
+async function migrateGithubRemoteTasksToEmbedded(id: string): Promise<void> {
+  const filePath = pathForId(id);
+  let data = readJsonFile(filePath);
+  const meta =
+    data[META_KEY] && typeof data[META_KEY] === 'object' && !Array.isArray(data[META_KEY])
+      ? (data[META_KEY] as Record<string, unknown>)
+      : {};
+
+  if (resolveSourceType(meta) !== 'github') {
+    return;
+  }
+
+  const embedded = readEmbeddedTasksFromProject(data);
+  if (!embedded.length) {
+    const tasksPath = resolveProjectTasksPath(meta, 'github');
+    const repo = meta.github_repo_url;
+    const pat = meta.github_pat;
+    const branch = meta.github_branch;
+    if (repo && pat && branch && tasksPath) {
+      try {
+        const remote = await fetchGithubTextFile({
+          repoUrl: String(repo),
+          pat: String(pat),
+          branch: String(branch),
+          filePath: tasksPath,
+        });
+        const document = parseProjectTasksDocument(JSON.parse(remote.content));
+        if (document.items.length > 0) {
+          writeEmbeddedTasksToProject(id, document.items);
+        }
+      } catch {
+        /* ignore missing or invalid remote tasks */
+      }
+    }
+  }
+
+  data = readJsonFile(filePath);
+  const nextMeta = {
+    ...((data[META_KEY] as Record<string, unknown>) ?? {}),
+  };
+  let changed = false;
+  for (const key of ['tasks_path', 'checklist_path', 'github_file_path'] as const) {
+    if (key in nextMeta) {
+      delete nextMeta[key];
+      changed = true;
+    }
+  }
+  if (changed) {
+    const body = Object.fromEntries(
+      Object.entries(data).filter(([key]) => key !== META_KEY),
+    );
+    overwriteJsonFile(filePath, withMeta(body, nextMeta));
+  }
+}
+
 function migrateLegacyTasksSources(
   id: string,
   ctx: ProjectTasksContext,
 ): Promise<void> {
-  const filePath = pathForId(id);
-  let data = readJsonFile(filePath);
+  return migrateGithubRemoteTasksToEmbedded(id).then(() => {
+    const filePath = pathForId(id);
+    let data = readJsonFile(filePath);
 
-  if (usesEmbeddedProjectTasks(ctx.sourceType)) {
     migrateEmbeddedProjectTasks(id, ctx, data, filePath);
-    return Promise.resolve();
-  }
-
-  const inlineItems = readTaskItemsFromRaw(data.checklist);
-  const existingFile = ctx.workspaceFilePath
-    ? readTasksFileFromDisk(ctx.workspaceFilePath)
-    : null;
-
-  if (inlineItems.length > 0) {
-    if (!existingFile?.items.length && ctx.workspaceFilePath) {
-      writeTasksFileToDisk(ctx.workspaceFilePath, inlineItems);
-    }
-    removeLegacyChecklistFieldFromProjectJson(id);
-    data = readJsonFile(filePath);
-  } else if ('checklist' in data) {
-    removeLegacyChecklistFieldFromProjectJson(id);
-    data = readJsonFile(filePath);
-  }
-
-  const meta = {
-    ...((data[META_KEY] as Record<string, unknown>) ?? {}),
-  };
-  if (
-    typeof meta.checklist_path === 'string' &&
-    meta.checklist_path.trim() &&
-    !meta.tasks_path
-  ) {
-    meta.tasks_path = meta.checklist_path.trim().replace(/^\//, '');
-    delete meta.checklist_path;
-    const body = Object.fromEntries(
-      Object.entries(data).filter(([key]) => key !== META_KEY),
-    );
-    overwriteJsonFile(filePath, withMeta(body, meta));
-  }
-
-  return Promise.resolve();
+  });
 }
 
 function buildProjectTasksResponse(
@@ -698,49 +713,14 @@ function buildProjectTasksResponse(
   };
 }
 
-async function readProjectTasksFromGithub(
-  ctx: ProjectTasksContext,
-): Promise<ProjectTasksDocument> {
-  if (!ctx.github) {
-    return buildProjectTasksResponse(ctx, [], null);
-  }
-
-  try {
-    const remote = await fetchGithubTextFile({
-      repoUrl: ctx.github.repoUrl,
-      pat: ctx.github.pat,
-      branch: ctx.github.branch,
-      filePath: ctx.tasksPath!,
-    });
-    const document = parseProjectTasksDocument(JSON.parse(remote.content));
-    return buildProjectTasksResponse(ctx, document.items, null);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('não encontrado')) {
-      return buildProjectTasksResponse(ctx, [], null);
-    }
-    throw new ApiError(
-      400,
-      error instanceof Error ? error.message : 'Falha ao ler tasks no GitHub.',
-    );
-  }
-}
-
 export async function getProjectTasks(id: string): Promise<ProjectTasksDocument> {
   const ctx = resolveProjectTasksContext(id);
   await migrateLegacyTasksSources(id, ctx);
 
-  if (ctx.sourceType === 'github') {
-    return readProjectTasksFromGithub(ctx);
-  }
-
-  if (usesEmbeddedProjectTasks(ctx.sourceType)) {
-    const data = readJsonFile(pathForId(id));
-    const items = readEmbeddedTasksFromProject(data);
-    const stat = fs.statSync(pathForId(id));
-    return buildProjectTasksResponse(ctx, items, stat.mtime.toISOString());
-  }
-
-  return buildProjectTasksResponse(ctx, [], null);
+  const data = readJsonFile(pathForId(id));
+  const items = readEmbeddedTasksFromProject(data);
+  const stat = fs.statSync(pathForId(id));
+  return buildProjectTasksResponse(ctx, items, stat.mtime.toISOString());
 }
 
 export async function saveProjectTasks(
@@ -749,57 +729,8 @@ export async function saveProjectTasks(
 ): Promise<ProjectTasksDocument> {
   const ctx = resolveProjectTasksContext(id);
   const document = parseProjectTasksDocument(payload);
-
-  if (ctx.sourceType === 'github') {
-    if (!ctx.github || !ctx.tasksPath) {
-      throw new ApiError(400, 'Configuração GitHub incompleta para tasks.');
-    }
-
-    let sha: string | null = null;
-    try {
-      const remote = await fetchGithubTextFile({
-        repoUrl: ctx.github.repoUrl,
-        pat: ctx.github.pat,
-        branch: ctx.github.branch,
-        filePath: ctx.tasksPath,
-      });
-      sha = remote.sha;
-    } catch (error) {
-      if (!(error instanceof Error && error.message.includes('não encontrado'))) {
-        throw new ApiError(
-          400,
-          error instanceof Error ? error.message : 'Falha ao ler tasks no GitHub.',
-        );
-      }
-    }
-
-    const content = serializeProjectTasksDocument(document.items);
-    try {
-      await putGithubTextFile({
-        repoUrl: ctx.github.repoUrl,
-        pat: ctx.github.pat,
-        branch: ctx.github.branch,
-        filePath: ctx.tasksPath,
-        content,
-        sha,
-        message: `Update ${ctx.tasksPath}`,
-      });
-    } catch (error) {
-      throw new ApiError(
-        400,
-        error instanceof Error ? error.message : 'Falha ao salvar tasks no GitHub.',
-      );
-    }
-
-    return buildProjectTasksResponse(ctx, document.items, new Date().toISOString());
-  }
-
-  if (usesEmbeddedProjectTasks(ctx.sourceType)) {
-    const updatedAt = writeEmbeddedTasksToProject(id, document.items);
-    return buildProjectTasksResponse(ctx, document.items, updatedAt);
-  }
-
-  throw new ApiError(400, 'Tipo de projeto não suportado para tasks.');
+  const updatedAt = writeEmbeddedTasksToProject(id, document.items);
+  return buildProjectTasksResponse(ctx, document.items, updatedAt);
 }
 
 export type AcStatus = 'todo' | 'in-progress' | 'blocked' | 'done';
@@ -1331,7 +1262,6 @@ function validateProjectCreate(data: ProjectCreateInput) {
       ['github_repo_url', data.github_repo_url],
       ['github_pat', data.github_pat],
       ['github_branch', data.github_branch],
-      ['github_file_path', data.github_file_path],
     ] as const
   )
     .filter(([, value]) => !value || !String(value).trim())
@@ -1342,6 +1272,23 @@ function validateProjectCreate(data: ProjectCreateInput) {
       400,
       `Campos obrigatórios para GitHub: ${missing.join(', ')}`,
     );
+  }
+
+  const hasContent =
+    data.json_content !== undefined &&
+    data.json_content !== null &&
+    data.json_content !== '';
+  if (!hasContent) {
+    throw new ApiError(
+      400,
+      'Informe os parâmetros do projeto (incluindo name).',
+    );
+  }
+  if (typeof data.json_content === 'object' && data.json_content !== null) {
+    const name = data.json_content.name;
+    if (typeof name !== 'string' || !name.trim()) {
+      throw new ApiError(400, 'O campo "name" é obrigatório.');
+    }
   }
 }
 
@@ -1601,19 +1548,8 @@ function applyProjectMetaUpdates(
   }
 
   if (data.tasks_path !== undefined) {
-    const sourceType = resolveSourceType(meta);
-    if (sourceType !== 'github') {
-      delete meta.tasks_path;
-    } else {
-      const trimmed =
-        data.tasks_path === null ? '' : String(data.tasks_path).trim();
-      if (trimmed) {
-        meta.tasks_path = trimmed.replace(/^\//, '');
-        delete meta.checklist_path;
-      } else {
-        delete meta.tasks_path;
-      }
-    }
+    delete meta.tasks_path;
+    delete meta.checklist_path;
   }
 
   for (const key of [
@@ -1621,7 +1557,6 @@ function applyProjectMetaUpdates(
     'github_repo_url',
     'github_pat',
     'github_branch',
-    'github_file_path',
   ] as const) {
     if (data[key] === undefined) continue;
     if (data[key] === null || !String(data[key]).trim()) {
@@ -1647,7 +1582,6 @@ function applyProjectMetaUpdates(
       [
         ['github_repo_url', meta.github_repo_url],
         ['github_branch', meta.github_branch],
-        ['github_file_path', meta.github_file_path],
       ] as const
     )
       .filter(([, value]) => !value || !String(value).trim())
@@ -1663,6 +1597,17 @@ function applyProjectMetaUpdates(
         `Campos obrigatórios para GitHub: ${missing.join(', ')}`,
       );
     }
+
+    if (
+      typeof meta.spec_checklist_path !== 'string' ||
+      !meta.spec_checklist_path.trim()
+    ) {
+      meta.spec_checklist_path = DEFAULT_CHECKLIST_PATH;
+    }
+
+    delete meta.github_file_path;
+    delete meta.tasks_path;
+    delete meta.checklist_path;
   }
 
   meta.source_type = sourceType;
