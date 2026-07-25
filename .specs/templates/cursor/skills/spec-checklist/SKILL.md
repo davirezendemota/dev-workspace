@@ -37,14 +37,24 @@ Se ambíguo, listar candidatos e pedir confirmação em uma linha.
    - `{ "specId": "002", "ac": "AC3" }` → spec/AC explícito.
 3. Se pré-requisito pendente → **não** iniciar; reportar o bloqueio e sugira ordem.
 4. Para `done` → ler critério na spec; se implementação não verificada, avisar antes de marcar.
+5. Para `done` → identificar o commit que tornou o critério atendido:
+   - Preferir o commit informado pelo usuário ou vinculado ao PR.
+   - Caso contrário, inspecionar `git status` e o histórico recente; usar o `HEAD` somente se ele contiver a implementação verificada.
+   - Normalizar com `git rev-parse <ref>^{commit}` e armazenar o hash completo em minúsculo.
+   - Se a implementação relevante ainda estiver sem commit, não marcar `done`; explicar que um commit da implementação precisa existir primeiro. Nunca criar commit sem pedido explícito.
 
 ## Ao executar ação
 
 1. Atualizar `status` do AC no JSON.
 2. Se iniciou implementação relacionada, ler a spec e seguir o fluxo de código do projeto.
 3. Vincular `prs` / `issues` se o usuário mencionou números.
-4. Atualizar `updatedAt` (`YYYY-MM-DD`).
-5. Validar JSON contra schema.
+4. Ao mudar para `done`, preencher `completedCommit` com o hash completo do commit da implementação. A data/hora de conclusão é herdada desse commit e não é armazenada separadamente.
+5. Ao mudar de `done` para qualquer outro status, remover `completedCommit`.
+6. Não inventar metadados para itens históricos já concluídos; fazer backfill somente com evidência confiável.
+7. Atualizar `updatedAt` (`YYYY-MM-DD`).
+8. Validar JSON contra schema.
+
+O commit que atualiza o checklist não pode referenciar o próprio hash. `completedCommit` aponta para um commit anterior que já tornou o AC atendido; a atualização do checklist é commitada depois.
 
 ## Resposta padrão
 
@@ -52,6 +62,7 @@ Se ambíguo, listar candidatos e pedir confirmação em uma linha.
 ## Spec {specId} — {title}
 **AC{n}** ({description})
 - Status: {anterior} → {novo}
+- Conclusão: commit {completedCommit ou —} · data/hora do commit
 - Dependências satisfeitas: sim/não (listar pendentes)
 - Próximo AC sugerido: ...
 ```
@@ -62,6 +73,7 @@ Para listagem, tabela por spec: AC | status | description | deps pendentes.
 
 - Não colocar status/checkbox em `features/*.md`.
 - Não marcar `done` sem critério verificado ou confirmação explícita do usuário.
+- Não marcar um novo `done` sem `completedCommit`.
 - Não remover ACs do checklist sem alinhar a spec.
 
 ## Exemplos

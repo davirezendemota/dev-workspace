@@ -35,6 +35,9 @@ Classifique cada AC como: **done** (implementado e verificável), **in-progress*
 ## Passo 4 — Atualizar checklist (JSON)
 
 - Alinhe `status` de cada AC com a auditoria.
+- Ao mudar um AC para `done`, identifique um commit já existente que tornou o critério atendido e preencha `completedCommit` (hash completo via `git rev-parse <ref>^{commit}`). A data/hora de conclusão é herdada desse commit. Se a implementação ainda estiver sem commit, mantenha `in-progress`; não crie commit sem pedido explícito.
+- Ao retirar um AC de `done`, remova `completedCommit`.
+- Preserve itens históricos `done` sem metadados quando não houver evidência confiável para backfill.
 - Adicione ACs faltantes no JSON (e na spec) se o código entregou critérios não documentados.
 - Remova ou marque fora de escopo na spec antes de remover do checklist.
 - Valide `before` / `after` — ajuste se dependências mudaram.
@@ -48,3 +51,5 @@ Entregue:
 2. Specs/docs criados ou editados.
 3. Gaps: código sem spec, spec sem código, ACs bloqueados por dependência.
 4. Não commitar unless o usuário pedir.
+
+O commit que atualiza o checklist não pode referenciar o próprio hash; `completedCommit` aponta para um commit anterior da implementação.

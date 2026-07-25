@@ -20,7 +20,8 @@ Este projeto usa `.specs/` para especificações e rastreamento de progresso.
 
 ### Ao concluir
 
-- Marque ACs atendidos como `done` somente após verificar o critério na spec.
+- Marque ACs atendidos como `done` somente após verificar o critério na spec e existir um commit da implementação; preencha `completedCommit`. A data/hora de conclusão é herdada desse commit.
+- Ao reabrir um AC concluído, remova `completedCommit`.
 - Use `blocked` se houver impedimento externo documentado.
 - Atualize `updatedAt` em `spec-checklist.json`.
 - Se criou spec ou AC novo, confirme que `specId`, `specFile` e IDs `ACn` estão alinhados entre `.md` e JSON.

@@ -10,8 +10,8 @@ Nome do arquivo:
 Preencha todas as seções. Se algo não se aplica, escreva "N/A"
 em vez de apagar — assim fica claro que a ausência foi intencional.
 
-Progresso, status, issues e PRs NÃO vivem aqui — ficam em
-spec-checklist.json, referenciando esta spec pelo seu ID.
+Progresso, status, metadados de conclusão, issues e PRs NÃO vivem aqui —
+ficam em spec-checklist.json, referenciando esta spec pelo seu ID.
 -->
 
 > **Última atualização:** AAAA-MM-DD

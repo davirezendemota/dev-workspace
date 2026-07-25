@@ -8,7 +8,7 @@ The project keeps requirements in `.specs/features/*.md` and delivery state in `
 
 **While working:** Set the AC `status` to `in-progress`. Add GitHub `issues` / `prs` numbers when available. Never write progress checkboxes in spec markdown.
 
-**End of task:** Set completed ACs to `done`, use `blocked` when stuck on external deps, and bump `updatedAt` in `spec-checklist.json`. Keep AC IDs in sync between markdown and JSON.
+**End of task:** Set completed ACs to `done` only after an implementation commit exists; add the full `completedCommit` and inherit completion date/time from that commit. Remove it when reopening an AC, use `blocked` for external deps, and bump `updatedAt`. Keep AC IDs in sync between markdown and JSON.
 
 Reference: `.specs/README.md`
 

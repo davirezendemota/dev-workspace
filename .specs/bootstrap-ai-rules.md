@@ -100,8 +100,9 @@ Se `specs-workflow.mdc` já existir com o mesmo propósito, fazer merge em vez d
 2. Substituir exemplo `workspace` se não for este projeto.
 3. **Remover** specs de exemplo que não correspondem a arquivos reais em `.specs/features/` **ou** que o usuário indicou como irrelevantes.
 4. Garantir que cada spec no JSON tem `specFile` existente e ACs alinhados ao `.md`.
-5. Atualizar `updatedAt` para a data atual (`YYYY-MM-DD`).
-6. Validar mentalmente contra `.specs/spec-checklist.schema.json`.
+5. Preservar metadados de conclusão existentes; não inventar `completedCommit` para itens históricos.
+6. Atualizar `updatedAt` para a data atual (`YYYY-MM-DD`).
+7. Validar mentalmente contra `.specs/spec-checklist.schema.json`.
 
 ### Passo 6 — Verificação
 
@@ -277,7 +278,8 @@ Este projeto usa `.specs/` para especificações e rastreamento de progresso.
 
 ### Ao concluir
 
-- Marque ACs atendidos como `done` somente após verificar o critério na spec.
+- Marque ACs atendidos como `done` somente após verificar o critério e existir um commit da implementação; preencha `completedCommit`. A data/hora de conclusão é herdada desse commit.
+- Ao reabrir um AC concluído, remova `completedCommit`.
 - Use `blocked` se houver impedimento externo documentado.
 - Atualize `updatedAt` em `spec-checklist.json`.
 - Se criou spec ou AC novo, confirme que `specId`, `specFile` e IDs `ACn` estão alinhados entre `.md` e JSON.
@@ -308,7 +310,7 @@ The project keeps requirements in `.specs/features/*.md` and delivery state in `
 
 **While working:** Set the AC `status` to `in-progress`. Add GitHub `issues` / `prs` numbers when available. Never write progress checkboxes in spec markdown.
 
-**End of task:** Set completed ACs to `done`, use `blocked` when stuck on external deps, and bump `updatedAt` in `spec-checklist.json`. Keep AC IDs in sync between markdown and JSON.
+**End of task:** Set completed ACs to `done` only after an implementation commit exists; add the full `completedCommit` and inherit completion date/time from that commit. Remove it when reopening an AC, use `blocked` for external deps, and bump `updatedAt`. Keep AC IDs in sync between markdown and JSON.
 
 Reference: `.specs/README.md`
 
@@ -349,7 +351,8 @@ Projeto com pasta `.specs/`. Detalhes em `.specs/README.md`.
 
 ## Fim
 
-- AC verificado → `status: "done"`; impedimento externo → `blocked`.
+- AC verificado e com commit da implementação → `status: "done"` e `completedCommit`; a data/hora é herdada do commit. Ao reabrir, remover o campo.
+- Impedimento externo → `blocked`.
 - Atualizar `updatedAt` em `spec-checklist.json`.
 - Nunca colocar status/checkbox em `features/*.md`.
 
@@ -378,6 +381,7 @@ alwaysApply: false
 - `spec-checklist.json` deve validar contra `spec-checklist.schema.json`.
 - Cada `ac` no JSON deve existir na seção **Critérios de aceite** do `specFile` correspondente.
 - `specId` de três dígitos alinhado ao prefixo do arquivo (`003-projects.md` → `"003"`).
+- Novos itens `done` devem ter `completedCommit`; fora de `done`, o campo não pode existir. A data/hora de conclusão é herdada do commit.
 - Ao alterar checklist, atualizar `updatedAt` (formato `YYYY-MM-DD`).
 - Dependências: preferir declarar `after` no item dependente ou `before` no pré-requisito — não espelhar obrigatoriamente nos dois lados.
 ```

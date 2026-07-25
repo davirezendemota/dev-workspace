@@ -28,7 +28,12 @@ Specs descrevem comportamento e critérios de aceite com IDs estáveis (`AC1`, `
     ├── 001-projects_ai-input.md
     ├── 002-settings.md
     ├── 003-projects.md
-    └── 004-projects_ai-summary.md
+    ├── 004-projects_ai-summary.md
+    ├── 005-agents.md
+    ├── 006-projects_modal-dashboard.md
+    ├── 007-spec-checklist_completion-metadata.md
+    ├── 008-projects_local-checklist.md
+    └── 009-projects_modal-settings.md
 ```
 
 A pasta `.obsidian/` (se existir) é configuração local do editor Obsidian e não faz parte do fluxo de specs.
@@ -89,12 +94,19 @@ Arquivo único que agrega o progresso de todos os projetos. Cada projeto agrupa 
 | `ac` | sim | ID do critério (`AC1`, `AC2`, …), igual ao da spec |
 | `description` | não | Resumo do critério (espelha ou resume o `.md`) |
 | `status` | sim | `todo`, `in-progress`, `blocked` ou `done` |
+| `completedCommit` | não | Hash completo do commit que tornou o critério atendido; sua data/hora é a conclusão |
 | `before` | não | ACs que dependem deste item |
 | `after` | não | ACs que devem estar `done` antes deste |
 | `issues` | não | Números de issues do GitHub |
 | `prs` | não | Números de pull requests do GitHub |
 
 Atualize `updatedAt` ao modificar o checklist.
+
+`completedCommit` só pode ser usado com `status: "done"`. A data/hora de conclusão é herdada dos metadados desse commit e não é duplicada no checklist. Itens históricos concluídos podem permanecer sem o campo quando não houver evidência confiável para o backfill.
+
+Ao carregar o checklist, o Dev Workspace resolve essa data/hora com `git show` no repositório de um projeto local. Para projetos GitHub, consulta o endpoint de commits da API do GitHub usando o PAT cadastrado no projeto. Se o commit não puder ser resolvido, o hash é preservado e a data/hora derivada fica indisponível.
+
+Um commit não pode armazenar o próprio hash, pois seu conteúdo participa do cálculo desse hash. Por isso, primeiro faça o commit da implementação; depois marque o AC como `done`, apontando `completedCommit` para esse commit anterior. Ao reabrir um AC, remova o campo.
 
 ## Cadeamento (`before` / `after`)
 
@@ -143,7 +155,7 @@ Declare a dependência em **um** dos lados (`after` no dependente ou `before` no
 2. **Registrar** — garanta entrada correspondente em `spec-checklist.json`.
 3. **Implementar** — marque ACs como `in-progress` enquanto trabalha.
 4. **Vincular** — adicione números de PR em `prs` e de issue em `issues`.
-5. **Concluir** — mude o `status` para `done` quando o critério estiver atendido.
+5. **Concluir** — depois de verificar e commitar a implementação, mude o `status` para `done` e registre `completedCommit`.
 
 Se um AC estiver bloqueado por dependência externa, use `blocked` até o pré-requisito ser resolvido.
 
@@ -159,6 +171,7 @@ Ao implementar uma feature:
 2. Consulte `spec-checklist.json` para status atual, dependências (`before`/`after`) e PRs/issues ligados.
 3. Não altere IDs de AC na spec sem atualizar o checklist.
 4. Atualize `status`, `prs` e `issues` no checklist ao concluir trabalho — não marque ACs como `done` no Markdown.
+5. Em novas conclusões, registre o hash completo do commit da implementação em `completedCommit`; a data/hora vem desse commit. Ao reabrir, remova o campo.
 
 ### Integrar `.specs` em projeto novo
 

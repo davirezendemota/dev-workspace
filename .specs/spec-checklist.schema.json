@@ -5,6 +5,7 @@
   "type": "object",
   "required": ["version", "projects"],
   "properties": {
+    "$schema": { "type": "string" },
     "version": { "type": "integer", "minimum": 1 },
     "updatedAt": { "type": "string", "format": "date" },
     "projects": {
@@ -46,6 +47,11 @@
                         "type": "string",
                         "enum": ["todo", "in-progress", "blocked", "done"]
                       },
+                      "completedCommit": {
+                        "type": "string",
+                        "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+                        "description": "Hash completo do commit que tornou o critério atendido; a data/hora de conclusão é herdada desse commit"
+                      },
                       "before": {
                         "type": "array",
                         "description": "ACs que devem ser concluídos após este item",
@@ -65,6 +71,21 @@
                         "items": { "type": "integer" }
                       }
                     },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "status": { "const": "done" }
+                          },
+                          "required": ["status"]
+                        },
+                        "else": {
+                          "not": {
+                            "required": ["completedCommit"]
+                          }
+                        }
+                      }
+                    ],
                     "additionalProperties": false
                   }
                 }
