@@ -16,9 +16,11 @@ type WorkspaceConfig = {
   ai_project_summary_prompt: string;
 };
 
+const configDir = path.dirname(serverEnv.WORKSPACE_CONFIG_PATH);
+
 const DEFAULT_CONFIG: WorkspaceConfig = {
-  projects_folder: serverEnv.WORKSPACE_PROJECTS_PATH,
-  agents_folder: serverEnv.WORKSPACE_AGENTS_PATH,
+  projects_folder: path.join(configDir, 'projects'),
+  agents_folder: path.join(configDir, 'agents'),
   ai_provider: '',
   ai_model: '',
   ai_api_token: '',
