@@ -92,7 +92,8 @@ export async function generateProjectAiSummary(
   const systemPrompt = projectAiSummaryPrompt();
 
   const userPrompt = [
-    'Gere um resumo atualizado para o card do projeto:',
+    'Gere um resumo atualizado para o card deste projeto.',
+    'Use apenas os dados abaixo; se houver spec_checklist, considere somente as specs desse bloco projects[] resolvido.',
     '',
     context,
   ].join('\n');
@@ -167,11 +168,11 @@ function buildSummaryContext(
     checklist: cardChecklist,
   };
 
-  if (checklist && checklist.specs.length > 0) {
+  if (checklist?.project_id && checklist.specs.length > 0) {
     payload.spec_checklist = {
       project_id: checklist.project_id,
       project_name: checklist.project_name,
-      updated_at: checklist.global_updated_at ?? checklist.updated_at,
+      updated_at: checklist.updated_at,
       stats: checklist.stats,
       specs: checklist.specs.map((spec) => ({
         specId: spec.specId,
