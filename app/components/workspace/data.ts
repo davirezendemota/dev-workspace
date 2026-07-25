@@ -30,6 +30,18 @@ export type Project = {
   lastSyncedAt?: string | null;
 };
 
+export function resolveGithubHref(
+  project: Pick<Project, 'githubRepoUrl' | 'sourceType' | 'repo'>,
+): string | null {
+  const configured = project.githubRepoUrl?.trim();
+  if (configured) return configured;
+  if (project.sourceType !== 'github') return null;
+  const repo = project.repo?.trim();
+  if (!repo || repo === '—') return null;
+  if (/^https?:\/\//i.test(repo)) return repo;
+  return `https://${repo.replace(/^\/+/, '')}`;
+}
+
 /** Maps API project (+ json_data) into the card shape used by the dashboard. */
 export function mapApiProjectToCard(api: {
   id: string | number;

@@ -14,6 +14,7 @@ import {
   TABS,
   mapApiAgentToCard,
   mapApiProjectToCard,
+  resolveGithubHref,
   type Agent,
   type AgentApiResponse,
   type Project,
@@ -126,6 +127,17 @@ function ProjectCard({
   onExpand?: (project: Project) => void;
   onAiUpdated?: (projectId: string, ai: string) => void;
 }) {
+  const githubHref = resolveGithubHref(project);
+  const githubBranch =
+    project.sourceType === 'github' && githubHref
+      ? project.githubBranch?.trim() || 'main'
+      : null;
+
+  const repoMutedStyle = {
+    fontFamily: 'var(--font-body)',
+    color: 'color-mix(in srgb, var(--color-text) 52%, transparent)',
+  } as const;
+
   return (
     <article
       id={`project-card-${project.id}`}
@@ -150,15 +162,32 @@ function ProjectCard({
         >
           {project.name}
         </h3>
-        <p
-          className="mt-[3px] text-[13px] italic"
-          style={{
-            fontFamily: 'var(--font-body)',
-            color: 'color-mix(in srgb, var(--color-text) 52%, transparent)',
-          }}
-        >
-          {project.repo}
-        </p>
+        {githubHref ? (
+          <a
+            href={githubHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-[3px] block text-[13px] italic transition-colors hover:text-[var(--color-accent)]"
+            style={repoMutedStyle}
+          >
+            {project.repo}
+          </a>
+        ) : (
+          <p className="mt-[3px] text-[13px] italic" style={repoMutedStyle}>
+            {project.repo}
+          </p>
+        )}
+        {githubBranch ? (
+          <p
+            className="mt-0.5 text-[12px] not-italic"
+            style={{
+              fontFamily: 'var(--font-body)',
+              color: 'color-mix(in srgb, var(--color-text) 42%, transparent)',
+            }}
+          >
+            {githubBranch}
+          </p>
+        ) : null}
       </header>
 
       <ProjectAiSummary
