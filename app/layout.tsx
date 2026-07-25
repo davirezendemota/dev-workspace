@@ -21,7 +21,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Dev Workspace",
+  title: "dev-workspace",
   description: "Workspace de projetos, agentes e checkpoints",
 };
 
