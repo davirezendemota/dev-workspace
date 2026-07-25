@@ -38,6 +38,38 @@ Specs descrevem comportamento e critérios de aceite com IDs estáveis (`AC1`, `
 
 A pasta `.obsidian/` (se existir) é configuração local do editor Obsidian e não faz parte do fluxo de specs.
 
+## Repositório canônico (upstream)
+
+A pasta `.specs/` é mantida no repositório **[davirezendemota/dev-workspace](https://github.com/davirezendemota/dev-workspace)**. Quando copiada para outros projetos, use esse repositório como **fonte upstream** para atualizar a estrutura do kit (templates, bootstrap, schema, etc.).
+
+| Campo | Valor |
+|-------|-------|
+| Repositório | `https://github.com/davirezendemota/dev-workspace` |
+| Branch | `main` |
+| Caminho no repo | `.specs/` |
+| Raw (base) | `https://raw.githubusercontent.com/davirezendemota/dev-workspace/main/.specs/` |
+| API GitHub | `https://api.github.com/repos/davirezendemota/dev-workspace/contents/.specs` |
+
+Exemplos de URL raw para um arquivo:
+
+- `https://raw.githubusercontent.com/davirezendemota/dev-workspace/main/.specs/bootstrap-ai-rules.md`
+- `https://raw.githubusercontent.com/davirezendemota/dev-workspace/main/.specs/templates/cursor/commands/bootstrap-specs.md`
+
+**O que sincronizar do upstream** (kit compartilhado):
+
+- `bootstrap-ai-rules.md`
+- `spec-template.md`
+- `spec-checklist.schema.json`
+- `templates/**`
+- Este `README.md` (seções genéricas do fluxo)
+
+**O que preservar no projeto consumidor** (específico do produto):
+
+- `features/*.md`
+- Entradas em `spec-checklist.json` (`projects`, specs, ACs, status)
+
+Após atualizar `bootstrap-ai-rules.md` ou `templates/`, rode `/bootstrap-specs` para propagar commands, skills e rules no projeto.
+
 ## Criando uma nova spec
 
 1. Copie `spec-template.md` para `features/`.
@@ -175,6 +207,15 @@ Ao implementar uma feature:
 
 ### Integrar `.specs` em projeto novo
 
-1. Copie a pasta `.specs/` para a raiz do repositório.
+1. Copie a pasta `.specs/` para a raiz do repositório (ou use o [repositório canônico](#repositório-canônico-upstream) como referência).
 2. Dispare o bootstrap pela IA com o prompt em [bootstrap-ai-rules.md](./bootstrap-ai-rules.md#prompt-para-disparar-o-bootstrap) — instala commands, skills, rules, `CLAUDE.md`, `AGENTS.md` e ajusta o checklist automaticamente.
 3. Ou siga manualmente a seção **Bootstrap executável pela IA** no mesmo arquivo.
+
+### Atualizar estrutura do kit (upstream)
+
+Quando o usuário pedir para **atualizar o kit `.specs`**, **sincronizar templates** ou **trazer mudanças do upstream**:
+
+1. Consulte o [repositório canônico](#repositório-canônico-upstream) (`davirezendemota/dev-workspace`, branch `main`, pasta `.specs/`).
+2. Busque os arquivos do kit listados na seção upstream (via raw URL, API GitHub ou `gh api`).
+3. Compare com a cópia local e faça merge — preserve `features/` e o checklist do projeto.
+4. Execute `/bootstrap-specs` se `bootstrap-ai-rules.md` ou `templates/` tiverem mudado.
