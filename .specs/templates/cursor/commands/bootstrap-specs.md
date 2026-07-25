@@ -2,17 +2,18 @@
 
 Execute o **bootstrap completo** de `.specs/` neste repositório.
 
-Leia e siga **integralmente** a seção **"Bootstrap executável pela IA"** em `.specs/bootstrap-ai-rules.md` (passos 0–7).
+Leia e siga **integralmente** a seção **"Bootstrap executável pela IA"** em `.specs/bootstrap-ai-rules.md` (passos 0–8).
 
 Contexto opcional do usuário: `$ARGUMENTS` (ex.: nome do projeto, remover exemplos, só Cursor).
 
 ## Obrigatório
 
-1. Instalar commands e skills copiando de `.specs/templates/` (ver Passo 1 do bootstrap).
-2. Criar `.cursor/rules/specs-workflow.mdc` e `specs-files.mdc`.
-3. Criar ou fazer merge em `CLAUDE.md` e `AGENTS.md`.
-4. Ajustar `spec-checklist.json` (`projects`, remover exemplos inválidos, `updatedAt`).
-5. Rodar checklist de verificação e entregar resumo markdown.
+1. Garantir que `.gitignore` não mencione `templates/cursor` nem `templates/claude` (Passo 1 do bootstrap).
+2. Instalar commands e skills copiando de `.specs/templates/` (ver Passo 2 do bootstrap).
+3. Criar `.cursor/rules/specs-workflow.mdc` e `specs-files.mdc`.
+4. Criar ou fazer merge em `CLAUDE.md` e `AGENTS.md`.
+5. Ajustar `spec-checklist.json` (`projects`, remover exemplos inválidos, `updatedAt`).
+6. Rodar checklist de verificação e entregar resumo markdown.
 
 ## Proibido
 

@@ -19,6 +19,7 @@ Esta seção é o **playbook completo**. Quando o usuário pedir bootstrap, setu
 | `.cursor/commands/*.md` | Dependências (`package.json`, `Pipfile`, …) |
 | `.cursor/skills/**/SKILL.md` | |
 | `.claude/skills/**/SKILL.md` | |
+| `.gitignore` (só regras que ignoram templates — Passo 1) | |
 | `.specs/spec-checklist.json` (só `projects`, exemplos) | |
 
 **Não commitar** unless o usuário pedir explicitamente.
@@ -33,7 +34,27 @@ Esta seção é o **playbook completo**. Quando o usuário pedir bootstrap, setu
    - **Claude Code**: instalar `.claude/skills` se o usuário usa Claude ou se já existe `.claude/` na raiz.
    - **Ambos**: instalar tudo.
 
-### Passo 1 — Instalar commands e skills (copiar templates)
+### Passo 1 — Garantir templates versionados (`.gitignore`)
+
+Os diretórios `.specs/templates/cursor/` e `.specs/templates/claude/` **devem permanecer versionados** — são a fonte dos commands/skills instalados no Passo 2.
+
+1. Se **não existe** `.gitignore` na raiz → pular este passo.
+2. Ler `.gitignore` e **remover** qualquer linha (ativa ou comentada) que mencione:
+   - `templates/cursor` ou `templates/claude`
+   - `.specs/templates/cursor` ou `.specs/templates/claude`
+   - Variantes com barra final, curingas ou prefixo `!` (ex.: `templates/cursor/`, `**/templates/claude/**`).
+3. **Não adicionar** novas entradas para esses caminhos (nem ignore nem negação `!`).
+4. **Não alterar** regras legítimas para `.cursor/` ou `.claude/` na raiz do projeto — são independentes de `.specs/templates/`.
+
+Verificação rápida:
+
+```bash
+! grep -E '(^|/)(\.specs/)?templates/(cursor|claude)' .gitignore 2>/dev/null
+```
+
+Se o comando retornar linhas, ainda há menções a remover.
+
+### Passo 2 — Instalar commands e skills (copiar templates)
 
 **Fonte:** `.specs/templates/` → **destino:** raiz do projeto.
 
@@ -71,7 +92,7 @@ mkdir -p ~/.cursor/skills
 cp -r .specs/templates/cursor/skills/spec-checklist ~/.cursor/skills/spec-checklist
 ```
 
-### Passo 2 — Cursor rules
+### Passo 3 — Cursor rules
 
 Criar ou atualizar:
 
@@ -82,19 +103,19 @@ Criar ou atualizar:
 
 Se `specs-workflow.mdc` já existir com o mesmo propósito, fazer merge em vez de duplicar.
 
-### Passo 3 — `CLAUDE.md`
+### Passo 4 — `CLAUDE.md`
 
 1. Se **não existe** → criar na raiz com o bloco da seção [CLAUDE.md](#claudemd--adicionar-na-raiz-do-projeto).
 2. Se **existe** → acrescentar a seção `## Specs (`.specs/`)` se ainda não houver (buscar por `.specs/` ou `spec-checklist`).
 3. Não duplicar a seção.
 
-### Passo 4 — `AGENTS.md`
+### Passo 5 — `AGENTS.md`
 
 1. Se **não existe** → criar com o bloco da seção [AGENTS.md](#agentsmd--adicionar-na-raiz-do-projeto) **incluindo** o sub-bloco [Slash commands](#agentsmd--registrar-commands).
 2. Se **existe** → merge das seções `Specs workflow` e `Slash commands` se ausentes.
 3. Não duplicar.
 
-### Passo 5 — Ajustar `spec-checklist.json`
+### Passo 6 — Ajustar `spec-checklist.json`
 
 1. Inferir `projects[].id` e `name` do repositório (nome da pasta, `package.json`, ou perguntar se ambíguo).
 2. Substituir exemplo `workspace` se não for este projeto.
@@ -104,11 +125,12 @@ Se `specs-workflow.mdc` já existir com o mesmo propósito, fazer merge em vez d
 6. Atualizar `updatedAt` para a data atual (`YYYY-MM-DD`).
 7. Validar mentalmente contra `.specs/spec-checklist.schema.json`.
 
-### Passo 6 — Verificação
+### Passo 7 — Verificação
 
 Checklist de saída (reportar cada item no resumo):
 
 ```
+[ ] .gitignore — sem menções a templates/cursor ou templates/claude
 [ ] .cursor/commands/update-specs.md
 [ ] .cursor/commands/new-spec.md
 [ ] .cursor/commands/bootstrap-specs.md
@@ -127,18 +149,19 @@ Checklist de saída (reportar cada item no resumo):
 Comandos de verificação rápida:
 
 ```bash
+! grep -E '(^|/)(\.specs/)?templates/(cursor|claude)' .gitignore 2>/dev/null
 test -f .cursor/commands/update-specs.md && test -f .cursor/commands/new-spec.md
 test -f .cursor/skills/spec-checklist/SKILL.md
 test -f .claude/skills/update-specs/SKILL.md
 ls .specs/features/
 ```
 
-### Passo 7 — Resumo para o usuário
+### Passo 8 — Resumo para o usuário
 
 Entregar em markdown:
 
 1. **O que foi criado/alterado** (lista de arquivos).
-2. **Checklist** do Passo 6 com ✅/❌.
+2. **Checklist** do Passo 7 com ✅/❌.
 3. **Como usar:** `/update-specs`, `/new-spec`, `/spec-checklist` e frases como "inicie AC2 da spec 003".
 4. **Pendências** (ex.: specs de exemplo removidas, merges parciais, monorepo não configurado).
 5. **Próximo passo sugerido:** rodar `/update-specs` para sincronizar com o código.
@@ -172,8 +195,8 @@ da IA. Repo: {nome}. Remover specs de exemplo. Instalar Cursor + Claude Code.
 ## Checklist de setup (humano)
 
 - [ ] Copiar a pasta `.specs/` para a raiz do projeto (ou manter como submódulo)
-- [ ] Disparar o [prompt de bootstrap](#prompt-para-disparar-o-bootstrap) **ou** seguir os passos 0–7 manualmente
-- [ ] Ajustar `projects[].id` e `projects[].name` em `spec-checklist.json` (Passo 5)
+- [ ] Disparar o [prompt de bootstrap](#prompt-para-disparar-o-bootstrap) **ou** seguir os passos 0–8 manualmente
+- [ ] Ajustar `projects[].id` e `projects[].name` em `spec-checklist.json` (Passo 6)
 - [ ] Remover exemplos de `features/` e do checklist se não forem deste projeto
 - [ ] Commitar `.specs/` + arquivos de IA no repositório (exceto `.obsidian/`)
 
@@ -231,7 +254,7 @@ Legacy `.claude/commands/*.md` ainda funciona; preferir skills.
 
 ### AGENTS.md — registrar commands
 
-Incluir no bloco de specs (Passo 4 do bootstrap):
+Incluir no bloco de specs (Passo 5 do bootstrap):
 
 ```markdown
 ### Slash commands

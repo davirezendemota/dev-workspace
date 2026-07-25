@@ -8,7 +8,7 @@ allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 
 # /bootstrap-specs
 
-Execute o bootstrap completo conforme `.specs/bootstrap-ai-rules.md` — seção **"Bootstrap executável pela IA"** (passos 0–7).
+Execute o bootstrap completo conforme `.specs/bootstrap-ai-rules.md` — seção **"Bootstrap executável pela IA"** (passos 0–8).
 
 Input opcional: `$ARGUMENTS`
 
