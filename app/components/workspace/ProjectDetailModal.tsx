@@ -1,27 +1,47 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { cn } from '@/app/lib/utils';
+import type { ProjectApiResponse } from './AddProjectModal';
 import type { Project } from './data';
+import ProjectLocalChecklist from './ProjectLocalChecklist';
+import ProjectSettingsPanel from './ProjectSettingsPanel';
 import ProjectStatusDashboard from './ProjectStatusDashboard';
 
 type ProjectDetailModalProps = {
   project: Project | null;
   onClose: () => void;
+  onUpdated?: (project: ProjectApiResponse) => void;
 };
 
-const TABS = [{ id: 'dashboard', label: 'Dashboard' }] as const;
+type TabId = 'dashboard' | 'checklist' | 'settings';
 
-type TabId = (typeof TABS)[number]['id'];
-
-export default function ProjectDetailModal({ project, onClose }: ProjectDetailModalProps) {
+export default function ProjectDetailModal({ project, onClose, onUpdated }: ProjectDetailModalProps) {
   const titleId = useId();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+
+  const tabs = useMemo(() => {
+    const base: { id: TabId; label: string }[] = [
+      { id: 'dashboard', label: 'Dashboard' },
+      { id: 'settings', label: 'Settings' },
+    ];
+    if (project?.sourceType === 'local') {
+      base.splice(1, 0, { id: 'checklist', label: 'Checklist' });
+    }
+    return base;
+  }, [project?.sourceType]);
 
   useEffect(() => {
     if (!project) return;
     setActiveTab('dashboard');
   }, [project]);
+
+  useEffect(() => {
+    if (!project) return;
+    if (activeTab === 'checklist' && project.sourceType !== 'local') {
+      setActiveTab('dashboard');
+    }
+  }, [activeTab, project]);
 
   useEffect(() => {
     if (!project) return;
@@ -87,7 +107,7 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
           className="flex flex-none gap-1 border-b border-[var(--color-divider)] px-6 sm:px-8"
           aria-label="Abas do projeto"
         >
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const active = activeTab === tab.id;
             return (
               <button
@@ -112,6 +132,15 @@ export default function ProjectDetailModal({ project, onClose }: ProjectDetailMo
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7">
           {activeTab === 'dashboard' ? <ProjectStatusDashboard project={project} /> : null}
+          {activeTab === 'checklist' && project.sourceType === 'local' ? (
+            <ProjectLocalChecklist project={project} />
+          ) : null}
+          {activeTab === 'settings' ? (
+            <ProjectSettingsPanel
+              project={project}
+              onUpdated={(updated) => onUpdated?.(updated)}
+            />
+          ) : null}
         </div>
       </div>
     </div>

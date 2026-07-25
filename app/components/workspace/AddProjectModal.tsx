@@ -24,6 +24,8 @@ export type ProjectApiResponse = {
   github_repo_url: string | null;
   github_branch: string | null;
   github_file_path: string | null;
+  spec_project_id: string | null;
+  spec_checklist_path: string | null;
   has_github_pat: boolean;
   last_synced_at: string | null;
   created_at: string | null;
@@ -55,7 +57,7 @@ const SOURCE_OPTIONS: { id: ProjectSource; label: string }[] = [
 
 function sourceDescription(source: ProjectSource): string {
   if (source === 'local') {
-    return 'Projeto sem repositório — apenas nome e client.';
+    return 'Projeto sem repositório — informe ao menos o nome.';
   }
   if (source === 'local_repo') {
     return 'Projeto manual com referência a um repositório local no disco.';
@@ -127,14 +129,9 @@ export default function AddProjectModal({
       setError('Informe o nome do projeto.');
       return null;
     }
-    if (!manual.client.trim()) {
-      setError('Informe o client.');
-      return null;
-    }
-
     return {
       name: manual.name.trim(),
-      client: manual.client.trim(),
+      client: manual.client.trim() || '—',
       ai: '',
       topDate: '—',
       checkpoints: [],
@@ -393,7 +390,7 @@ export default function AddProjectModal({
                   />
                 </Field>
 
-                <Field label="Client" htmlFor="p-client">
+                <Field label="Client (opcional)" htmlFor="p-client">
                   <input
                     id="p-client"
                     className="input"
@@ -401,7 +398,6 @@ export default function AddProjectModal({
                     onChange={(e) => updateManual('client', e.target.value)}
                     placeholder="Acme"
                     disabled={submitting}
-                    required
                   />
                 </Field>
 

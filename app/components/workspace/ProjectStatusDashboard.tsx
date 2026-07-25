@@ -10,6 +10,8 @@ export type SpecChecklistAc = {
   ac: string;
   description: string;
   status: AcStatus;
+  completedCommit: string | null;
+  completedAt: string | null;
   issues: number[];
   prs: number[];
 };
@@ -267,7 +269,7 @@ export default function ProjectStatusDashboard({ project }: { project: Project }
                   </header>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[520px] border-collapse text-[13px]">
+                    <table className="w-full min-w-[680px] border-collapse text-[13px]">
                       <thead>
                         <tr className="border-b border-[var(--color-divider)] bg-[var(--color-neutral-100)]">
                           <th
@@ -287,6 +289,12 @@ export default function ProjectStatusDashboard({ project }: { project: Project }
                             style={{ fontFamily: 'var(--font-heading)' }}
                           >
                             Status
+                          </th>
+                          <th
+                            className="whitespace-nowrap px-4 py-2 text-left text-[11px] uppercase tracking-wider"
+                            style={{ fontFamily: 'var(--font-heading)' }}
+                          >
+                            Conclusão
                           </th>
                         </tr>
                       </thead>
@@ -328,6 +336,17 @@ export default function ProjectStatusDashboard({ project }: { project: Project }
                             </td>
                             <td className="px-4 py-2.5 align-top">
                               <StatusBadge status={item.status} />
+                            </td>
+                            <td
+                              className="whitespace-nowrap px-4 py-2.5 align-top text-[12px]"
+                              style={{
+                                fontFamily: 'var(--font-body)',
+                                color: item.completedAt
+                                  ? 'var(--color-text)'
+                                  : 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+                              }}
+                            >
+                              {formatDateTime(item.completedAt)}
                             </td>
                           </tr>
                         ))}

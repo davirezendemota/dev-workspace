@@ -405,6 +405,18 @@ export default function WorkspaceDashboard() {
     });
   };
 
+  const handleProjectUpdated = useCallback((apiProject: ProjectApiResponse) => {
+    const card = mapApiProjectToCard(apiProject);
+    setProjects((prev) => {
+      const selectedId = selectedProject?.id;
+      return [
+        card,
+        ...prev.filter((p) => p.id !== card.id && (selectedId ? p.id !== selectedId : true)),
+      ];
+    });
+    setSelectedProject(card);
+  }, [selectedProject?.id]);
+
   const handleAiSummaryUpdated = useCallback((projectId: string, ai: string) => {
     setProjects((prev) =>
       prev.map((project) =>
@@ -920,6 +932,7 @@ export default function WorkspaceDashboard() {
           <ProjectDetailModal
             project={selectedProject}
             onClose={() => setSelectedProject(null)}
+            onUpdated={handleProjectUpdated}
           />
         </div>
       )}

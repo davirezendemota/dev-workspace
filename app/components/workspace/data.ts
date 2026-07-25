@@ -23,6 +23,9 @@ export type Project = {
   githubFilePath?: string | null;
   localFilePath?: string | null;
   localRepoPath?: string | null;
+  specProjectId?: string | null;
+  specChecklistPath?: string | null;
+  hasGithubPat?: boolean;
   lastSyncedAt?: string | null;
 };
 
@@ -37,6 +40,9 @@ export function mapApiProjectToCard(api: {
   github_repo_url?: string | null;
   github_branch?: string | null;
   github_file_path?: string | null;
+  spec_project_id?: string | null;
+  spec_checklist_path?: string | null;
+  has_github_pat?: boolean;
   last_synced_at?: string | null;
 }): Project {
   const data = api.json_data ?? {};
@@ -91,6 +97,9 @@ export function mapApiProjectToCard(api: {
     githubFilePath: api.github_file_path ?? null,
     localFilePath: api.local_file_path ?? null,
     localRepoPath: api.local_path ?? null,
+    specProjectId: api.spec_project_id ?? null,
+    specChecklistPath: api.spec_checklist_path ?? null,
+    hasGithubPat: api.has_github_pat ?? false,
     lastSyncedAt: api.last_synced_at ?? null,
   };
 }
