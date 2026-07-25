@@ -446,13 +446,12 @@
             {
               "ac": "AC2",
               "description": "Dashboard exibe estatísticas agregadas de ACs",
-              "status": "done",
+              "status": "in-progress",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": [],
-              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+              "prs": []
             },
             {
               "ac": "AC3",

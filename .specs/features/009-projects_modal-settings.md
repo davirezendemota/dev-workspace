@@ -20,7 +20,7 @@ incluindo tipo de origem, ID do arquivo, `spec_project_id` e caminhos GitHub/loc
 ### Dentro do escopo
 - Aba **Settings** em `ProjectDetailModal`
 - Formulário `ProjectSettingsPanel` com tipo Manual / Manual·repo / GitHub
-- Campos: ID do projeto (slug do arquivo), `spec_project_id`, `spec_checklist_path`
+- Campos: ID do projeto (slug do arquivo), `spec_project_id`, `spec_checklist_path`, `tasks_path` (GitHub)
 - Campos condicionais: `local_path` (local_repo), credenciais GitHub (github)
 - `PUT /api/projects/{id}` aceita `source_type`, `new_id`, `spec_project_id` e campos de origem
 - Renomear arquivo JSON ao alterar ID do projeto
@@ -37,7 +37,7 @@ incluindo tipo de origem, ID do arquivo, `spec_project_id` e caminhos GitHub/loc
 - **RF1:** Modal exibe aba Settings para todos os tipos de projeto.
 - **RF2:** Usuário altera `source_type` entre local, local_repo e github.
 - **RF3:** Usuário edita ID do projeto (renomeia o arquivo na pasta de projetos).
-- **RF4:** Usuário edita `spec_project_id` e `spec_checklist_path`.
+- **RF4:** Usuário edita `spec_project_id`, `spec_checklist_path` e `tasks_path` (GitHub).
 - **RF5:** Para local_repo, usuário edita `local_path`.
 - **RF6:** Para github, usuário edita repo, branch, arquivo e PAT (opcional se já existir).
 - **RF7:** Salvar persiste `_meta` e atualiza lista de cards.
@@ -73,4 +73,5 @@ incluindo tipo de origem, ID do arquivo, `spec_project_id` e caminhos GitHub/loc
 ## 8. Riscos e questões em aberto
 
 - Trocar tipo não sincroniza dados do repositório automaticamente.
-- Renomear ID com sidecar de checklist local renomeia o `.spec-checklist.json` associado.
+- Renomear ID com sidecar legado `.spec-checklist.json` remove o sidecar (não renomeia).
+- Exclusão de projeto pela aba Settings existe no código (WIP, não commitado) mas permanece fora do escopo desta spec.

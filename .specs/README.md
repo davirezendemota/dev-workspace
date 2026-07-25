@@ -32,7 +32,7 @@ Specs descrevem comportamento e critérios de aceite com IDs estáveis (`AC1`, `
     ├── 005-agents.md
     ├── 006-projects_modal-dashboard.md
     ├── 007-spec-checklist_completion-metadata.md
-    ├── 008-projects_local-checklist.md
+    ├── 008-projects_tasks.md
     └── 009-projects_modal-settings.md
 ```
 

@@ -21,7 +21,7 @@ arquivos na raiz dessa pasta.
 ## 3. Escopo
 
 ### Dentro do escopo
-- Listagem na aba Projects lendo arquivos de projeto `*.json` na pasta de projects (Settings), excluindo sidecars `*.spec-checklist.json`
+- Listagem na aba Projects lendo arquivos de projeto `*.json` na pasta de projects (Settings), excluindo sidecars legados (`*.spec-checklist.json`, `*.tasks.json`, `*.checklist.json`)
 - Modal “Adicionar projeto” com modos **Manual**, **Manual · repo** e **GitHub**
 - Manual: campo `nome` obrigatório; `client` opcional (sem repositório) → gera `{slug}.json`
 - Manual · repo: campos `nome` (obrigatório), `client` (opcional) e `local_path` (pasta do repo local) → gera `{slug}.json` com `_meta.local_path`
@@ -33,7 +33,7 @@ arquivos na raiz dessa pasta.
 
 ### Fora do escopo
 - Edição completa do JSON pela UI (checkpoints, tip de IA)
-- Checklist editável de projetos Manual (especificado em 008-projects_local-checklist)
+- Tasks editáveis de projetos (especificado em 008-projects_tasks)
 - Auth / autorização nos endpoints
 - Mover arquivos ao trocar `projects_folder`
 - Subpastas por projeto (`slug/project.json`)
@@ -43,7 +43,7 @@ arquivos na raiz dessa pasta.
 ## 4. Requisitos
 
 ### Funcionais
-- **RF1:** Listar projetos a partir dos arquivos de projeto `*.json` na raiz da pasta configurada, excluindo sidecars `*.spec-checklist.json`.
+- **RF1:** Listar projetos a partir dos arquivos de projeto `*.json` na raiz da pasta configurada, excluindo sidecars legados (`*.spec-checklist.json`, `*.tasks.json`, `*.checklist.json`).
 - **RF2:** Criar projeto Manual com `name` (obrigatório) e `client` (opcional), sem repositório.
 - **RF3:** Criar projeto Manual · repo com `name` (obrigatório), `client` (opcional) e `local_path` (pasta local do repositório); gravar `_meta.local_path`.
 - **RF4:** Ao criar Manual ou Manual · repo, gravar `{slug}.json` na raiz de `projects/` (slug a partir do name).

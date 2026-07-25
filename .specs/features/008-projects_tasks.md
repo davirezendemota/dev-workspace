@@ -52,6 +52,12 @@ remover e marcar itens — com persistência adequada ao tipo de projeto.
 | `local_repo` | Campo `tasks` no `{id}.json` (repo local não é escrito) |
 | `github` | Arquivo remoto (`tasks.json` ou `_meta.tasks_path`) |
 
+## 5. Não-funcionais
+
+- **RNF1:** Falha ao carregar ou salvar tasks não quebra o modal.
+- **RNF2:** PAT de GitHub nunca exposto no frontend.
+- **RNF3:** IDs de itens gerados no servidor; labels não vazias após trim.
+
 ## 6. Critérios de aceite
 
 - **AC1:** Dado qualquer tipo de projeto, quando o modal abre, então a aba Tasks está disponível.
