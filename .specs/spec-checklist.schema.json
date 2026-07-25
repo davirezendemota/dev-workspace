@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/spec-checklist.schema.json",
+  "title": "Spec Checklist",
+  "type": "object",
+  "required": ["version", "projects"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "updatedAt": { "type": "string", "format": "date" },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "specs"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "name": { "type": "string" },
+          "specs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["specId", "specFile", "checklist"],
+              "properties": {
+                "specId": { "type": "string", "pattern": "^[0-9]{3}$" },
+                "specFile": { "type": "string" },
+                "title": { "type": "string" },
+                "before": {
+                  "type": "array",
+                  "description": "Specs que devem ser concluídas após esta spec",
+                  "items": { "$ref": "#/$defs/specRef" }
+                },
+                "after": {
+                  "type": "array",
+                  "description": "Specs que devem ser concluídas antes desta spec",
+                  "items": { "$ref": "#/$defs/specRef" }
+                },
+                "checklist": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["ac", "status"],
+                    "properties": {
+                      "ac": { "type": "string", "pattern": "^AC[0-9]+$" },
+                      "description": { "type": "string" },
+                      "status": {
+                        "type": "string",
+                        "enum": ["todo", "in-progress", "blocked", "done"]
+                      },
+                      "before": {
+                        "type": "array",
+                        "description": "ACs que devem ser concluídos após este item",
+                        "items": { "$ref": "#/$defs/checklistRef" }
+                      },
+                      "after": {
+                        "type": "array",
+                        "description": "ACs que devem ser concluídos antes deste item",
+                        "items": { "$ref": "#/$defs/checklistRef" }
+                      },
+                      "issues": {
+                        "type": "array",
+                        "items": { "type": "integer" }
+                      },
+                      "prs": {
+                        "type": "array",
+                        "items": { "type": "integer" }
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "specRef": {
+      "type": "string",
+      "pattern": "^[0-9]{3}$",
+      "description": "ID da spec (ex.: \"002\")"
+    },
+    "checklistRef": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^AC[0-9]+$",
+          "description": "AC na mesma spec (ex.: \"AC1\")"
+        },
+        {
+          "type": "object",
+          "required": ["specId", "ac"],
+          "description": "AC em outra spec",
+          "properties": {
+            "specId": { "$ref": "#/$defs/specRef" },
+            "ac": { "type": "string", "pattern": "^AC[0-9]+$" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,260 @@
+{
+  "$schema": "./spec-checklist.schema.json",
+  "version": 1,
+  "updatedAt": "2026-07-25",
+  "projects": [
+    {
+      "id": "workspace",
+      "name": "Workspace",
+      "specs": [
+        {
+          "specId": "001",
+          "specFile": "features/001-projects_ai-input.md",
+          "title": "AI input na aba Projects",
+          "after": ["002", "003"],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Painel de AI input exibido na aba Projects",
+              "status": "done",
+              "before": ["AC2", "AC3"],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Resposta do agente exibida após envio com IA configurada",
+              "status": "in-progress",
+              "after": ["AC1", { "specId": "002", "ac": "AC3" }],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Mensagem de erro amigável em falha ou IA não configurada",
+              "status": "todo",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Envio vazio ignorado",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "Aviso de projeto referenciado e scroll até o card correspondente",
+              "status": "done",
+              "after": ["AC2"],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "Aviso de projeto referenciado dispensado ao clicar na tela",
+              "status": "done",
+              "after": ["AC5"],
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "002",
+          "specFile": "features/002-settings.md",
+          "title": "Configurações do workspace",
+          "before": ["001", "003"],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Settings carrega e exibe valores atuais",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Salvar projects_folder e agents_folder com validação",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Salvar provider, modelo e token de IA",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Token nunca exposto no GET (has_ai_token)",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "Erro 400 para pasta inválida",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "Seção Resumo de projetos exibe prompt atual com badge Padrão/Personalizado",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC7",
+              "description": "Salvar ai_project_summary_prompt customizado em config.json",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC8",
+              "description": "Restaurar padrão limpa override e volta ao prompt embutido",
+              "status": "done",
+              "after": ["AC7"],
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "003",
+          "specFile": "features/003-projects.md",
+          "title": "Projects",
+          "after": ["002"],
+          "before": ["001"],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Listagem a partir dos *.json em projects/",
+              "status": "done",
+              "after": [{ "specId": "002", "ac": "AC2" }],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Criação Manual grava {slug}.json sem repositório",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Criação Manual · repo grava _meta.local_path",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Criação GitHub com fetch + arquivo local",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "Conflito 409 se slug já existir",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "PAT nunca exposto (has_github_pat)",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC7",
+              "description": "Modal com três modos: Manual, Manual · repo e GitHub",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "004",
+          "specFile": "features/004-projects_ai-summary.md",
+          "title": "Resumo IA nos cards de projeto",
+          "after": ["002", "003"],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Bloco IA no card exibe resumo do campo ai",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Overflow com máx. 2 linhas e chevron expandir/recolher",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Botão atualizar visível ao hover no bloco IA",
+              "status": "done",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Skeleton no texto durante refresh manual",
+              "status": "done",
+              "after": ["AC3"],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "POST ai-summary grava ai e ai_updated_at",
+              "status": "done",
+              "after": [{ "specId": "002", "ac": "AC3" }],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "Refresh automático em background para resumos >24h no GET /api/projects",
+              "status": "done",
+              "after": ["AC5"],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC7",
+              "description": "Erro 400 amigável quando IA não configurada no refresh manual",
+              "status": "done",
+              "after": ["AC5"],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC8",
+              "description": "Prompt customizado de resumo via Settings",
+              "status": "done",
+              "after": [{ "specId": "002", "ac": "AC7" }],
+              "issues": [],
+              "prs": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
