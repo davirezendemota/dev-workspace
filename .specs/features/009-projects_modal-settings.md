@@ -20,7 +20,7 @@ incluindo tipo de origem, ID do arquivo, `spec_project_id` e caminhos GitHub/loc
 ### Dentro do escopo
 - Aba **Settings** em `ProjectDetailModal`
 - Formulário `ProjectSettingsPanel` com tipo Manual / Manual·repo / GitHub
-- Campos: ID do projeto (slug do arquivo), `spec_project_id`, `spec_checklist_path`, `tasks_path` (GitHub)
+- Campos: ID do projeto (slug do arquivo), `spec_project_id`, `spec_checklist_path`
 - Campos condicionais: `local_path` (local_repo), credenciais GitHub (github)
 - `PUT /api/projects/{id}` aceita `source_type`, `new_id`, `spec_project_id` e campos de origem
 - Renomear arquivo JSON ao alterar ID do projeto
@@ -37,9 +37,9 @@ incluindo tipo de origem, ID do arquivo, `spec_project_id` e caminhos GitHub/loc
 - **RF1:** Modal exibe aba Settings para todos os tipos de projeto.
 - **RF2:** Usuário altera `source_type` entre local, local_repo e github.
 - **RF3:** Usuário edita ID do projeto (renomeia o arquivo na pasta de projetos).
-- **RF4:** Usuário edita `spec_project_id`, `spec_checklist_path` e `tasks_path` (GitHub).
+- **RF4:** Usuário edita `spec_project_id` e `spec_checklist_path`.
 - **RF5:** Para local_repo, usuário edita `local_path`.
-- **RF6:** Para github, usuário edita repo, branch, arquivo e PAT (opcional se já existir).
+- **RF6:** Para github, usuário edita repo, branch e PAT (opcional se já existir).
 - **RF7:** Salvar persiste `_meta` e atualiza lista de cards.
 
 ### Não-funcionais

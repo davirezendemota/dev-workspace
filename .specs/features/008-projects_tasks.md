@@ -20,10 +20,9 @@ remover e marcar itens — com persistência adequada ao tipo de projeto.
 ### Dentro do escopo
 - Aba **Tasks** no `ProjectDetailModal` para todos os tipos de projeto
 - CRUD completo de itens
-- **Manual (`local`)** e **Manual · repo (`local_repo`)**: campo `tasks` embutido no JSON do projeto (`workspace_data/projects/{id}.json`)
-- **GitHub**: `tasks.json` no repositório remoto (caminho configurável via `_meta.tasks_path`)
+- **Manual (`local`)**, **Manual · repo (`local_repo`)** e **GitHub**: campo `tasks` embutido no JSON do projeto (`workspace_data/projects/{id}.json`)
 - API `GET` e `PUT /api/projects/{id}/tasks`
-- Leitura/escrita via GitHub API para projetos GitHub
+- Leitura/escrita local para todos os tipos; migração de `tasks.json` remoto legado em projetos GitHub antigos
 - Migração automática de legados (`checklist`, sidecars `*.tasks.json`, `*.checklist.json`, etc.) para o campo embutido em projetos manuais
 - Arquivos `*.tasks.json` na pasta de projetos excluídos da listagem (legado)
 
@@ -40,7 +39,7 @@ remover e marcar itens — com persistência adequada ao tipo de projeto.
 - **RF2:** `GET /api/projects/{id}/tasks` retorna documento; ausente → `{ version: 1, items: [] }`.
 - **RF3:** `PUT /api/projects/{id}/tasks` valida e persiste conforme o tipo.
 - **RF4:** Itens têm `id` único, `label` e `done` (boolean estrito).
-- **RF5:** `_meta.tasks_path` configurável apenas para GitHub.
+- **RF5:** `_meta.tasks_path` removido — tasks de GitHub também ficam no JSON local.
 - **RF6:** Campo `checklist` removido do JSON principal do projeto.
 - **RF7:** Arquivos `*.tasks.json` na pasta de projetos não aparecem em `GET /api/projects`.
 
@@ -50,7 +49,7 @@ remover e marcar itens — com persistência adequada ao tipo de projeto.
 |------|--------------|
 | `local` | Campo `tasks` no `{id}.json` |
 | `local_repo` | Campo `tasks` no `{id}.json` (repo local não é escrito) |
-| `github` | Arquivo remoto (`tasks.json` ou `_meta.tasks_path`) |
+| `github` | Campo `tasks` no `{id}.json` (workspace_data) |
 
 ## 5. Não-funcionais
 
@@ -66,7 +65,7 @@ remover e marcar itens — com persistência adequada ao tipo de projeto.
 - **AC4:** Dado marcar/desmarcar, quando o usuário salva, então `done` é persistido.
 - **AC5:** Dado `{id}.tasks.json` legado na pasta de projetos, então migra para o JSON embutido e não aparece em `GET /api/projects`.
 - **AC6:** Dado legado `checklist` ou sidecar antigo, então migra para `tasks` embutido na primeira leitura.
-- **AC7:** Dado projeto GitHub com `_meta.tasks_path` customizado, então usa o caminho configurado no repositório remoto.
+- **AC7:** Dado projeto GitHub legado com tasks remotas, então migra para o campo `tasks` embutido na primeira leitura.
 
 ## 8. API
 

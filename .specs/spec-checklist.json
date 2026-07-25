@@ -204,11 +204,10 @@
             },
             {
               "ac": "AC4",
-              "description": "Criação GitHub com fetch + arquivo local",
-              "status": "done",
+              "description": "Criação GitHub grava JSON local e lê specs do spec-checklist remoto",
+              "status": "in-progress",
               "issues": [],
-              "prs": [],
-              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+              "prs": []
             },
             {
               "ac": "AC5",
@@ -613,11 +612,10 @@
             },
             {
               "ac": "AC7",
-              "description": "Projeto GitHub com _meta.tasks_path customizado usa caminho remoto",
-              "status": "done",
+              "description": "Projeto GitHub legado com tasks remotas migra para JSON embutido",
+              "status": "in-progress",
               "issues": [],
-              "prs": [],
-              "completedCommit": "f6bf5b673831d8d49f9eeccb89bbc26308224bb0"
+              "prs": []
             }
           ]
         },

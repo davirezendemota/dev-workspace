@@ -25,6 +25,7 @@ pelo usuário.
 - Contexto: campos do JSON do projeto + `spec-checklist` do repositório local (quando disponível)
 - Persistência do resumo no campo `ai` do `{slug}.json`
 - Timestamp `_meta.ai_updated_at` para controle de staleness
+- Atualização imediata ao criar projeto GitHub (`POST /api/projects` com `source_type: github`)
 - Atualização automática em background ao listar projetos (`GET /api/projects`) para resumos com >24h
 - Atualização forçada via botão no card (`POST /api/projects/{id}/ai-summary`)
 - UI: máximo 2 linhas, chevron para expandir overflow, skeleton durante refresh manual
