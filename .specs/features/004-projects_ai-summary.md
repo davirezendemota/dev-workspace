@@ -22,7 +22,7 @@ pelo usuário.
 ### Dentro do escopo
 - Bloco de resumo IA no card (`ProjectAiSummary`)
 - Geração via IA usando provider, modelo e token de Settings (spec 002)
-- Contexto: campos do JSON do projeto + `spec-checklist` do repositório local (quando disponível)
+- Contexto: campos do JSON do projeto + specs/ACs do bloco `projects[]` correspondente ao projeto em `spec-checklist.json` (resolução via `spec_project_id` e heurísticas — mesma lógica da spec 006), não o arquivo inteiro do checklist
 - Persistência do resumo no campo `ai` do `{slug}.json`
 - Timestamp `_meta.ai_updated_at` para controle de staleness
 - Atualização imediata ao criar projeto GitHub (`POST /api/projects` com `source_type: github`)
@@ -51,6 +51,7 @@ pelo usuário.
 - **RF8:** Durante refresh manual, substituir o texto por skeleton (`AiResponseSkeleton`).
 - **RF9:** Texto recolhido limitado a 2 linhas; chevron expande/recolhe quando há overflow.
 - **RF10:** Usar `ai_project_summary_prompt` de Settings quando preenchido; senão, prompt padrão.
+- **RF11:** O contexto enviado à IA deve incluir apenas o bloco `projects[]` resolvido para o projeto (id, nome, specs e ACs), nunca o `spec-checklist.json` completo do repositório.
 
 ### Não-funcionais
 - **RNF1:** Token de API nunca expõe no frontend.
@@ -83,7 +84,7 @@ pelo usuário.
 
 ## 5b. Comportamento do modelo (IA)
 
-- **Entrada:** JSON com dados do card + `spec_checklist` do repo (quando existir `.specs/spec-checklist.json` no projeto local).
+- **Entrada:** JSON com dados do card + `spec_checklist` filtrado ao projeto (bloco `projects[]` resolvido via `spec_project_id`/heurísticas em `.specs/spec-checklist.json` do repositório vinculado, quando disponível). Outros projetos no mesmo arquivo de checklist são excluídos do contexto.
 - **System prompt:** `ai_project_summary_prompt` (Settings) ou default (`project-ai-summary-prompt.ts`).
 - **Saída esperada:** texto plano do resumo, sem JSON/markdown.
 - **Persistência:** campo `ai` + `_meta.ai_updated_at`.
@@ -98,6 +99,7 @@ pelo usuário.
 - **AC6:** Dado resumo com mais de 24h (ou vazio), quando `GET /api/projects` é chamado, então resumos desatualizados são regenerados em background.
 - **AC7:** Dado IA não configurada, quando o usuário força atualização, então a API retorna erro 400 com mensagem amigável e o card não quebra.
 - **AC8:** Dado prompt customizado em Settings, quando um resumo é gerado, então a IA usa esse prompt como system prompt.
+- **AC9:** Dado um `spec-checklist.json` com múltiplos projetos em `projects[]`, quando o resumo é gerado, então o contexto inclui apenas specs/ACs do bloco resolvido para aquele projeto, excluindo entradas de outros projetos no mesmo arquivo.
 
 ## 7. Decisões e alternativas consideradas
 
@@ -106,13 +108,14 @@ pelo usuário.
 | Campo `ai` no JSON do projeto | Campo separado em banco | Alinha à fonte da verdade em disco (spec 003) |
 | Staleness de 24h | Atualizar sempre / cron externo | Equilíbrio entre frescor e custo de API |
 | Refresh em background no `GET /api/projects` | Cron dedicado + `CRON_SECRET` | Simplicidade operacional; sem infra extra |
-| Contexto com `spec-checklist` do repo | Apenas JSON do card | Resumo mais útil para projetos com specs locais |
+| Contexto com bloco `projects[]` resolvido do checklist | Arquivo `spec-checklist.json` inteiro / apenas JSON do card | Resumo focado no projeto sem ruído de outros projetos no mesmo repo |
 | Skeleton no refresh manual | Spinner só no ícone | Consistência com AI input da aba Projects (spec 001) |
 | `_meta.ai_updated_at` | Só `mtime` do arquivo | Controle explícito sem confundir com outras edições |
 
 ## 8. Riscos e questões em aberto
 
-- Projetos sem repo local não terão `spec-checklist` no contexto.
+- Projetos sem repo local ou sem match em `projects[]` não terão specs/ACs no contexto (apenas dados do JSON do card).
+- Checklists monorepo com vários `projects[]` exigem `spec_project_id` correto para resolver o bloco certo.
 - Refresh em background pode gerar custo de API ao abrir Projects com muitos projetos desatualizados.
 - Card não atualiza em tempo real após refresh automático em background (requer nova listagem).
 - Rate limit e timeout da API de IA ainda não definidos.

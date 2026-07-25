@@ -328,6 +328,17 @@
               "issues": [],
               "prs": [],
               "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC9",
+              "description": "Contexto de IA limitado ao bloco projects[] resolvido, não ao spec-checklist inteiro",
+              "status": "done",
+              "after": [
+                "AC5"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             }
           ]
         },
