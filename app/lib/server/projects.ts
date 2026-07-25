@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { ApiError } from './api-error';
+import { LOCAL_PROJECTS_MOUNT, serverEnv } from './env';
 import { fetchGithubJsonFile } from './github-json';
 import { slugify } from './slugify';
 import { projectsFolder } from './workspace-config';
@@ -606,22 +607,34 @@ export async function getProjectSpecChecklist(
 }
 
 function resolveLocalProjectPath(localPath: string): string | null {
-  const expanded = localPath.replace(/^~/, process.env.HOME ?? '');
-  const candidates = [path.resolve(expanded)];
+  const home = process.env.HOME ?? '';
+  const expanded = localPath.replace(/^~/, home);
+  const resolved = path.resolve(expanded);
 
-  const localRoot = process.env.WORKSPACE_LOCAL_ROOT?.trim();
-  if (localRoot) {
-    candidates.push(path.join(localRoot, path.basename(expanded)));
-    const workspaceMatch = expanded.match(/(?:^|\/)workspace\/(.+)$/);
-    if (workspaceMatch?.[1]) {
-      candidates.push(path.join(localRoot, workspaceMatch[1]));
-    }
+  if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+    return resolved;
   }
 
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
-      return candidate;
-    }
+  const hostRoot = serverEnv.WORKSPACE_LOCAL_PROJECTS_ROOT;
+  if (!hostRoot) {
+    return null;
+  }
+
+  const hostRootResolved = path.resolve(hostRoot.replace(/^~/, home));
+  let relative: string;
+
+  if (resolved === hostRootResolved) {
+    relative = '';
+  } else if (resolved.startsWith(hostRootResolved + path.sep)) {
+    relative = path.relative(hostRootResolved, resolved);
+  } else {
+    const workspaceMatch = expanded.match(/(?:^|\/)workspace\/(.+)$/);
+    relative = workspaceMatch?.[1] ?? path.basename(resolved);
+  }
+
+  const mapped = path.join(LOCAL_PROJECTS_MOUNT, relative);
+  if (fs.existsSync(mapped) && fs.statSync(mapped).isDirectory()) {
+    return mapped;
   }
 
   return null;
