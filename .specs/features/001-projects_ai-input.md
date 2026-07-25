@@ -102,3 +102,8 @@ foi identificado e rola a lista até ele.
 
 - Rate limit e timeout ainda não definidos.
 - Detecção por nome/cliente no prompt (fallback) pode gerar falso positivo em nomes ambíguos.
+- Implementação atual faz scroll + highlight temporário (5s) no card; falta o aviso persistente com nome do projeto (AC5/AC6).
+
+**API:**
+
+- `POST /api/projects/ask` → `{ prompt: string }` retorna `{ answer, referenced_project_id }`

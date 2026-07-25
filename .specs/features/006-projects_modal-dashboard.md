@@ -1,0 +1,153 @@
+# 006 Projects · Modal dashboard
+
+> **Última atualização:** 2026-07-25
+
+---
+
+## 1. Contexto e problema
+
+Os cards de projeto na aba Projects mostram um resumo compacto, mas o usuário
+precisa de uma visão detalhada do progresso de entrega — especialmente os
+critérios de aceite documentados em `.specs/spec-checklist.json` do repositório
+associado ao projeto.
+
+## 2. Objetivo
+
+O usuário expande um card de projeto e visualiza, em um modal com aba
+Dashboard, estatísticas e a lista de specs/ACs do `spec-checklist.json` do
+repositório local ou GitHub vinculado ao projeto.
+
+## 3. Escopo
+
+### Dentro do escopo
+- Botão expandir no card de projeto (hover) abre `ProjectDetailModal`
+- Modal com cabeçalho (nome, repo) e aba **Dashboard**
+- `ProjectStatusDashboard` com métricas agregadas de ACs
+- Tabela por spec: AC, descrição, status (badge), issues e PRs
+- API `GET /api/projects/{id}/spec-checklist`
+- Leitura do checklist a partir de:
+  - repositório local (`_meta.local_path`) → arquivo em disco
+  - projeto GitHub (`_meta` com PAT) → fetch remoto
+- Resolução do bloco `projects[]` no JSON por candidatos de id
+  (`spec_project_id`, slug do projeto, nome, basename do `local_path`)
+- Override de caminho via `_meta.spec_checklist_path` (default: `.specs/spec-checklist.json`)
+- Estados: loading, erro, vazio (sem specs/ACs)
+- Uso do checklist como contexto na geração de resumo IA (spec 004)
+
+### Fora do escopo
+- Edição do spec-checklist do repositório pela UI (somente leitura nesta spec)
+- Checklist editável de projetos Manual sem repo (especificado em 008-projects_local-checklist)
+- Sincronização bidirecional com o repositório
+- Abas adicionais no modal além de Dashboard e da aba Checklist da spec 008
+- Auth / autorização no endpoint
+- Visualização do Markdown das specs (apenas metadados do checklist)
+- Projetos Manual sem `local_path` nem GitHub: Dashboard permanece vazio; checklist editável é da spec 008
+
+## 4. Requisitos
+
+### Funcionais
+- **RF1:** Botão expandir no card abre modal com nome e repo do projeto.
+- **RF2:** Aba Dashboard carrega `GET /api/projects/{id}/spec-checklist` ao abrir.
+- **RF3:** Exibir cards de estatística: total, concluídos, em progresso, bloqueados, pendentes.
+- **RF4:** Listar specs com `specId`, título, `specFile` e tabela de ACs.
+- **RF5:** Cada AC exibe id, descrição, badge de status e issues/PRs quando presentes.
+- **RF6:** Para projeto com `local_path`, ler checklist do filesystem do repo local.
+- **RF7:** Para projeto GitHub, buscar checklist via Contents API com credenciais em `_meta`.
+- **RF8:** Resolver entrada em `projects[]` usando `spec_project_id` ou heurísticas de slug.
+- **RF9:** Estado vazio orienta a adicionar `.specs/spec-checklist.json` e configurar `local_path` ou `spec_project_id`.
+- **RF10:** Fechar modal com botão ✕, clique no backdrop ou tecla Escape.
+
+### Não-funcionais
+- **RNF1:** Leitura somente; falha ao carregar checklist não quebra o modal.
+- **RNF2:** PAT de GitHub nunca exposto no frontend (permanece em `_meta` no servidor).
+- **RNF3:** Status desconhecido no JSON normalizado para `todo`.
+
+## 5. Fluxo / Comportamento esperado
+
+### Abertura do modal
+1. Usuário passa o mouse sobre um card de projeto → botão expandir aparece.
+2. Usuário clica em expandir → `ProjectDetailModal` abre com aba Dashboard ativa.
+3. `ProjectStatusDashboard` dispara `GET /api/projects/{id}/spec-checklist`.
+
+### Dashboard com checklist
+1. API resolve origem (local_path ou GitHub) e lê `.specs/spec-checklist.json`.
+2. API encontra o bloco `projects[]` correspondente ao projeto.
+3. Frontend exibe estatísticas e tabelas por spec com badges de status.
+4. Issues e PRs aparecem abaixo da descrição do AC quando preenchidos no JSON.
+
+### Sem checklist
+1. Projeto sem repo, arquivo ausente ou id não encontrado → `specs: []`.
+2. Estatísticas zeradas; mensagem orienta configurar repo e checklist.
+
+### Erro
+1. Falha de rede ou 404 no projeto → banner `role="alert"` com mensagem amigável.
+
+**Estados:** loading (“Carregando spec-checklist…”); sucesso com dados; vazio; erro.
+
+## 6. Critérios de aceite
+
+- **AC1:** Dado um card de projeto, quando o usuário clica em expandir, então o modal de detalhe abre com nome e repositório do projeto.
+- **AC2:** Dado checklist carregado, quando a aba Dashboard é exibida, então as estatísticas de ACs (total, concluídos, em progresso, bloqueados, pendentes) são mostradas.
+- **AC3:** Dado specs no checklist, quando o dashboard renderiza, então cada spec aparece com tabela de ACs, descrição e badge de status.
+- **AC4:** Dado projeto com `_meta.local_path` válido, quando a API é consultada, então o checklist é lido do repositório local em `spec_checklist_path`.
+- **AC5:** Dado projeto GitHub com credenciais em `_meta`, quando a API é consultada, então o checklist remoto é buscado e parseado.
+- **AC6:** Dado projeto sem repo ou checklist inexistente, quando o dashboard carrega, então exibe estado vazio com orientação ao usuário.
+- **AC7:** Dado AC com `issues` ou `prs` no JSON, quando a tabela é renderizada, então os números são exibidos na linha do AC.
+- **AC8:** Dado `_meta.spec_project_id` configurado, quando o checklist é resolvido, então o bloco `projects[]` correspondente a esse id é utilizado.
+
+## 7. Decisões e alternativas consideradas
+
+| Decisão | Alternativas descartadas | Motivo |
+|---------|--------------------------|--------|
+| Modal sobre o dashboard | Página dedicada `/projects/{id}` | Mantém contexto da lista de cards |
+| Leitura do checklist no repo | Duplicar ACs no JSON do projeto | Fonte única no repositório do código |
+| Heurísticas de slug para match | Exigir sempre `spec_project_id` | Funciona out-of-the-box com convenções comuns |
+| Somente leitura | Editar status pela UI | Escopo menor; checklist editado no repo |
+| Uma aba Dashboard (por ora) | Várias abas desde o início | Entrega incremental; estrutura de tabs pronta |
+| Stats computados no backend | Agregar no frontend | Consistência com uso em resumo IA (spec 004) |
+
+## 8. Riscos e questões em aberto
+
+- Projetos Manual puro não terão dashboard de specs útil até ter `local_path` ou sync GitHub; checklist booleano editável está na spec 008.
+- Checklist GitHub depende de PAT válido e caminho correto no repositório remoto.
+- Card não atualiza em tempo real se o checklist mudar no disco (requer reabrir modal).
+- Abas futuras (edição de JSON, checkpoints) ainda não especificadas além da Checklist da spec 008.
+
+**API:**
+
+- `GET /api/projects/{id}/spec-checklist` →
+  `{ checklist_path, updated_at, global_updated_at, project_id, project_name, specs, source, stats }`
+
+**Meta do projeto (trechos relevantes):**
+
+```json
+{
+  "_meta": {
+    "source_type": "local_repo",
+    "local_path": "/local-projects/meu-repo",
+    "spec_project_id": "workspace",
+    "spec_checklist_path": ".specs/spec-checklist.json"
+  }
+}
+```
+
+**Resposta (trecho):**
+
+```json
+{
+  "checklist_path": ".specs/spec-checklist.json",
+  "project_id": "workspace",
+  "project_name": "Workspace",
+  "stats": { "total": 27, "done": 20, "in_progress": 2, "blocked": 0, "todo": 5 },
+  "specs": [
+    {
+      "specId": "003",
+      "title": "Projects",
+      "specFile": "features/003-projects.md",
+      "checklist": [
+        { "ac": "AC1", "description": "...", "status": "done", "issues": [], "prs": [] }
+      ]
+    }
+  ]
+}
+```

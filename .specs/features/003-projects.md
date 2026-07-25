@@ -21,10 +21,10 @@ arquivos na raiz dessa pasta.
 ## 3. Escopo
 
 ### Dentro do escopo
-- Listagem na aba Projects lendo `*.json` da pasta de projects (Settings)
+- Listagem na aba Projects lendo arquivos de projeto `*.json` na pasta de projects (Settings), excluindo sidecars `*.spec-checklist.json`
 - Modal “Adicionar projeto” com modos **Manual**, **Manual · repo** e **GitHub**
-- Manual: campos `nome` e `client` (sem repositório) → gera `{slug}.json`
-- Manual · repo: campos `nome`, `client` e `local_path` (pasta do repo local) → gera `{slug}.json` com `_meta.local_path`
+- Manual: campo `nome` obrigatório; `client` opcional (sem repositório) → gera `{slug}.json`
+- Manual · repo: campos `nome` (obrigatório), `client` (opcional) e `local_path` (pasta do repo local) → gera `{slug}.json` com `_meta.local_path`
 - GitHub: link do repo, PAT, branch, caminho do arquivo → fetch + grava local
 - Arquivos sempre na raiz de `projects/` (sem subpastas)
 - API `GET/POST /api/projects`, `GET/PUT/DELETE /api/projects/{id}`, `POST /api/projects/{id}/sync`
@@ -32,7 +32,8 @@ arquivos na raiz dessa pasta.
 - Volume Docker: `./workspace_data` → `/data` (projects em `/data/projects`)
 
 ### Fora do escopo
-- Edição completa do JSON pela UI (checkpoints, checklist, tip de IA)
+- Edição completa do JSON pela UI (checkpoints, tip de IA)
+- Checklist editável de projetos Manual (especificado em 008-projects_local-checklist)
 - Auth / autorização nos endpoints
 - Mover arquivos ao trocar `projects_folder`
 - Subpastas por projeto (`slug/project.json`)
@@ -42,9 +43,9 @@ arquivos na raiz dessa pasta.
 ## 4. Requisitos
 
 ### Funcionais
-- **RF1:** Listar projetos a partir dos `*.json` na raiz da pasta configurada.
-- **RF2:** Criar projeto Manual com `name` e `client` (obrigatórios), sem repositório.
-- **RF3:** Criar projeto Manual · repo com `name`, `client` e `local_path` (pasta local do repositório); gravar `_meta.local_path`.
+- **RF1:** Listar projetos a partir dos arquivos de projeto `*.json` na raiz da pasta configurada, excluindo sidecars `*.spec-checklist.json`.
+- **RF2:** Criar projeto Manual com `name` (obrigatório) e `client` (opcional), sem repositório.
+- **RF3:** Criar projeto Manual · repo com `name` (obrigatório), `client` (opcional) e `local_path` (pasta local do repositório); gravar `_meta.local_path`.
 - **RF4:** Ao criar Manual ou Manual · repo, gravar `{slug}.json` na raiz de `projects/` (slug a partir do name).
 - **RF5:** Criar projeto GitHub com repo URL, PAT, branch e caminho do arquivo; fazer fetch e gravar `{slug}.json` local.
 - **RF6:** O nome exibido vem do campo `name` do JSON (não de um campo separado de cadastro além do Manual).
@@ -67,14 +68,14 @@ arquivos na raiz dessa pasta.
 
 ### Criação Manual
 1. Usuário clica em “+” → modo Manual.
-2. Preenche nome e client.
+2. Preenche nome (client opcional).
 3. `POST /api/projects` com `source_type: "local"` e `json_content`.
 4. API Route gera `{slug}.json` na raiz e responde o projeto criado.
 5. UI atualiza a lista e fecha o modal.
 
 ### Criação Manual · repo
 1. Usuário escolhe modo Manual · repo.
-2. Preenche nome, client e caminho local do repositório (`local_path`).
+2. Preenche nome, caminho local do repositório (`local_path`) e, se quiser, client.
 3. `POST /api/projects` com `source_type: "local_repo"`, `json_content` e `local_path`.
 4. API Route grava `{slug}.json` com `_meta.local_path` e responde o projeto criado.
 5. UI atualiza a lista e fecha o modal.
@@ -91,8 +92,8 @@ arquivos na raiz dessa pasta.
 ## 6. Critérios de aceite
 
 - **AC1:** Dado arquivos `*.json` na pasta de projects, quando o usuário abre Projects, então os cards correspondem a esses arquivos.
-- **AC2:** Dado nome e client válidos no modo Manual, quando o usuário cria, então surge `{slug}.json` na raiz de `projects/` sem `repo` nem `local_path`.
-- **AC3:** Dado nome, client e `local_path` válidos no modo Manual · repo, quando o usuário cria, então o projeto é gravado com `_meta.source_type: "local_repo"` e `_meta.local_path`.
+- **AC2:** Dado nome válido no modo Manual (client opcional), quando o usuário cria, então surge `{slug}.json` na raiz de `projects/` sem `repo` nem `local_path`.
+- **AC3:** Dado nome e `local_path` válidos no modo Manual · repo (client opcional), quando o usuário cria, então o projeto é gravado com `_meta.source_type: "local_repo"` e `_meta.local_path`.
 - **AC4:** Dado configuração GitHub válida e JSON remoto com `name`, quando o usuário sincroniza, então o arquivo local é criado/atualizado e o projeto aparece na lista.
 - **AC5:** Dado slug já existente, quando o usuário tenta criar de novo, então a API retorna 409.
 - **AC6:** Dado projeto GitHub salvo, quando a API responde, então o PAT não é exposto (`has_github_pat` apenas).
@@ -110,7 +111,7 @@ arquivos na raiz dessa pasta.
 
 ## 8. Riscos e questões em aberto
 
-- Edição in-app de checkpoints/checklist/`ai` tip ainda não especificada.
+- Edição in-app de checkpoints/`ai` tip ainda não especificada; checklist local de projetos Manual está na spec 008.
 - Rotação/criptografia do PAT em `_meta`.
 - Auth nos endpoints `/api/projects` em produção.
 - Comportamento ao renomear (`name` muda → slug/arquivo não renomeia automaticamente?).

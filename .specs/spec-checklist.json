@@ -11,30 +11,44 @@
           "specId": "001",
           "specFile": "features/001-projects_ai-input.md",
           "title": "AI input na aba Projects",
-          "after": ["002", "003"],
+          "after": [
+            "002",
+            "003"
+          ],
           "checklist": [
             {
               "ac": "AC1",
               "description": "Painel de AI input exibido na aba Projects",
               "status": "done",
-              "before": ["AC2", "AC3"],
+              "before": [
+                "AC2",
+                "AC3"
+              ],
               "issues": [],
               "prs": []
             },
             {
               "ac": "AC2",
               "description": "Resposta do agente exibida após envio com IA configurada",
-              "status": "in-progress",
-              "after": ["AC1", { "specId": "002", "ac": "AC3" }],
+              "status": "done",
+              "after": [
+                "AC1",
+                {
+                  "specId": "002",
+                  "ac": "AC3"
+                }
+              ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC3",
               "description": "Mensagem de erro amigável em falha ou IA não configurada",
-              "status": "todo",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
             },
             {
               "ac": "AC4",
@@ -46,16 +60,20 @@
             {
               "ac": "AC5",
               "description": "Aviso de projeto referenciado e scroll até o card correspondente",
-              "status": "done",
-              "after": ["AC2"],
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
               "issues": [],
               "prs": []
             },
             {
               "ac": "AC6",
               "description": "Aviso de projeto referenciado dispensado ao clicar na tela",
-              "status": "done",
-              "after": ["AC5"],
+              "status": "todo",
+              "after": [
+                "AC5"
+              ],
               "issues": [],
               "prs": []
             }
@@ -65,7 +83,10 @@
           "specId": "002",
           "specFile": "features/002-settings.md",
           "title": "Configurações do workspace",
-          "before": ["001", "003"],
+          "before": [
+            "001",
+            "003"
+          ],
           "checklist": [
             {
               "ac": "AC1",
@@ -120,7 +141,9 @@
               "ac": "AC8",
               "description": "Restaurar padrão limpa override e volta ao prompt embutido",
               "status": "done",
-              "after": ["AC7"],
+              "after": [
+                "AC7"
+              ],
               "issues": [],
               "prs": []
             }
@@ -130,14 +153,23 @@
           "specId": "003",
           "specFile": "features/003-projects.md",
           "title": "Projects",
-          "after": ["002"],
-          "before": ["001"],
+          "after": [
+            "002"
+          ],
+          "before": [
+            "001"
+          ],
           "checklist": [
             {
               "ac": "AC1",
               "description": "Listagem a partir dos *.json em projects/",
               "status": "done",
-              "after": [{ "specId": "002", "ac": "AC2" }],
+              "after": [
+                {
+                  "specId": "002",
+                  "ac": "AC2"
+                }
+              ],
               "issues": [],
               "prs": []
             },
@@ -189,7 +221,10 @@
           "specId": "004",
           "specFile": "features/004-projects_ai-summary.md",
           "title": "Resumo IA nos cards de projeto",
-          "after": ["002", "003"],
+          "after": [
+            "002",
+            "003"
+          ],
           "checklist": [
             {
               "ac": "AC1",
@@ -216,7 +251,9 @@
               "ac": "AC4",
               "description": "Skeleton no texto durante refresh manual",
               "status": "done",
-              "after": ["AC3"],
+              "after": [
+                "AC3"
+              ],
               "issues": [],
               "prs": []
             },
@@ -224,7 +261,12 @@
               "ac": "AC5",
               "description": "POST ai-summary grava ai e ai_updated_at",
               "status": "done",
-              "after": [{ "specId": "002", "ac": "AC3" }],
+              "after": [
+                {
+                  "specId": "002",
+                  "ac": "AC3"
+                }
+              ],
               "issues": [],
               "prs": []
             },
@@ -232,7 +274,9 @@
               "ac": "AC6",
               "description": "Refresh automático em background para resumos >24h no GET /api/projects",
               "status": "done",
-              "after": ["AC5"],
+              "after": [
+                "AC5"
+              ],
               "issues": [],
               "prs": []
             },
@@ -240,7 +284,9 @@
               "ac": "AC7",
               "description": "Erro 400 amigável quando IA não configurada no refresh manual",
               "status": "done",
-              "after": ["AC5"],
+              "after": [
+                "AC5"
+              ],
               "issues": [],
               "prs": []
             },
@@ -248,7 +294,358 @@
               "ac": "AC8",
               "description": "Prompt customizado de resumo via Settings",
               "status": "done",
-              "after": [{ "specId": "002", "ac": "AC7" }],
+              "after": [
+                {
+                  "specId": "002",
+                  "ac": "AC7"
+                }
+              ],
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "005",
+          "specFile": "features/005-agents.md",
+          "title": "Agents",
+          "after": [
+            "002"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Listagem de agentes a partir dos *.md em agents_folder",
+              "status": "done",
+              "after": [
+                {
+                  "specId": "002",
+                  "ac": "AC2"
+                }
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC2",
+              "description": "Criação grava {slug}.md com heading e conteúdo markdown",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC3",
+              "description": "Modal de detalhe permite editar nome e conteúdo",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC4",
+              "description": "Renomear agente gera novo slug e remove arquivo antigo",
+              "status": "done",
+              "after": [
+                "AC3"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC5",
+              "description": "Remoção exclui o arquivo .md do agente",
+              "status": "done",
+              "after": [
+                "AC3"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC6",
+              "description": "Conflito 409 se slug já existir",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC7",
+              "description": "Busca por nome na aba Agents",
+              "status": "done",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC8",
+              "description": "Editor markdown com alternância código/preview",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            }
+          ]
+        },
+        {
+          "specId": "006",
+          "specFile": "features/006-projects_modal-dashboard.md",
+          "title": "Modal de projeto · Dashboard",
+          "after": [
+            "003"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Botão expandir abre modal de detalhe do projeto",
+              "status": "done",
+              "after": [
+                {
+                  "specId": "003",
+                  "ac": "AC1"
+                }
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC2",
+              "description": "Dashboard exibe estatísticas agregadas de ACs",
+              "status": "done",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC3",
+              "description": "Tabela de specs com ACs, descrição e badge de status",
+              "status": "done",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC4",
+              "description": "Checklist lido do repositório local via local_path",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC5",
+              "description": "Checklist buscado remotamente para projetos GitHub",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC6",
+              "description": "Estado vazio quando checklist ausente ou sem repo",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC7",
+              "description": "Issues e PRs exibidos na linha do AC",
+              "status": "done",
+              "after": [
+                "AC3"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC8",
+              "description": "Resolução de projeto via spec_project_id e heurísticas de slug",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            }
+          ]
+        },
+        {
+          "specId": "007",
+          "specFile": "features/007-spec-checklist_completion-metadata.md",
+          "title": "Metadados de conclusão do checklist",
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Schema aceita commit de conclusão válido somente em itens done",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "API resolve data/hora via Git CLI local ou GitHub API com PAT",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Automações preenchem o commit ao concluir e o removem ao reabrir",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Documentação explica campos, compatibilidade e fluxo de commits",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "008",
+          "specFile": "features/008-projects_local-checklist.md",
+          "title": "Checklist local simples para projetos Manual",
+          "after": [
+            "003",
+            "006"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Aba Checklist visível somente para projetos local",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Sidecar ausente retorna checklist vazio",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Adicionar, renomear e remover itens persiste no sidecar",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Marcar/desmarcar item persiste booleano done",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "Sidecars não aparecem em GET /api/projects",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "API rejeita local_repo e github",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC7",
+              "description": "Remoção do projeto exclui o sidecar",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "009",
+          "specFile": "features/009-projects_modal-settings.md",
+          "title": "Modal de projeto · Settings",
+          "after": [
+            "006"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Aba Settings exibe formulário de metadados do projeto",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Edição de local_path persiste em _meta",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Edição de spec_project_id persiste em _meta",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Troca para GitHub grava source_type e campos GitHub",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "Alteração do ID do projeto renomeia o arquivo JSON",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "PAT existente mantido quando campo fica em branco",
+              "status": "in-progress",
+              "after": [
+                "AC4"
+              ],
               "issues": [],
               "prs": []
             }
