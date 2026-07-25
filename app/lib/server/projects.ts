@@ -253,33 +253,8 @@ export function deleteProject(id: string): boolean {
     return false;
   }
 
-  const data = readJsonFile(filePath);
-  const meta =
-    data[META_KEY] && typeof data[META_KEY] === 'object' && !Array.isArray(data[META_KEY])
-      ? (data[META_KEY] as Record<string, unknown>)
-      : {};
-  const sourceType = resolveSourceType(meta);
-
-  if (sourceType === 'local' || sourceType === 'local_repo') {
-    const sidecarTasks = localProjectTasksSidecarPath(id);
-    if (fs.existsSync(sidecarTasks) && fs.statSync(sidecarTasks).isFile()) {
-      fs.unlinkSync(sidecarTasks);
-    }
-    const legacyTasksFile = legacyProjectTasksPathForId(id);
-    if (fs.existsSync(legacyTasksFile) && fs.statSync(legacyTasksFile).isFile()) {
-      fs.unlinkSync(legacyTasksFile);
-    }
-  }
-
-  fs.unlinkSync(filePath);
-
-  const legacySidecarPath = legacyLocalChecklistPathForId(id);
-  if (
-    fs.existsSync(legacySidecarPath) &&
-    fs.statSync(legacySidecarPath).isFile()
-  ) {
-    fs.unlinkSync(legacySidecarPath);
-  }
+  const backupPath = backupPathForProjectFile(filePath);
+  fs.renameSync(filePath, backupPath);
 
   return true;
 }
@@ -1390,6 +1365,19 @@ function listProjectFiles(): string[] {
 function pathForId(projectId: string): string {
   const slug = slugify(projectId, 'projeto');
   return path.join(projectsFolder(), `${slug}.json`);
+}
+
+function backupPathForProjectFile(filePath: string): string {
+  const backupPath = `${filePath}.backup`;
+  if (!fs.existsSync(backupPath)) {
+    return backupPath;
+  }
+
+  let suffix = 2;
+  while (fs.existsSync(`${backupPath}.${suffix}`)) {
+    suffix += 1;
+  }
+  return `${backupPath}.${suffix}`;
 }
 
 function writeProjectFile(name: string, jsonData: Record<string, unknown>): string {
