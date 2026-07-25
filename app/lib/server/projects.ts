@@ -1,9 +1,14 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'fs';
 import path from 'path';
 
 import { ApiError } from './api-error';
 import { LOCAL_PROJECTS_MOUNT, serverEnv } from './env';
-import { fetchGithubJsonFile } from './github-json';
+import {
+  fetchGithubCommitDate,
+  fetchGithubJsonFile,
+  fetchGithubTextFile,
+} from './github-json';
 import { slugify } from './slugify';
 import { projectsFolder } from './workspace-config';
 
@@ -21,6 +26,8 @@ export type ProjectResponse = {
   github_branch: string | null;
   github_file_path: string | null;
   local_path: string | null;
+  spec_project_id: string | null;
+  spec_checklist_path: string | null;
   has_github_pat: boolean;
   last_synced_at: string | null;
   created_at: string | null;
@@ -39,7 +46,11 @@ export type ProjectCreateInput = {
 
 export type ProjectUpdateInput = {
   json_content?: string | Record<string, unknown> | null;
+  source_type?: ProjectSourceType;
+  new_id?: string | null;
   local_path?: string | null;
+  spec_project_id?: string | null;
+  spec_checklist_path?: string | null;
   github_repo_url?: string | null;
   github_pat?: string | null;
   github_branch?: string | null;
@@ -122,7 +133,7 @@ export function updateProject(
   id: string,
   data: ProjectUpdateInput,
 ): ProjectResponse | null {
-  const filePath = pathForId(id);
+  let filePath = pathForId(id);
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
     return null;
   }
@@ -136,50 +147,23 @@ export function updateProject(
     const body = Object.fromEntries(
       Object.entries(jsonData).filter(([key]) => key !== META_KEY),
     );
-    for (const key of [
-      'local_path',
-      'github_repo_url',
-      'github_pat',
-      'github_branch',
-      'github_file_path',
-    ] as const) {
-      if (data[key] !== undefined && data[key] !== null) {
-        meta[key] = String(data[key]).trim();
-      }
-    }
-    if (!meta.source_type) {
-      meta.source_type = meta.github_repo_url
-        ? 'github'
-        : meta.local_path
-          ? 'local_repo'
-          : 'local';
-    }
+    applyProjectMetaUpdates(meta, data);
     overwriteJsonFile(filePath, withMeta(body, meta));
-    return fileToResponse(filePath);
+  } else {
+    const body = Object.fromEntries(
+      Object.entries(current).filter(([key]) => key !== META_KEY),
+    );
+    applyProjectMetaUpdates(meta, data);
+    overwriteJsonFile(filePath, withMeta(body, meta));
   }
 
-  const body = Object.fromEntries(
-    Object.entries(current).filter(([key]) => key !== META_KEY),
-  );
-  for (const key of [
-    'local_path',
-    'github_repo_url',
-    'github_pat',
-    'github_branch',
-    'github_file_path',
-  ] as const) {
-    if (data[key] !== undefined && data[key] !== null) {
-      meta[key] = String(data[key]).trim();
+  if (data.new_id !== undefined && data.new_id !== null) {
+    const nextId = slugify(String(data.new_id).trim(), 'projeto');
+    if (nextId !== id) {
+      filePath = renameProjectFile(id, nextId);
     }
   }
-  if (!meta.source_type) {
-    meta.source_type = meta.github_repo_url
-      ? 'github'
-      : meta.local_path
-        ? 'local_repo'
-        : 'local';
-  }
-  overwriteJsonFile(filePath, withMeta(body, meta));
+
   return fileToResponse(filePath);
 }
 
@@ -265,7 +249,161 @@ export function deleteProject(id: string): boolean {
     return false;
   }
   fs.unlinkSync(filePath);
+
+  const sidecarPath = localChecklistPathForId(id);
+  if (fs.existsSync(sidecarPath) && fs.statSync(sidecarPath).isFile()) {
+    fs.unlinkSync(sidecarPath);
+  }
+
   return true;
+}
+
+export type LocalChecklistItem = {
+  id: string;
+  label: string;
+  done: boolean;
+};
+
+export type LocalChecklistDocument = {
+  version: 1;
+  items: LocalChecklistItem[];
+};
+
+const LOCAL_CHECKLIST_LABEL_MAX = 200;
+
+function localChecklistPathForId(projectId: string): string {
+  const slug = slugify(projectId, 'projeto');
+  return path.join(projectsFolder(), `${slug}.spec-checklist.json`);
+}
+
+function emptyLocalChecklist(): LocalChecklistDocument {
+  return { version: 1, items: [] };
+}
+
+function assertLocalProject(id: string): void {
+  const filePath = pathForId(id);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new ApiError(404, 'Project not found');
+  }
+
+  const data = readJsonFile(filePath);
+  const meta =
+    data[META_KEY] && typeof data[META_KEY] === 'object' && !Array.isArray(data[META_KEY])
+      ? (data[META_KEY] as Record<string, unknown>)
+      : {};
+
+  if (resolveSourceType(meta) !== 'local') {
+    throw new ApiError(
+      400,
+      'Checklist local simples está disponível apenas para projetos Manual (sem repositório).',
+    );
+  }
+}
+
+function parseLocalChecklistDocument(raw: unknown): LocalChecklistDocument {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new ApiError(400, 'O checklist local deve ser um objeto JSON.');
+  }
+
+  const data = raw as Record<string, unknown>;
+  if (data.version !== 1) {
+    throw new ApiError(400, 'version do checklist local deve ser 1.');
+  }
+  if (!Array.isArray(data.items)) {
+    throw new ApiError(400, 'items do checklist local deve ser um array.');
+  }
+
+  const seen = new Set<string>();
+  const items: LocalChecklistItem[] = data.items.map((entry, index) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new ApiError(400, `Item ${index} do checklist local é inválido.`);
+    }
+    const row = entry as Record<string, unknown>;
+    const id = typeof row.id === 'string' ? row.id.trim() : '';
+    const label = typeof row.label === 'string' ? row.label.trim() : '';
+    if (!id) {
+      throw new ApiError(400, `Item ${index} precisa de id não vazio.`);
+    }
+    if (seen.has(id)) {
+      throw new ApiError(400, `id duplicado no checklist local: ${id}`);
+    }
+    seen.add(id);
+    if (!label) {
+      throw new ApiError(400, `Item ${index} precisa de label não vazia.`);
+    }
+    if (label.length > LOCAL_CHECKLIST_LABEL_MAX) {
+      throw new ApiError(
+        400,
+        `Label do item ${index} excede ${LOCAL_CHECKLIST_LABEL_MAX} caracteres.`,
+      );
+    }
+    if (typeof row.done !== 'boolean') {
+      throw new ApiError(400, `Item ${index} precisa de done booleano.`);
+    }
+    return { id, label, done: row.done };
+  });
+
+  return { version: 1, items };
+}
+
+export function getLocalChecklist(id: string): LocalChecklistDocument {
+  assertLocalProject(id);
+
+  const sidecarPath = localChecklistPathForId(id);
+  if (!fs.existsSync(sidecarPath) || !fs.statSync(sidecarPath).isFile()) {
+    return emptyLocalChecklist();
+  }
+
+  try {
+    const raw = JSON.parse(fs.readFileSync(sidecarPath, 'utf-8'));
+    return parseLocalChecklistDocument(raw);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (error instanceof SyntaxError) {
+      throw new ApiError(
+        400,
+        `Arquivo inválido (${path.basename(sidecarPath)}): ${error.message}`,
+      );
+    }
+    throw new ApiError(
+      400,
+      `Não foi possível ler ${path.basename(sidecarPath)}: ${error instanceof Error ? error.message : error}`,
+    );
+  }
+}
+
+export function saveLocalChecklist(
+  id: string,
+  payload: unknown,
+): LocalChecklistDocument {
+  assertLocalProject(id);
+  const document = parseLocalChecklistDocument(payload);
+  const sidecarPath = localChecklistPathForId(id);
+  overwriteJsonFileAtomic(sidecarPath, document as unknown as Record<string, unknown>);
+  return document;
+}
+
+function overwriteJsonFileAtomic(
+  filePath: string,
+  jsonData: Record<string, unknown>,
+) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    fs.writeFileSync(
+      tempPath,
+      `${JSON.stringify(jsonData, null, 2)}\n`,
+      'utf-8',
+    );
+    fs.renameSync(tempPath, filePath);
+  } catch (error) {
+    try {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    } catch {
+      /* ignore cleanup errors */
+    }
+    throw error;
+  }
 }
 
 export type AcStatus = 'todo' | 'in-progress' | 'blocked' | 'done';
@@ -274,6 +412,8 @@ export type SpecChecklistAc = {
   ac: string;
   description: string;
   status: AcStatus;
+  completedCommit: string | null;
+  completedAt: string | null;
   issues: number[];
   prs: number[];
 };
@@ -317,6 +457,7 @@ type RawChecklistFile = {
         ac: string;
         description?: string;
         status?: string;
+        completedCommit?: string;
         issues?: number[];
         prs?: number[];
       }>;
@@ -329,6 +470,13 @@ function normalizeAcStatus(value: string | undefined): AcStatus {
     return value;
   }
   return 'todo';
+}
+
+const COMMIT_HASH_RE = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+
+function normalizeCommitHash(value: string | undefined): string | null {
+  const commit = value?.trim().toLowerCase() ?? '';
+  return COMMIT_HASH_RE.test(commit) ? commit : null;
 }
 
 function parseChecklistFile(raw: string): RawChecklistFile | null {
@@ -393,10 +541,82 @@ function mapChecklistSpecs(
           ac: item.ac,
           description: item.description?.trim() || item.ac,
           status: normalizeAcStatus(item.status),
+          completedCommit: normalizeCommitHash(item.completedCommit),
+          completedAt: null,
           issues: Array.isArray(item.issues) ? item.issues : [],
           prs: Array.isArray(item.prs) ? item.prs : [],
         }))
       : [],
+  }));
+}
+
+function resolveLocalCompletionDates(
+  specs: SpecChecklistSpec[],
+  repositoryRoot: string,
+): SpecChecklistSpec[] {
+  const dates = new Map<string, string | null>();
+
+  for (const item of specs.flatMap((spec) => spec.checklist)) {
+    const commit = item.completedCommit;
+    if (!commit || dates.has(commit)) continue;
+    try {
+      const committedAt = execFileSync(
+        'git',
+        ['show', '-s', '--format=%cI', '--no-show-signature', commit],
+        {
+          cwd: repositoryRoot,
+          encoding: 'utf-8',
+          timeout: 5_000,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        },
+      ).trim();
+      dates.set(commit, committedAt && !Number.isNaN(Date.parse(committedAt)) ? committedAt : null);
+    } catch {
+      dates.set(commit, null);
+    }
+  }
+
+  return specs.map((spec) => ({
+    ...spec,
+    checklist: spec.checklist.map((item) => ({
+      ...item,
+      completedAt: item.completedCommit ? (dates.get(item.completedCommit) ?? null) : null,
+    })),
+  }));
+}
+
+async function resolveGithubCompletionDates(
+  specs: SpecChecklistSpec[],
+  repoUrl: string,
+  pat: string,
+): Promise<SpecChecklistSpec[]> {
+  const commits = [
+    ...new Set(
+      specs.flatMap((spec) =>
+        spec.checklist.flatMap((item) => (item.completedCommit ? [item.completedCommit] : [])),
+      ),
+    ),
+  ];
+  const entries = await Promise.all(
+    commits.map(async (commit) => {
+      try {
+        return [
+          commit,
+          await fetchGithubCommitDate({ repoUrl, pat, commit }),
+        ] as const;
+      } catch {
+        return [commit, null] as const;
+      }
+    }),
+  );
+  const dates = new Map<string, string | null>(entries);
+
+  return specs.map((spec) => ({
+    ...spec,
+    checklist: spec.checklist.map((item) => ({
+      ...item,
+      completedAt: item.completedCommit ? (dates.get(item.completedCommit) ?? null) : null,
+    })),
   }));
 }
 
@@ -478,7 +698,10 @@ function readLocalSpecChecklist(
   }
 
   const match = findChecklistProject(parsed, candidates);
-  const specs = mapChecklistSpecs(match?.specs);
+  const specs = resolveLocalCompletionDates(
+    mapChecklistSpecs(match?.specs),
+    resolvedRoot,
+  );
 
   return buildChecklistResponse({
     checklistPath,
@@ -558,7 +781,6 @@ export async function getProjectSpecChecklist(
     }
 
     try {
-      const { fetchGithubTextFile } = await import('./github-json');
       const remote = await fetchGithubTextFile({
         repoUrl: String(repo),
         pat: String(pat),
@@ -567,7 +789,11 @@ export async function getProjectSpecChecklist(
       });
       const parsed = parseChecklistFile(remote.content);
       const match = parsed ? findChecklistProject(parsed, candidates) : null;
-      const specs = mapChecklistSpecs(match?.specs);
+      const specs = await resolveGithubCompletionDates(
+        mapChecklistSpecs(match?.specs),
+        String(repo),
+        String(pat),
+      );
 
       return buildChecklistResponse({
         checklistPath,
@@ -705,7 +931,12 @@ function listProjectFiles(): string[] {
   const root = projectsFolder();
   return fs
     .readdirSync(root)
-    .filter((name) => name.endsWith('.json') && !name.startsWith('.'))
+    .filter(
+      (name) =>
+        name.endsWith('.json') &&
+        !name.startsWith('.') &&
+        !name.endsWith('.spec-checklist.json'),
+    )
     .map((name) => path.join(root, name))
     .filter((filePath) => fs.statSync(filePath).isFile())
     .sort((a, b) => path.basename(a).localeCompare(path.basename(b), undefined, { sensitivity: 'base' }));
@@ -773,6 +1004,11 @@ function fileToResponse(filePath: string): ProjectResponse {
     github_branch: (meta.github_branch as string | undefined) ?? null,
     github_file_path: (meta.github_file_path as string | undefined) ?? null,
     local_path: (meta.local_path as string | undefined) ?? null,
+    spec_project_id: (meta.spec_project_id as string | undefined) ?? null,
+    spec_checklist_path:
+      typeof meta.spec_checklist_path === 'string' && meta.spec_checklist_path.trim()
+        ? meta.spec_checklist_path.trim()
+        : null,
     has_github_pat: Boolean(meta.github_pat),
     last_synced_at: lastSyncedAt,
     created_at: stat.birthtime.toISOString(),
@@ -878,4 +1114,128 @@ function resolveSourceType(meta: Record<string, unknown>): ProjectSourceType {
   if (meta.github_repo_url) return 'github';
   if (meta.local_path) return 'local_repo';
   return 'local';
+}
+
+function applyProjectMetaUpdates(
+  meta: Record<string, unknown>,
+  data: ProjectUpdateInput,
+): void {
+  if (data.source_type !== undefined) {
+    meta.source_type = data.source_type;
+    if (data.source_type === 'local') {
+      delete meta.local_path;
+      delete meta.github_repo_url;
+      delete meta.github_pat;
+      delete meta.github_branch;
+      delete meta.github_file_path;
+      delete meta.last_synced_at;
+    } else if (data.source_type === 'local_repo') {
+      delete meta.github_repo_url;
+      delete meta.github_pat;
+      delete meta.github_branch;
+      delete meta.github_file_path;
+      delete meta.last_synced_at;
+    } else if (data.source_type === 'github') {
+      delete meta.local_path;
+    }
+  }
+
+  if (data.spec_project_id !== undefined) {
+    const trimmed =
+      data.spec_project_id === null ? '' : String(data.spec_project_id).trim();
+    if (trimmed) {
+      meta.spec_project_id = trimmed;
+    } else {
+      delete meta.spec_project_id;
+    }
+  }
+
+  if (data.spec_checklist_path !== undefined) {
+    const trimmed =
+      data.spec_checklist_path === null
+        ? ''
+        : String(data.spec_checklist_path).trim();
+    if (trimmed) {
+      meta.spec_checklist_path = trimmed;
+    } else {
+      delete meta.spec_checklist_path;
+    }
+  }
+
+  for (const key of [
+    'local_path',
+    'github_repo_url',
+    'github_pat',
+    'github_branch',
+    'github_file_path',
+  ] as const) {
+    if (data[key] === undefined) continue;
+    if (data[key] === null || !String(data[key]).trim()) {
+      delete meta[key];
+      continue;
+    }
+    meta[key] = String(data[key]).trim();
+  }
+
+  const sourceType = resolveSourceType(meta);
+
+  if (sourceType === 'local_repo') {
+    const localPath =
+      typeof meta.local_path === 'string' ? meta.local_path.trim() : '';
+    if (!localPath) {
+      throw new ApiError(400, 'Informe o caminho local do repositório.');
+    }
+    meta.local_path = localPath;
+  }
+
+  if (sourceType === 'github') {
+    const missing: string[] = (
+      [
+        ['github_repo_url', meta.github_repo_url],
+        ['github_branch', meta.github_branch],
+        ['github_file_path', meta.github_file_path],
+      ] as const
+    )
+      .filter(([, value]) => !value || !String(value).trim())
+      .map(([field]) => field);
+
+    if (!meta.github_pat || !String(meta.github_pat).trim()) {
+      missing.push('github_pat');
+    }
+
+    if (missing.length > 0) {
+      throw new ApiError(
+        400,
+        `Campos obrigatórios para GitHub: ${missing.join(', ')}`,
+      );
+    }
+  }
+
+  meta.source_type = sourceType;
+}
+
+function renameProjectFile(oldId: string, newId: string): string {
+  const oldPath = pathForId(oldId);
+  const newPath = pathForId(newId);
+
+  if (oldPath === newPath) {
+    return oldPath;
+  }
+
+  if (fs.existsSync(newPath)) {
+    throw new ApiError(
+      409,
+      `Já existe um projeto com id "${newId}". Escolha outro identificador.`,
+    );
+  }
+
+  fs.renameSync(oldPath, newPath);
+
+  const oldSidecar = localChecklistPathForId(oldId);
+  const newSidecar = localChecklistPathForId(newId);
+  if (fs.existsSync(oldSidecar) && fs.statSync(oldSidecar).isFile()) {
+    fs.renameSync(oldSidecar, newSidecar);
+  }
+
+  return newPath;
 }

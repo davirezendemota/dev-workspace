@@ -22,6 +22,45 @@ export function parseGithubRepo(repoUrl: string): [string, string] {
   );
 }
 
+export async function fetchGithubCommitDate(options: {
+  repoUrl: string;
+  pat: string;
+  commit: string;
+}): Promise<string> {
+  const [owner, repo] = parseGithubRepo(options.repoUrl);
+  const commit = options.commit.trim().toLowerCase();
+  if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit)) {
+    throw new Error('Hash de commit inválido.');
+  }
+
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/commits/${encodeURIComponent(commit)}`;
+  const response = await fetch(apiUrl, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${options.pat.trim()}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'workspace-project-sync',
+    },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erro ao buscar commit no GitHub (${response.status}).`);
+  }
+
+  const payload = (await response.json()) as {
+    commit?: {
+      committer?: { date?: string | null } | null;
+      author?: { date?: string | null } | null;
+    };
+  };
+  const committedAt = payload.commit?.committer?.date ?? payload.commit?.author?.date;
+  if (!committedAt) {
+    throw new Error('Data do commit não encontrada no GitHub.');
+  }
+  return committedAt;
+}
+
 export async function fetchGithubJsonFile(options: {
   repoUrl: string;
   pat: string;
