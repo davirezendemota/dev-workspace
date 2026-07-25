@@ -8,6 +8,7 @@ import {
   fetchGithubCommitDate,
   fetchGithubJsonFile,
   fetchGithubTextFile,
+  putGithubTextFile,
 } from './github-json';
 import { slugify } from './slugify';
 import { projectsFolder } from './workspace-config';
@@ -26,8 +27,10 @@ export type ProjectResponse = {
   github_branch: string | null;
   github_file_path: string | null;
   local_path: string | null;
+  local_path_relative: string | null;
   spec_project_id: string | null;
   spec_checklist_path: string | null;
+  tasks_path: string | null;
   has_github_pat: boolean;
   last_synced_at: string | null;
   created_at: string | null;
@@ -51,6 +54,7 @@ export type ProjectUpdateInput = {
   local_path?: string | null;
   spec_project_id?: string | null;
   spec_checklist_path?: string | null;
+  tasks_path?: string | null;
   github_repo_url?: string | null;
   github_pat?: string | null;
   github_branch?: string | null;
@@ -248,75 +252,146 @@ export function deleteProject(id: string): boolean {
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
     return false;
   }
-  fs.unlinkSync(filePath);
-
-  const sidecarPath = localChecklistPathForId(id);
-  if (fs.existsSync(sidecarPath) && fs.statSync(sidecarPath).isFile()) {
-    fs.unlinkSync(sidecarPath);
-  }
-
-  return true;
-}
-
-export type LocalChecklistItem = {
-  id: string;
-  label: string;
-  done: boolean;
-};
-
-export type LocalChecklistDocument = {
-  version: 1;
-  items: LocalChecklistItem[];
-};
-
-const LOCAL_CHECKLIST_LABEL_MAX = 200;
-
-function localChecklistPathForId(projectId: string): string {
-  const slug = slugify(projectId, 'projeto');
-  return path.join(projectsFolder(), `${slug}.spec-checklist.json`);
-}
-
-function emptyLocalChecklist(): LocalChecklistDocument {
-  return { version: 1, items: [] };
-}
-
-function assertLocalProject(id: string): void {
-  const filePath = pathForId(id);
-  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
-    throw new ApiError(404, 'Project not found');
-  }
 
   const data = readJsonFile(filePath);
   const meta =
     data[META_KEY] && typeof data[META_KEY] === 'object' && !Array.isArray(data[META_KEY])
       ? (data[META_KEY] as Record<string, unknown>)
       : {};
+  const sourceType = resolveSourceType(meta);
 
-  if (resolveSourceType(meta) !== 'local') {
-    throw new ApiError(
-      400,
-      'Checklist local simples está disponível apenas para projetos Manual (sem repositório).',
-    );
+  if (sourceType === 'local' || sourceType === 'local_repo') {
+    const sidecarTasks = localProjectTasksSidecarPath(id);
+    if (fs.existsSync(sidecarTasks) && fs.statSync(sidecarTasks).isFile()) {
+      fs.unlinkSync(sidecarTasks);
+    }
+    const legacyTasksFile = legacyProjectTasksPathForId(id);
+    if (fs.existsSync(legacyTasksFile) && fs.statSync(legacyTasksFile).isFile()) {
+      fs.unlinkSync(legacyTasksFile);
+    }
   }
+
+  fs.unlinkSync(filePath);
+
+  const legacySidecarPath = legacyLocalChecklistPathForId(id);
+  if (
+    fs.existsSync(legacySidecarPath) &&
+    fs.statSync(legacySidecarPath).isFile()
+  ) {
+    fs.unlinkSync(legacySidecarPath);
+  }
+
+  return true;
 }
 
-function parseLocalChecklistDocument(raw: unknown): LocalChecklistDocument {
+export type ProjectTaskItem = {
+  id: string;
+  label: string;
+  done: boolean;
+};
+
+export type ProjectTasksDocument = {
+  version: 1;
+  items: ProjectTaskItem[];
+  tasks_path: string | null;
+  source: ProjectSourceType;
+  updated_at: string | null;
+};
+
+const TASK_LABEL_MAX = 200;
+const DEFAULT_REPO_TASKS_PATH = 'tasks.json';
+
+function legacyLocalChecklistPathForId(projectId: string): string {
+  const slug = slugify(projectId, 'projeto');
+  return path.join(projectsFolder(), `${slug}.spec-checklist.json`);
+}
+
+function legacyProjectTasksPathForId(projectId: string): string {
+  const slug = slugify(projectId, 'projeto');
+  return path.join(projectsFolder(), `${slug}.checklist.json`);
+}
+
+function defaultProjectTasksPath(sourceType: ProjectSourceType): string {
+  return DEFAULT_REPO_TASKS_PATH;
+}
+
+function resolveProjectTasksPath(
+  meta: Record<string, unknown>,
+  sourceType: ProjectSourceType,
+): string {
+  if (typeof meta.tasks_path === 'string' && meta.tasks_path.trim()) {
+    return meta.tasks_path.trim().replace(/^\//, '');
+  }
+  if (typeof meta.checklist_path === 'string' && meta.checklist_path.trim()) {
+    return meta.checklist_path.trim().replace(/^\//, '');
+  }
+  return defaultProjectTasksPath(sourceType);
+}
+
+function resolveProjectTasksPathForResponse(
+  meta: Record<string, unknown>,
+  sourceType: ProjectSourceType,
+): string | null {
+  if (sourceType === 'local' || sourceType === 'local_repo') return null;
+  return resolveProjectTasksPath(meta, sourceType);
+}
+
+function usesEmbeddedProjectTasks(sourceType: ProjectSourceType): boolean {
+  return sourceType === 'local' || sourceType === 'local_repo';
+}
+
+function createTaskItemId(): string {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function readTaskItemsFromRaw(raw: unknown): ProjectTaskItem[] {
+  if (!Array.isArray(raw)) return [];
+
+  const seen = new Set<string>();
+  const items: ProjectTaskItem[] = [];
+
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    const row = entry as Record<string, unknown>;
+    const label = typeof row.label === 'string' ? row.label.trim() : '';
+    if (!label) continue;
+
+    let id = typeof row.id === 'string' ? row.id.trim() : '';
+    if (!id || seen.has(id)) {
+      id = createTaskItemId();
+    }
+    seen.add(id);
+
+    items.push({
+      id,
+      label,
+      done: row.done === true,
+    });
+  }
+
+  return items;
+}
+
+function parseProjectTasksDocument(raw: unknown): {
+  version: 1;
+  items: ProjectTaskItem[];
+} {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    throw new ApiError(400, 'O checklist local deve ser um objeto JSON.');
+    throw new ApiError(400, 'O arquivo de tasks deve ser um objeto JSON.');
   }
 
   const data = raw as Record<string, unknown>;
   if (data.version !== 1) {
-    throw new ApiError(400, 'version do checklist local deve ser 1.');
+    throw new ApiError(400, 'version do arquivo de tasks deve ser 1.');
   }
   if (!Array.isArray(data.items)) {
-    throw new ApiError(400, 'items do checklist local deve ser um array.');
+    throw new ApiError(400, 'items do arquivo de tasks deve ser um array.');
   }
 
   const seen = new Set<string>();
-  const items: LocalChecklistItem[] = data.items.map((entry, index) => {
+  const items: ProjectTaskItem[] = data.items.map((entry, index) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-      throw new ApiError(400, `Item ${index} do checklist local é inválido.`);
+      throw new ApiError(400, `Item ${index} de tasks é inválido.`);
     }
     const row = entry as Record<string, unknown>;
     const id = typeof row.id === 'string' ? row.id.trim() : '';
@@ -325,16 +400,16 @@ function parseLocalChecklistDocument(raw: unknown): LocalChecklistDocument {
       throw new ApiError(400, `Item ${index} precisa de id não vazio.`);
     }
     if (seen.has(id)) {
-      throw new ApiError(400, `id duplicado no checklist local: ${id}`);
+      throw new ApiError(400, `id duplicado em tasks: ${id}`);
     }
     seen.add(id);
     if (!label) {
       throw new ApiError(400, `Item ${index} precisa de label não vazia.`);
     }
-    if (label.length > LOCAL_CHECKLIST_LABEL_MAX) {
+    if (label.length > TASK_LABEL_MAX) {
       throw new ApiError(
         400,
-        `Label do item ${index} excede ${LOCAL_CHECKLIST_LABEL_MAX} caracteres.`,
+        `Label do item ${index} excede ${TASK_LABEL_MAX} caracteres.`,
       );
     }
     if (typeof row.done !== 'boolean') {
@@ -346,41 +421,8 @@ function parseLocalChecklistDocument(raw: unknown): LocalChecklistDocument {
   return { version: 1, items };
 }
 
-export function getLocalChecklist(id: string): LocalChecklistDocument {
-  assertLocalProject(id);
-
-  const sidecarPath = localChecklistPathForId(id);
-  if (!fs.existsSync(sidecarPath) || !fs.statSync(sidecarPath).isFile()) {
-    return emptyLocalChecklist();
-  }
-
-  try {
-    const raw = JSON.parse(fs.readFileSync(sidecarPath, 'utf-8'));
-    return parseLocalChecklistDocument(raw);
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    if (error instanceof SyntaxError) {
-      throw new ApiError(
-        400,
-        `Arquivo inválido (${path.basename(sidecarPath)}): ${error.message}`,
-      );
-    }
-    throw new ApiError(
-      400,
-      `Não foi possível ler ${path.basename(sidecarPath)}: ${error instanceof Error ? error.message : error}`,
-    );
-  }
-}
-
-export function saveLocalChecklist(
-  id: string,
-  payload: unknown,
-): LocalChecklistDocument {
-  assertLocalProject(id);
-  const document = parseLocalChecklistDocument(payload);
-  const sidecarPath = localChecklistPathForId(id);
-  overwriteJsonFileAtomic(sidecarPath, document as unknown as Record<string, unknown>);
-  return document;
+function serializeProjectTasksDocument(items: ProjectTaskItem[]): string {
+  return `${JSON.stringify({ version: 1, items }, null, 2)}\n`;
 }
 
 function overwriteJsonFileAtomic(
@@ -404,6 +446,385 @@ function overwriteJsonFileAtomic(
     }
     throw error;
   }
+}
+
+function writeTasksFileToDisk(
+  absolutePath: string,
+  items: ProjectTaskItem[],
+): string {
+  overwriteJsonFileAtomic(absolutePath, {
+    version: 1,
+    items,
+  } as unknown as Record<string, unknown>);
+  return fs.statSync(absolutePath).mtime.toISOString();
+}
+
+function readTasksFileFromDisk(
+  absolutePath: string,
+): { items: ProjectTaskItem[]; updatedAt: string | null } | null {
+  if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+    return null;
+  }
+
+  try {
+    const raw = JSON.parse(fs.readFileSync(absolutePath, 'utf-8'));
+    const document = parseProjectTasksDocument(raw);
+    return {
+      items: document.items,
+      updatedAt: fs.statSync(absolutePath).mtime.toISOString(),
+    };
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (error instanceof SyntaxError) {
+      throw new ApiError(
+        400,
+        `Arquivo inválido (${path.basename(absolutePath)}): ${error.message}`,
+      );
+    }
+    throw new ApiError(
+      400,
+      `Não foi possível ler ${path.basename(absolutePath)}: ${error instanceof Error ? error.message : error}`,
+    );
+  }
+}
+
+function readEmbeddedTasksFromProject(
+  data: Record<string, unknown>,
+): ProjectTaskItem[] {
+  return readTaskItemsFromRaw(data.tasks);
+}
+
+function writeEmbeddedTasksToProject(
+  id: string,
+  items: ProjectTaskItem[],
+): string {
+  const filePath = pathForId(id);
+  const current = readJsonFile(filePath);
+  const meta = {
+    ...((current[META_KEY] as Record<string, unknown>) ?? {}),
+  };
+  const body = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== META_KEY),
+  );
+  body.tasks = items;
+  overwriteJsonFile(filePath, withMeta(body, meta));
+  return fs.statSync(filePath).mtime.toISOString();
+}
+
+function localProjectTasksSidecarPath(projectId: string): string {
+  const slug = slugify(projectId, 'projeto');
+  return path.join(projectsFolder(), `${slug}.tasks.json`);
+}
+
+function removeLegacyChecklistFieldFromProjectJson(id: string): void {
+  const filePath = pathForId(id);
+  const current = readJsonFile(filePath);
+  if (!('checklist' in current)) return;
+
+  const meta = {
+    ...((current[META_KEY] as Record<string, unknown>) ?? {}),
+  };
+  const body = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== META_KEY && key !== 'checklist'),
+  );
+  overwriteJsonFile(filePath, withMeta(body, meta));
+}
+
+type ProjectTasksContext = {
+  id: string;
+  sourceType: ProjectSourceType;
+  tasksPath: string | null;
+  workspaceFilePath: string | null;
+  github: {
+    repoUrl: string;
+    pat: string;
+    branch: string;
+  } | null;
+};
+
+function resolveProjectTasksContext(id: string): ProjectTasksContext {
+  const filePath = pathForId(id);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new ApiError(404, 'Project not found');
+  }
+
+  const data = readJsonFile(filePath);
+  const meta =
+    data[META_KEY] && typeof data[META_KEY] === 'object' && !Array.isArray(data[META_KEY])
+      ? (data[META_KEY] as Record<string, unknown>)
+      : {};
+  const sourceType = resolveSourceType(meta);
+
+  if (usesEmbeddedProjectTasks(sourceType)) {
+    return {
+      id,
+      sourceType,
+      tasksPath: null,
+      workspaceFilePath: null,
+      github: null,
+    };
+  }
+
+  const tasksPath = resolveProjectTasksPath(meta, sourceType);
+
+  const repo = meta.github_repo_url;
+  const pat = meta.github_pat;
+  const branch = meta.github_branch;
+  if (!repo || !pat || !branch) {
+    throw new ApiError(400, 'Configuração GitHub incompleta para tasks.');
+  }
+
+  return {
+    id,
+    sourceType,
+    tasksPath,
+    workspaceFilePath: null,
+    github: {
+      repoUrl: String(repo),
+      pat: String(pat),
+      branch: String(branch),
+    },
+  };
+}
+
+function migrateEmbeddedProjectTasks(
+  id: string,
+  ctx: ProjectTasksContext,
+  data: Record<string, unknown>,
+  filePath: string,
+): void {
+  let embedded = readEmbeddedTasksFromProject(data);
+
+  const importSidecarItems = (sidecarPath: string): ProjectTaskItem[] => {
+    if (!fs.existsSync(sidecarPath) || !fs.statSync(sidecarPath).isFile()) {
+      return [];
+    }
+    try {
+      const raw = JSON.parse(fs.readFileSync(sidecarPath, 'utf-8'));
+      const legacy = parseProjectTasksDocument(raw);
+      fs.unlinkSync(sidecarPath);
+      return legacy.items;
+    } catch {
+      return [];
+    }
+  };
+
+  if (!embedded.length) {
+    embedded = importSidecarItems(legacyLocalChecklistPathForId(id));
+  }
+  if (!embedded.length) {
+    embedded = importSidecarItems(legacyProjectTasksPathForId(id));
+  }
+  if (!embedded.length) {
+    embedded = importSidecarItems(localProjectTasksSidecarPath(id));
+  }
+  if (!embedded.length) {
+    embedded = readTaskItemsFromRaw(data.checklist);
+  }
+
+  if (!embedded.length && ctx.sourceType === 'local_repo') {
+    const meta =
+      data[META_KEY] && typeof data[META_KEY] === 'object' && !Array.isArray(data[META_KEY])
+        ? (data[META_KEY] as Record<string, unknown>)
+        : {};
+    const localPath =
+      typeof meta.local_path === 'string' ? meta.local_path.trim() : '';
+    if (localPath) {
+      const resolvedRoot = resolveLocalProjectPath(localPath);
+      if (resolvedRoot) {
+        const legacyRepoTasks = path.join(
+          resolvedRoot,
+          resolveProjectTasksPath(meta, 'local_repo'),
+        );
+        const legacyFile = readTasksFileFromDisk(legacyRepoTasks);
+        if (legacyFile?.items.length) {
+          embedded = legacyFile.items;
+        }
+      }
+    }
+  }
+
+  if (embedded.length > 0 || Array.isArray(data.tasks) || 'checklist' in data) {
+    writeEmbeddedTasksToProject(id, embedded);
+    removeLegacyChecklistFieldFromProjectJson(id);
+    data = readJsonFile(filePath);
+  }
+
+  const meta = {
+    ...((data[META_KEY] as Record<string, unknown>) ?? {}),
+  };
+  if ('tasks_path' in meta) {
+    delete meta.tasks_path;
+    const body = Object.fromEntries(
+      Object.entries(data).filter(([key]) => key !== META_KEY),
+    );
+    overwriteJsonFile(filePath, withMeta(body, meta));
+  }
+}
+
+function migrateLegacyTasksSources(
+  id: string,
+  ctx: ProjectTasksContext,
+): Promise<void> {
+  const filePath = pathForId(id);
+  let data = readJsonFile(filePath);
+
+  if (usesEmbeddedProjectTasks(ctx.sourceType)) {
+    migrateEmbeddedProjectTasks(id, ctx, data, filePath);
+    return Promise.resolve();
+  }
+
+  const inlineItems = readTaskItemsFromRaw(data.checklist);
+  const existingFile = ctx.workspaceFilePath
+    ? readTasksFileFromDisk(ctx.workspaceFilePath)
+    : null;
+
+  if (inlineItems.length > 0) {
+    if (!existingFile?.items.length && ctx.workspaceFilePath) {
+      writeTasksFileToDisk(ctx.workspaceFilePath, inlineItems);
+    }
+    removeLegacyChecklistFieldFromProjectJson(id);
+    data = readJsonFile(filePath);
+  } else if ('checklist' in data) {
+    removeLegacyChecklistFieldFromProjectJson(id);
+    data = readJsonFile(filePath);
+  }
+
+  const meta = {
+    ...((data[META_KEY] as Record<string, unknown>) ?? {}),
+  };
+  if (
+    typeof meta.checklist_path === 'string' &&
+    meta.checklist_path.trim() &&
+    !meta.tasks_path
+  ) {
+    meta.tasks_path = meta.checklist_path.trim().replace(/^\//, '');
+    delete meta.checklist_path;
+    const body = Object.fromEntries(
+      Object.entries(data).filter(([key]) => key !== META_KEY),
+    );
+    overwriteJsonFile(filePath, withMeta(body, meta));
+  }
+
+  return Promise.resolve();
+}
+
+function buildProjectTasksResponse(
+  ctx: ProjectTasksContext,
+  items: ProjectTaskItem[],
+  updatedAt: string | null,
+): ProjectTasksDocument {
+  return {
+    version: 1,
+    items,
+    tasks_path: ctx.tasksPath,
+    source: ctx.sourceType,
+    updated_at: updatedAt,
+  };
+}
+
+async function readProjectTasksFromGithub(
+  ctx: ProjectTasksContext,
+): Promise<ProjectTasksDocument> {
+  if (!ctx.github) {
+    return buildProjectTasksResponse(ctx, [], null);
+  }
+
+  try {
+    const remote = await fetchGithubTextFile({
+      repoUrl: ctx.github.repoUrl,
+      pat: ctx.github.pat,
+      branch: ctx.github.branch,
+      filePath: ctx.tasksPath!,
+    });
+    const document = parseProjectTasksDocument(JSON.parse(remote.content));
+    return buildProjectTasksResponse(ctx, document.items, null);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('não encontrado')) {
+      return buildProjectTasksResponse(ctx, [], null);
+    }
+    throw new ApiError(
+      400,
+      error instanceof Error ? error.message : 'Falha ao ler tasks no GitHub.',
+    );
+  }
+}
+
+export async function getProjectTasks(id: string): Promise<ProjectTasksDocument> {
+  const ctx = resolveProjectTasksContext(id);
+  await migrateLegacyTasksSources(id, ctx);
+
+  if (ctx.sourceType === 'github') {
+    return readProjectTasksFromGithub(ctx);
+  }
+
+  if (usesEmbeddedProjectTasks(ctx.sourceType)) {
+    const data = readJsonFile(pathForId(id));
+    const items = readEmbeddedTasksFromProject(data);
+    const stat = fs.statSync(pathForId(id));
+    return buildProjectTasksResponse(ctx, items, stat.mtime.toISOString());
+  }
+
+  return buildProjectTasksResponse(ctx, [], null);
+}
+
+export async function saveProjectTasks(
+  id: string,
+  payload: unknown,
+): Promise<ProjectTasksDocument> {
+  const ctx = resolveProjectTasksContext(id);
+  const document = parseProjectTasksDocument(payload);
+
+  if (ctx.sourceType === 'github') {
+    if (!ctx.github || !ctx.tasksPath) {
+      throw new ApiError(400, 'Configuração GitHub incompleta para tasks.');
+    }
+
+    let sha: string | null = null;
+    try {
+      const remote = await fetchGithubTextFile({
+        repoUrl: ctx.github.repoUrl,
+        pat: ctx.github.pat,
+        branch: ctx.github.branch,
+        filePath: ctx.tasksPath,
+      });
+      sha = remote.sha;
+    } catch (error) {
+      if (!(error instanceof Error && error.message.includes('não encontrado'))) {
+        throw new ApiError(
+          400,
+          error instanceof Error ? error.message : 'Falha ao ler tasks no GitHub.',
+        );
+      }
+    }
+
+    const content = serializeProjectTasksDocument(document.items);
+    try {
+      await putGithubTextFile({
+        repoUrl: ctx.github.repoUrl,
+        pat: ctx.github.pat,
+        branch: ctx.github.branch,
+        filePath: ctx.tasksPath,
+        content,
+        sha,
+        message: `Update ${ctx.tasksPath}`,
+      });
+    } catch (error) {
+      throw new ApiError(
+        400,
+        error instanceof Error ? error.message : 'Falha ao salvar tasks no GitHub.',
+      );
+    }
+
+    return buildProjectTasksResponse(ctx, document.items, new Date().toISOString());
+  }
+
+  if (usesEmbeddedProjectTasks(ctx.sourceType)) {
+    const updatedAt = writeEmbeddedTasksToProject(id, document.items);
+    return buildProjectTasksResponse(ctx, document.items, updatedAt);
+  }
+
+  throw new ApiError(400, 'Tipo de projeto não suportado para tasks.');
 }
 
 export type AcStatus = 'todo' | 'in-progress' | 'blocked' | 'done';
@@ -832,21 +1253,43 @@ export async function getProjectSpecChecklist(
   });
 }
 
-function resolveLocalProjectPath(localPath: string): string | null {
+function expandLocalPath(localPath: string): string {
   const home = process.env.HOME ?? '';
-  const expanded = localPath.replace(/^~/, home);
-  const resolved = path.resolve(expanded);
+  return path.resolve(localPath.replace(/^~/, home));
+}
+
+function resolveLocalProjectsRoot(): string | null {
+  const hostRoot = serverEnv.WORKSPACE_LOCAL_PROJECTS_ROOT;
+  if (!hostRoot) return null;
+  const home = process.env.HOME ?? '';
+  return path.resolve(hostRoot.replace(/^~/, home));
+}
+
+function toRelativeLocalProjectPath(
+  localPath: string | null | undefined,
+): string | null {
+  if (!localPath || !localPath.trim()) return null;
+
+  const resolved = expandLocalPath(localPath.trim());
+  const hostRootResolved = resolveLocalProjectsRoot();
+  if (!hostRootResolved) return localPath.trim();
+
+  const relative = path.relative(hostRootResolved, resolved);
+  return relative || '.';
+}
+
+function resolveLocalProjectPath(localPath: string): string | null {
+  const resolved = expandLocalPath(localPath);
 
   if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
     return resolved;
   }
 
-  const hostRoot = serverEnv.WORKSPACE_LOCAL_PROJECTS_ROOT;
-  if (!hostRoot) {
+  const hostRootResolved = resolveLocalProjectsRoot();
+  if (!hostRootResolved) {
     return null;
   }
 
-  const hostRootResolved = path.resolve(hostRoot.replace(/^~/, home));
   let relative: string;
 
   if (resolved === hostRootResolved) {
@@ -854,7 +1297,7 @@ function resolveLocalProjectPath(localPath: string): string | null {
   } else if (resolved.startsWith(hostRootResolved + path.sep)) {
     relative = path.relative(hostRootResolved, resolved);
   } else {
-    const workspaceMatch = expanded.match(/(?:^|\/)workspace\/(.+)$/);
+    const workspaceMatch = localPath.match(/(?:^|\/)workspace\/(.+)$/);
     relative = workspaceMatch?.[1] ?? path.basename(resolved);
   }
 
@@ -935,7 +1378,9 @@ function listProjectFiles(): string[] {
       (name) =>
         name.endsWith('.json') &&
         !name.startsWith('.') &&
-        !name.endsWith('.spec-checklist.json'),
+        !name.endsWith('.spec-checklist.json') &&
+        !name.endsWith('.tasks.json') &&
+        !name.endsWith('.checklist.json'),
     )
     .map((name) => path.join(root, name))
     .filter((filePath) => fs.statSync(filePath).isFile())
@@ -1004,11 +1449,15 @@ function fileToResponse(filePath: string): ProjectResponse {
     github_branch: (meta.github_branch as string | undefined) ?? null,
     github_file_path: (meta.github_file_path as string | undefined) ?? null,
     local_path: (meta.local_path as string | undefined) ?? null,
+    local_path_relative: toRelativeLocalProjectPath(
+      (meta.local_path as string | undefined) ?? null,
+    ),
     spec_project_id: (meta.spec_project_id as string | undefined) ?? null,
     spec_checklist_path:
       typeof meta.spec_checklist_path === 'string' && meta.spec_checklist_path.trim()
         ? meta.spec_checklist_path.trim()
         : null,
+    tasks_path: resolveProjectTasksPathForResponse(meta, sourceType),
     has_github_pat: Boolean(meta.github_pat),
     last_synced_at: lastSyncedAt,
     created_at: stat.birthtime.toISOString(),
@@ -1129,6 +1578,7 @@ function applyProjectMetaUpdates(
       delete meta.github_branch;
       delete meta.github_file_path;
       delete meta.last_synced_at;
+      delete meta.tasks_path;
     } else if (data.source_type === 'local_repo') {
       delete meta.github_repo_url;
       delete meta.github_pat;
@@ -1159,6 +1609,22 @@ function applyProjectMetaUpdates(
       meta.spec_checklist_path = trimmed;
     } else {
       delete meta.spec_checklist_path;
+    }
+  }
+
+  if (data.tasks_path !== undefined) {
+    const sourceType = resolveSourceType(meta);
+    if (sourceType !== 'github') {
+      delete meta.tasks_path;
+    } else {
+      const trimmed =
+        data.tasks_path === null ? '' : String(data.tasks_path).trim();
+      if (trimmed) {
+        meta.tasks_path = trimmed.replace(/^\//, '');
+        delete meta.checklist_path;
+      } else {
+        delete meta.tasks_path;
+      }
     }
   }
 
@@ -1231,10 +1697,9 @@ function renameProjectFile(oldId: string, newId: string): string {
 
   fs.renameSync(oldPath, newPath);
 
-  const oldSidecar = localChecklistPathForId(oldId);
-  const newSidecar = localChecklistPathForId(newId);
+  const oldSidecar = legacyLocalChecklistPathForId(oldId);
   if (fs.existsSync(oldSidecar) && fs.statSync(oldSidecar).isFile()) {
-    fs.renameSync(oldSidecar, newSidecar);
+    fs.unlinkSync(oldSidecar);
   }
 
   return newPath;

@@ -178,3 +178,57 @@ async function fetchRawGithubFile(
 
   return response.text();
 }
+
+export async function putGithubTextFile(options: {
+  repoUrl: string;
+  pat: string;
+  branch: string;
+  filePath: string;
+  content: string;
+  sha?: string | null;
+  message?: string;
+}): Promise<{ sha: string | null }> {
+  const [owner, repo] = parseGithubRepo(options.repoUrl);
+  const filePath = options.filePath.trim().replace(/^\//, '');
+  const encodedPath = filePath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}`;
+
+  const body: Record<string, string> = {
+    message: options.message ?? `Update ${filePath}`,
+    content: Buffer.from(options.content, 'utf-8').toString('base64'),
+    branch: options.branch.trim(),
+  };
+  if (options.sha) {
+    body.sha = options.sha;
+  }
+
+  const response = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${options.pat.trim()}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'workspace-project-sync',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    if (response.status === 401) {
+      throw new Error('PAT inválido ou sem permissão para gravar no repositório.');
+    }
+    throw new Error(`Erro ao gravar arquivo no GitHub (${response.status}): ${text}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: { sha?: string | null } | null;
+  };
+  const sha = payload.content?.sha;
+  return { sha: typeof sha === 'string' ? sha : null };
+}
