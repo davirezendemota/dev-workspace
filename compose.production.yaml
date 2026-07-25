@@ -1,0 +1,16 @@
+services:
+  app:
+    platform: linux/amd64
+    container_name: dev_workspace_app
+    image: ghcr.io/davirezendemota/dev-workspace:latest
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "${WORKSPACE_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - WORKSPACE_CONFIG_PATH=/data/config.json
+      - WORKSPACE_LOCAL_PROJECTS_ROOT=${WORKSPACE_LOCAL_PROJECTS_ROOT}
+    volumes:
+      - ./workspace_data:/data
+      - ${WORKSPACE_LOCAL_PROJECTS_ROOT}:/local-projects:ro
