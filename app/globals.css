@@ -62,6 +62,52 @@
   --radius: 0.25rem;
 }
 
+[data-theme="dark"] {
+  --color-bg: #0d0d0b;
+  --color-surface: #141310;
+  --color-text: #e8e4df;
+  --color-accent: #c5a059;
+  --color-accent-2: #b8924f;
+  --color-divider: color-mix(in srgb, #c5a059 22%, transparent);
+
+  --color-neutral-100: #1a1814;
+  --color-neutral-200: #211f1a;
+  --color-neutral-300: #2e2b25;
+  --color-neutral-400: #4a463d;
+  --color-neutral-500: #6b665c;
+  --color-neutral-600: #8f897d;
+  --color-neutral-700: #b5afa3;
+  --color-neutral-800: #d4cfc5;
+  --color-neutral-900: #ece8e0;
+
+  --color-accent-100: #2a2318;
+  --color-accent-200: #3d3220;
+  --color-accent-300: #5a4828;
+  --color-accent-400: #7a6135;
+  --color-accent-500: #9a7a42;
+  --color-accent-600: #b8924f;
+  --color-accent-700: #c5a059;
+  --color-accent-800: #d4b06a;
+  --color-accent-900: #e3c88a;
+
+  --color-success: #4a9b6e;
+  --color-warning: #c5a059;
+  --color-destructive: #c45c5c;
+
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #000 45%, transparent);
+  --shadow-md: 0 3px 10px color-mix(in srgb, #000 55%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #000 65%, transparent);
+
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-neutral-600);
+  --background: 40 8% 4%;
+  --foreground: 40 15% 90%;
+  --accent: 40 45% 55%;
+  --border: 40 45% 55% / 0.22;
+  --input: 40 45% 55% / 0.22;
+  --ring: 40 45% 55%;
+}
+
 *,
 *::before,
 *::after {
