@@ -1,5 +1,6 @@
 import fs from 'fs';
 
+import { isUiTheme, type UiTheme } from '@/app/lib/theme';
 import { ApiError } from './api-error';
 import {
   configPath,
@@ -18,6 +19,7 @@ export type SettingsResponse = {
   ai_project_summary_prompt: string;
   default_ai_project_summary_prompt: string;
   uses_custom_ai_project_summary_prompt: boolean;
+  ui_theme: UiTheme;
 };
 
 export type SettingsUpdateInput = {
@@ -27,6 +29,7 @@ export type SettingsUpdateInput = {
   ai_model?: string | null;
   ai_api_token?: string | null;
   ai_project_summary_prompt?: string | null;
+  ui_theme?: string | null;
 };
 
 export function getSettings(): SettingsResponse {
@@ -43,6 +46,7 @@ export function getSettings(): SettingsResponse {
     ai_project_summary_prompt: customPrompt,
     default_ai_project_summary_prompt: defaultProjectAiSummaryPrompt(),
     uses_custom_ai_project_summary_prompt: Boolean(customPrompt),
+    ui_theme: isUiTheme(config.ui_theme) ? config.ui_theme : 'light',
   };
 }
 
@@ -89,6 +93,14 @@ export function updateSettings(data: SettingsUpdateInput): SettingsResponse {
         updates.ai_project_summary_prompt = prompt;
       }
     }
+  }
+
+  if (data.ui_theme !== undefined && data.ui_theme !== null) {
+    const theme = data.ui_theme.trim();
+    if (!isUiTheme(theme)) {
+      throw new ApiError(400, 'Tema inválido. Use "light" ou "dark".');
+    }
+    updates.ui_theme = theme;
   }
 
   if (Object.keys(updates).length === 0) {

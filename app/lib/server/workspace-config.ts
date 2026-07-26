@@ -7,6 +7,8 @@ import {
   resolveAiProjectSummaryPrompt,
 } from './project-ai-summary-prompt';
 
+import { isUiTheme, type UiTheme } from '@/app/lib/theme';
+
 type WorkspaceConfig = {
   projects_folder: string;
   agents_folder: string;
@@ -14,6 +16,7 @@ type WorkspaceConfig = {
   ai_model: string;
   ai_api_token: string;
   ai_project_summary_prompt: string;
+  ui_theme: UiTheme;
 };
 
 const configDir = path.dirname(serverEnv.WORKSPACE_CONFIG_PATH);
@@ -25,6 +28,7 @@ const DEFAULT_CONFIG: WorkspaceConfig = {
   ai_model: '',
   ai_api_token: '',
   ai_project_summary_prompt: '',
+  ui_theme: 'light',
 };
 
 export function configPath(): string {
@@ -78,6 +82,9 @@ export function loadConfig(): WorkspaceConfig & Record<string, unknown> {
     merged.ai_project_summary_prompt === null
   ) {
     merged.ai_project_summary_prompt = DEFAULT_CONFIG.ai_project_summary_prompt;
+  }
+  if (!isUiTheme(merged.ui_theme)) {
+    merged.ui_theme = DEFAULT_CONFIG.ui_theme;
   }
   return merged;
 }

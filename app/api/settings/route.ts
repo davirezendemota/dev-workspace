@@ -20,6 +20,7 @@ export async function PUT(request: Request) {
         ai_model: body.ai_model,
         ai_api_token: body.ai_api_token,
         ai_project_summary_prompt: body.ai_project_summary_prompt,
+        ui_theme: body.ui_theme,
       }),
     );
   } catch (error) {
