@@ -21,6 +21,7 @@ persistência em `config.json` e uso automático pelas API Routes do Next.js.
 
 ### Dentro do escopo
 - Aba Settings no dashboard
+- Form “Aparência”: tema visual (`ui_theme`: claro ou escuro)
 - Form “Workspace”: `projects_folder` e `agents_folder`
 - Form “IA”: provedor (API), modelo e API token
 - Form “Resumo de projetos”: prompt de sistema (`ai_project_summary_prompt`)
@@ -36,7 +37,7 @@ persistência em `config.json` e uso automático pelas API Routes do Next.js.
 ### Fora do escopo
 - Múltiplos perfis de IA
 - Configuração de agentes (aba Agents)
-- Tema, idioma, edição raw do JSON
+- Idioma, edição raw do JSON
 - Auth / autorização
 - Histórico de alterações de settings
 - Edição do user prompt / contexto enviado à IA (apenas system prompt)
@@ -54,6 +55,8 @@ persistência em `config.json` e uso automático pelas API Routes do Next.js.
 - **RF7:** Retornar no GET o prompt padrão (`default_ai_project_summary_prompt`) e se há override (`uses_custom_ai_project_summary_prompt`).
 - **RF8:** Salvar prompt customizado em `config.json`; string vazia restaura o padrão embutido.
 - **RF9:** Validar tamanho máximo do prompt customizado (4000 caracteres).
+- **RF10:** Exibir e salvar `ui_theme` (`light` ou `dark`) na seção “Aparência”.
+- **RF11:** Aplicar o tema escolhido em todo o dashboard via variáveis CSS (`data-theme="dark"`).
 
 ### Não-funcionais
 - **RNF1:** Token armazenado apenas no servidor (`config.json`).
@@ -63,8 +66,8 @@ persistência em `config.json` e uso automático pelas API Routes do Next.js.
 ## 5. Fluxo / Comportamento esperado
 
 1. Usuário abre a aba Settings.
-2. Sistema carrega settings (`GET /api/settings`) e exibe três formulários.
-3. Usuário edita pastas, config de IA e/ou prompt de resumo.
+2. Sistema carrega settings (`GET /api/settings`) e exibe quatro formulários.
+3. Usuário edita tema, pastas, config de IA e/ou prompt de resumo.
 4. Ao salvar cada seção, `PUT /api/settings` valida e persiste em `config.json`.
 5. Sucesso: toast e estado atualizado; dashboard recebe novas pastas.
 6. Erro: banner `role="alert"` + toast.
@@ -75,6 +78,12 @@ persistência em `config.json` e uso automático pelas API Routes do Next.js.
 3. “Restaurar padrão” preenche o textarea com o default (salvar persiste string vazia).
 4. “Salvar prompt” grava `ai_project_summary_prompt` quando diferente do padrão.
 5. Gerações de resumo (spec 004) usam o prompt efetivo imediatamente após salvar.
+
+### Aparência
+1. Select exibe “Claro” ou “Escuro” conforme `ui_theme` em `config.json`.
+2. “Salvar tema” persiste `ui_theme` e aplica o tema na interface imediatamente.
+3. Tema escuro: fundo charcoal (`#0d0d0b`), texto off-white e acentos dourados (`#c5a059`).
+4. Preferência é cacheada em `localStorage` para evitar flash ao recarregar.
 
 **Defaults Docker:** volume `./workspace_data` montado em `/data`:
 - config: `/data/config.json` (host `./workspace_data/config.json`)
@@ -94,6 +103,8 @@ persistência em `config.json` e uso automático pelas API Routes do Next.js.
 - **AC6:** Dado que o usuário abre Settings, quando a seção “Resumo de projetos” carrega, então o prompt atual (customizado ou padrão) é exibido com indicador “Padrão” ou “Personalizado”.
 - **AC7:** Dado prompt customizado válido, quando o usuário salva, então `ai_project_summary_prompt` é persistido em `config.json` e usado na geração de resumos.
 - **AC8:** Dado “Restaurar padrão” seguido de salvar, quando a operação conclui, então `ai_project_summary_prompt` fica vazio no config e o sistema volta a usar o prompt embutido.
+- **AC9:** Dado que o usuário seleciona “Escuro” e salva em Settings, então `ui_theme` é persistido em `config.json` e o dashboard aplica o tema escuro em todas as abas.
+- **AC10:** Dado `ui_theme` salvo como “dark”, quando o usuário recarrega a página, então o tema escuro é aplicado sem flash visível do tema claro.
 
 ## 7. Decisões e alternativas consideradas
 
@@ -123,7 +134,8 @@ persistência em `config.json` e uso automático pelas API Routes do Next.js.
   "ai_provider": "openai",
   "ai_model": "gpt-4o-mini",
   "ai_api_token": "sk-...",
-  "ai_project_summary_prompt": ""
+  "ai_project_summary_prompt": "",
+  "ui_theme": "light"
 }
 ```
 
@@ -133,9 +145,9 @@ persistência em `config.json` e uso automático pelas API Routes do Next.js.
 **API:**
 
 - `GET /api/settings` →
-  `{ projects_folder, agents_folder, config_path, ai_provider, ai_model, has_ai_token, ai_project_summary_prompt, default_ai_project_summary_prompt, uses_custom_ai_project_summary_prompt }`
+  `{ projects_folder, agents_folder, config_path, ai_provider, ai_model, has_ai_token, ai_project_summary_prompt, default_ai_project_summary_prompt, uses_custom_ai_project_summary_prompt, ui_theme }`
 - `PUT /api/settings` →
-  `{ projects_folder?, agents_folder?, ai_provider?, ai_model?, ai_api_token?, ai_project_summary_prompt? }`
+  `{ projects_folder?, agents_folder?, ai_provider?, ai_model?, ai_api_token?, ai_project_summary_prompt?, ui_theme? }`
 
 **Prompt padrão (resumo):**
 

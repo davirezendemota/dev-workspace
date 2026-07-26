@@ -1,7 +1,7 @@
 {
   "$schema": "./spec-checklist.schema.json",
   "version": 1,
-  "updatedAt": "2026-07-25",
+  "updatedAt": "2026-07-26",
   "projects": [
     {
       "id": "workspace",
@@ -158,6 +158,25 @@
               "issues": [],
               "prs": [],
               "completedCommit": "57f65dd4a76dd5a48a09e2ed7c5c30a6e6105723"
+            },
+            {
+              "ac": "AC9",
+              "description": "Salvar ui_theme escuro persiste e aplica tema dark no dashboard",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "78007de48627e6bb1afc31231b1e0bc3abc2f1b2"
+            },
+            {
+              "ac": "AC10",
+              "description": "Tema escuro aplicado ao recarregar sem flash do tema claro",
+              "status": "done",
+              "after": [
+                "AC9"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "e41ea33ef55d18049c96af92cdb55cb2826dd6a8"
             }
           ]
         },
