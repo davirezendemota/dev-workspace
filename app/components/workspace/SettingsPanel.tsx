@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import CustomSelect from '@/app/components/CustomSelect';
+import { useUiTheme } from '@/app/components/ThemeProvider';
+import type { UiTheme } from '@/app/lib/theme';
 
 const AI_PROVIDERS = [
   { value: 'openai', label: 'OpenAI' },
@@ -17,6 +19,11 @@ const AI_PROVIDERS = [
   { value: 'xai', label: 'xAI' },
 ] as const;
 
+const UI_THEME_OPTIONS = [
+  { value: 'light', label: 'Claro' },
+  { value: 'dark', label: 'Escuro' },
+] as const;
+
 export type WorkspaceSettings = {
   projects_folder: string;
   agents_folder: string;
@@ -27,6 +34,7 @@ export type WorkspaceSettings = {
   ai_project_summary_prompt: string;
   default_ai_project_summary_prompt: string;
   uses_custom_ai_project_summary_prompt: boolean;
+  ui_theme: UiTheme;
 };
 
 export function isAiConfigured(
@@ -44,6 +52,7 @@ type SettingsPanelProps = {
 };
 
 export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
+  const { setTheme } = useUiTheme();
   const [projectsFolder, setProjectsFolder] = useState('');
   const [agentsFolder, setAgentsFolder] = useState('');
   const [configPath, setConfigPath] = useState('');
@@ -56,13 +65,16 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
     useState('');
   const [usesCustomAiProjectSummaryPrompt, setUsesCustomAiProjectSummaryPrompt] =
     useState(false);
+  const [uiTheme, setUiTheme] = useState<UiTheme>('light');
   const [loading, setLoading] = useState(true);
   const [savingWorkspace, setSavingWorkspace] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
   const [savingSummaryPrompt, setSavingSummaryPrompt] = useState(false);
+  const [savingAppearance, setSavingAppearance] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [summaryPromptError, setSummaryPromptError] = useState<string | null>(null);
+  const [appearanceError, setAppearanceError] = useState<string | null>(null);
 
   const applySettings = (data: WorkspaceSettings) => {
     setProjectsFolder(data.projects_folder);
@@ -79,6 +91,8 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
         ? data.ai_project_summary_prompt
         : data.default_ai_project_summary_prompt,
     );
+    setUiTheme(data.ui_theme);
+    setTheme(data.ui_theme);
     onSettingsChange?.(data);
   };
 
@@ -91,6 +105,7 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
         setWorkspaceError(null);
         setAiError(null);
         setSummaryPromptError(null);
+        setAppearanceError(null);
         const response = await fetch('/api/settings');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data: WorkspaceSettings = await response.json();
@@ -223,6 +238,17 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
     );
   };
 
+  const handleSaveAppearance = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    await persistSettings(
+      { ui_theme: uiTheme },
+      setSavingAppearance,
+      setAppearanceError,
+      'Tema salvo.',
+    );
+  };
+
   if (loading) {
     return (
       <section className="anim-fade-up border border-[var(--color-divider)] p-10 text-center">
@@ -242,6 +268,78 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
 
   return (
     <div className="anim-fade-up flex w-full flex-row flex-wrap gap-8">
+      <section className="min-w-[min(100%,520px)] flex-[1_1_calc(50%-1rem)] border border-[var(--color-divider)] p-8">
+        <h2
+          className="mb-2 text-[28px] font-semibold"
+          style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}
+        >
+          Aparência
+        </h2>
+        <p
+          className="mb-7 text-[14px] italic"
+          style={{
+            fontFamily: 'var(--font-body)',
+            color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+          }}
+        >
+          Escolha o tema visual do dashboard. A preferência é salva em{' '}
+          <code>config.json</code>.
+        </p>
+
+        {appearanceError && (
+          <div
+            className="mb-4 border border-[var(--color-accent)] px-3 py-2.5 text-[13px]"
+            style={{
+              background: 'var(--color-accent-100)',
+              color: 'var(--color-accent-800)',
+              fontFamily: 'var(--font-body)',
+            }}
+            role="alert"
+          >
+            {appearanceError}
+          </div>
+        )}
+
+        <form onSubmit={handleSaveAppearance} className="flex flex-col gap-5">
+          <div>
+            <label
+              htmlFor="ui-theme"
+              className="mb-1.5 block text-[12px] tracking-[0.08em] uppercase"
+              style={{
+                fontFamily: 'var(--font-heading)',
+                color: 'color-mix(in srgb, var(--color-text) 70%, transparent)',
+              }}
+            >
+              Tema
+            </label>
+            <CustomSelect
+              id="ui-theme"
+              value={uiTheme}
+              onChange={(value) => setUiTheme(value as UiTheme)}
+              options={[...UI_THEME_OPTIONS]}
+              placeholder="Selecione…"
+              disabled={savingAppearance}
+            />
+            <p
+              className="mt-1.5 text-[12px] italic"
+              style={{
+                fontFamily: 'var(--font-body)',
+                color: 'color-mix(in srgb, var(--color-text) 48%, transparent)',
+              }}
+            >
+              O tema escuro usa fundo charcoal e detalhes em dourado, como no
+              dashboard de projetos.
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <button type="submit" className="btn btn-primary" disabled={savingAppearance}>
+              {savingAppearance ? 'Salvando…' : 'Salvar tema'}
+            </button>
+          </div>
+        </form>
+      </section>
+
       <section className="min-w-[min(100%,520px)] flex-[1_1_calc(50%-1rem)] border border-[var(--color-divider)] p-8">
         <h2
           className="mb-2 text-[28px] font-semibold"
