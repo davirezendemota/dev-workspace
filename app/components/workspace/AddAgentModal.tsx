@@ -7,7 +7,7 @@ import type { AgentApiResponse } from './data';
 
 const DEFAULT_CONTENT = `## Identidade
 
-Descreva o papel e o tom do agente.
+Descreva o papel e o tom do prompt.
 
 ## Stack principal
 
@@ -75,7 +75,7 @@ export default function AddAgentModal({
     setError(null);
 
     if (!name.trim()) {
-      setError('Informe o nome do agente.');
+      setError('Informe o nome do prompt.');
       return;
     }
 
@@ -102,14 +102,14 @@ export default function AddAgentModal({
       }
 
       const created: AgentApiResponse = await response.json();
-      toast.success('Agente criado', {
-        description: `${created.id}.md salvo na pasta de agentes.`,
+      toast.success('Prompt criado', {
+        description: `${created.id}.md salvo na pasta de prompts.`,
       });
       onCreated(created);
       resetForm();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível criar o agente.');
+      setError(err instanceof Error ? err.message : 'Não foi possível criar o prompt.');
     } finally {
       setSubmitting(false);
     }
@@ -136,13 +136,13 @@ export default function AddAgentModal({
       >
         <header className="flex items-start justify-between gap-4 border-b border-[var(--color-divider)] px-6 py-5">
           <div>
-            <p className="chk mb-2">Novo agente</p>
+            <p className="chk mb-2">Novo prompt</p>
             <h2
               id={titleId}
               className="text-[28px] font-semibold leading-tight"
               style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}
             >
-              Adicionar agente
+              Adicionar prompt
             </h2>
             <p
               className="mt-1.5 text-[13px] italic"
@@ -151,7 +151,7 @@ export default function AddAgentModal({
                 color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
               }}
             >
-              O arquivo markdown é gerado na pasta de agentes.
+              O arquivo markdown é gerado na pasta de prompts.
             </p>
           </div>
           <button
@@ -223,7 +223,7 @@ export default function AddAgentModal({
                 key={open ? 'open' : 'closed'}
                 id="a-content"
                 label="Conteúdo"
-                hint="Markdown com identidade, stack e diretrizes do agente."
+                hint="Markdown com identidade, stack e diretrizes do prompt."
                 value={content}
                 onChange={setContent}
                 disabled={submitting}
@@ -242,7 +242,7 @@ export default function AddAgentModal({
               Cancelar
             </button>
             <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? 'Criando…' : 'Criar agente'}
+              {submitting ? 'Criando…' : 'Criar prompt'}
             </button>
           </footer>
         </form>

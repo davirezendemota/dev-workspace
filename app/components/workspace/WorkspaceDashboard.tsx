@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AiResponseSkeleton from '@/app/components/AiResponseSkeleton';
 import ProjectAiSummary from './ProjectAiSummary';
@@ -12,6 +13,7 @@ import SettingsPanel, { isAiConfigured, type WorkspaceSettings } from './Setting
 import {
   SORT_OPTIONS,
   TABS,
+  tabHref,
   mapApiAgentToCard,
   mapApiProjectToCard,
   resolveGithubHref,
@@ -284,8 +286,7 @@ function ProjectCard({
   );
 }
 
-export default function WorkspaceDashboard() {
-  const [activeTab, setActiveTab] = useState<TabId>('projects');
+export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) {
   const [prompt, setPrompt] = useState('');
   const [aiReply, setAiReply] = useState<string | null>(null);
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
@@ -514,7 +515,11 @@ export default function WorkspaceDashboard() {
       );
     }
 
-    list.sort((a, b) => a.name.localeCompare(b.name));
+    list.sort((a, b) => {
+      const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return bTime - aTime;
+    });
     return list;
   }, [agents, agentSearchQuery]);
 
@@ -624,10 +629,9 @@ export default function WorkspaceDashboard() {
         {TABS.map((tab) => {
           const active = activeTab === tab.id;
           return (
-            <button
+            <Link
               key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
+              href={tabHref(tab.id)}
               className="cursor-pointer border-b-2 px-0.5 py-1 text-[18px] font-semibold tracking-[0.01em] transition-[color,border-color] duration-150"
               style={{
                 fontFamily: 'var(--font-heading)',
@@ -637,10 +641,12 @@ export default function WorkspaceDashboard() {
                   : 'color-mix(in srgb, var(--color-text) 55%, transparent)',
                 borderBottomColor: active ? 'var(--color-accent)' : 'transparent',
                 background: 'transparent',
+                textDecoration: 'none',
               }}
+              aria-current={active ? 'page' : undefined}
             >
               {tab.label}
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -650,32 +656,34 @@ export default function WorkspaceDashboard() {
           {/* Prompt panel */}
           <section
             className="anim-fade-up relative mb-[52px] flex shrink-0 flex-col gap-4"
-            style={{ animationDelay: '0.05s' }}
+            style={{
+              animationDelay: '0.05s',
+              minHeight: !aiConfigured && settingsLoaded ? 280 : undefined,
+            }}
           >
             {!aiConfigured && settingsLoaded && (
               <div
-                className="anim-fade-in absolute inset-0 z-10 flex items-center justify-center p-6"
+                className="anim-fade-in absolute inset-0 z-10 flex items-center justify-center px-6 py-8"
                 style={{
                   background:
                     'color-mix(in srgb, var(--color-bg) 88%, transparent)',
                 }}
               >
-                <div className="max-w-[420px] text-center">
-                  <p className="chk mb-3">IA não configurada</p>
+                <div className="w-full max-w-[460px] border border-[var(--color-divider)] bg-[var(--color-bg)] px-8 py-7 text-center shadow-[var(--shadow-md)]">
+                  <p className="chk mb-4">IA não configurada</p>
                   <p
-                    className="m-0 text-[15px] leading-relaxed"
-                    style={{ fontFamily: 'var(--font-body)' }}
+                    className="mx-auto m-0 max-w-[34ch] text-[15px] leading-relaxed"
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      color: 'color-mix(in srgb, var(--color-text) 78%, transparent)',
+                    }}
                   >
                     Configure o provedor, modelo e API token em Settings antes de
                     usar o assistente de IA.
                   </p>
-                  <button
-                    type="button"
-                    className="btn btn-primary mt-5"
-                    onClick={() => setActiveTab('settings')}
-                  >
+                  <Link href={tabHref('settings')} className="btn btn-primary mt-6">
                     Ir para Settings
-                  </button>
+                  </Link>
                 </div>
               </div>
             )}
@@ -974,7 +982,7 @@ export default function WorkspaceDashboard() {
         </div>
       )}
 
-      {activeTab === 'agents' && (
+      {activeTab === 'prompts' && (
         <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)]">
           <section
             className="anim-fade-up relative mb-[52px] flex shrink-0 flex-col gap-4"
@@ -994,7 +1002,7 @@ export default function WorkspaceDashboard() {
                   fontSize: 16,
                   paddingLeft: 44,
                 }}
-                placeholder="buscar por nome do agente…"
+                placeholder="buscar por nome do prompt…"
                 value={agentSearchQuery}
                 onChange={(e) => setAgentSearchQuery(e.target.value)}
               />
@@ -1015,7 +1023,7 @@ export default function WorkspaceDashboard() {
               type="button"
               className="agent-card anim-fade-up flex cursor-pointer items-center justify-center border border-dashed border-[var(--color-neutral-400)] text-[var(--color-neutral-500)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
               style={{ animationDelay: `${0.08 + filteredAgents.length * 0.06}s` }}
-              aria-label="Adicionar agente"
+              aria-label="Adicionar prompt"
               onClick={() => setAddAgentOpen(true)}
             >
               <IconPlus />
@@ -1030,7 +1038,7 @@ export default function WorkspaceDashboard() {
                 color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
               }}
             >
-              Carregando agentes…
+              Carregando prompts…
             </p>
           )}
 
@@ -1042,7 +1050,7 @@ export default function WorkspaceDashboard() {
                 color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
               }}
             >
-              Nenhum agente encontrado. Clique em + para criar o primeiro.
+              Nenhum prompt encontrado. Clique em + para criar o primeiro.
             </p>
           )}
 

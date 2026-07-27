@@ -101,7 +101,7 @@ function listAgentFiles(): string[] {
     .filter((name) => name.endsWith('.md') && !name.startsWith('.'))
     .map((name) => path.join(root, name))
     .filter((filePath) => fs.statSync(filePath).isFile())
-    .sort((a, b) => path.basename(a).localeCompare(path.basename(b), undefined, { sensitivity: 'base' }));
+    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
 }
 
 function pathForId(agentId: string): string {

@@ -58,7 +58,7 @@ export function updateSettings(data: SettingsUpdateInput): SettingsResponse {
   }
 
   if (data.agents_folder !== undefined && data.agents_folder !== null) {
-    updates.agents_folder = validateFolder(data.agents_folder, 'agentes');
+    updates.agents_folder = validateFolder(data.agents_folder, 'prompts');
   }
 
   if (data.ai_provider !== undefined && data.ai_provider !== null) {

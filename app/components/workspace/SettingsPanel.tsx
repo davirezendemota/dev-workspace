@@ -178,7 +178,7 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
       return;
     }
     if (!agentsFolder.trim()) {
-      setWorkspaceError('Informe a pasta de agentes.');
+      setWorkspaceError('Informe a pasta de prompts.');
       return;
     }
 
@@ -354,7 +354,7 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
             color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
           }}
         >
-          Preferências persistidas em <code>config.json</code>. Projetos e agentes são
+          Preferências persistidas em <code>config.json</code>. Projetos e prompts são
           gravados nas pastas abaixo.
         </p>
 
@@ -414,7 +414,7 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
                 color: 'color-mix(in srgb, var(--color-text) 70%, transparent)',
               }}
             >
-              Pasta de agentes
+              Pasta de prompts
             </label>
             <input
               id="agents-folder"

@@ -111,13 +111,17 @@ export function mapApiProjectToCard(api: {
   };
 }
 
-export type TabId = 'projects' | 'agents' | 'settings';
+export type TabId = 'projects' | 'prompts' | 'settings';
 
 export const TABS: { id: TabId; label: string }[] = [
   { id: 'projects', label: 'Projects' },
-  { id: 'agents', label: 'Agents' },
+  { id: 'prompts', label: 'Prompts' },
   { id: 'settings', label: 'Settings' },
 ];
+
+export function tabHref(tabId: TabId): string {
+  return `/${tabId}`;
+}
 
 export const CLIENTS = ['Acme', 'Globex', 'Umbrella', 'Initech'] as const;
 

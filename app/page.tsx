@@ -1,10 +1,5 @@
-import MainContent from './components/MainContent';
-import WorkspaceDashboard from './components/workspace/WorkspaceDashboard';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return (
-    <MainContent>
-      <WorkspaceDashboard />
-    </MainContent>
-  );
+  redirect('/projects');
 }

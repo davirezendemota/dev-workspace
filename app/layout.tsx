@@ -24,7 +24,7 @@ const lora = Lora({
 
 export const metadata: Metadata = {
   title: "dev-workspace",
-  description: "Workspace de projetos, agentes e checkpoints",
+  description: "Workspace de projetos, prompts e checkpoints",
 };
 
 export default function RootLayout({

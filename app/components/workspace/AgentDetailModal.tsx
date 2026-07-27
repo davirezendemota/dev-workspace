@@ -19,7 +19,7 @@ export default function AgentDetailModal({
   onDeleted,
 }: AgentDetailModalProps) {
   const titleId = useId();
-  const [name, setName] = useState('');
+  const [editing, setEditing] = useState(false);
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -27,7 +27,7 @@ export default function AgentDetailModal({
 
   useEffect(() => {
     if (!agent) return;
-    setName(agent.name);
+    setEditing(false);
     setContent(agent.content);
     setError(null);
   }, [agent]);
@@ -35,25 +35,54 @@ export default function AgentDetailModal({
   useEffect(() => {
     if (!agent) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !saving && !deleting) onClose();
+      if (e.key === 'Escape' && !saving && !deleting) {
+        if (editing) {
+          setContent(agent.content);
+          setError(null);
+          setEditing(false);
+        } else {
+          onClose();
+        }
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [agent, saving, deleting, onClose]);
+  }, [agent, saving, deleting, editing, onClose]);
 
   if (!agent) return null;
 
   const busy = saving || deleting;
   const fileName = agent.localFilePath?.split('/').pop() ?? `${agent.id}.md`;
 
+  const handleCopyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success('Prompt copiado');
+    } catch {
+      toast.error('Não foi possível copiar o prompt');
+    }
+  };
+
+  const handleDownloadPrompt = () => {
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('Prompt baixado');
+  };
+
+  const handleCancelEdit = () => {
+    setContent(agent.content);
+    setError(null);
+    setEditing(false);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (!name.trim()) {
-      setError('Informe o nome do agente.');
-      return;
-    }
 
     try {
       setSaving(true);
@@ -61,7 +90,7 @@ export default function AgentDetailModal({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: name.trim(),
+          name: agent.name,
           content,
         }),
       });
@@ -78,18 +107,18 @@ export default function AgentDetailModal({
       }
 
       const updated: AgentApiResponse = await response.json();
-      toast.success('Agente atualizado');
+      toast.success('Prompt atualizado');
       onUpdated(updated);
-      onClose();
+      setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível salvar o agente.');
+      setError(err instanceof Error ? err.message : 'Não foi possível salvar o prompt.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Remover o agente "${agent.name}"?`)) return;
+    if (!window.confirm(`Remover o prompt "${agent.name}"?`)) return;
 
     try {
       setDeleting(true);
@@ -108,11 +137,11 @@ export default function AgentDetailModal({
         throw new Error(detail);
       }
 
-      toast.success('Agente removido');
+      toast.success('Prompt removido');
       onDeleted(agent.id);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível remover o agente.');
+      setError(err instanceof Error ? err.message : 'Não foi possível remover o prompt.');
     } finally {
       setDeleting(false);
     }
@@ -141,7 +170,7 @@ export default function AgentDetailModal({
       >
         <header className="flex items-start justify-between gap-4 border-b border-[var(--color-divider)] px-6 py-5">
           <div>
-            <p className="chk mb-2">Agente</p>
+            <p className="chk mb-2">Prompt</p>
             <h2
               id={titleId}
               className="text-[28px] font-semibold leading-tight"
@@ -186,94 +215,82 @@ export default function AgentDetailModal({
               </div>
             )}
 
-            <div className="flex flex-col gap-4">
-              <Field label="Nome" htmlFor="edit-a-name">
-                <input
-                  id="edit-a-name"
-                  className="input"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={busy}
-                  required
-                />
-              </Field>
-
-              <AgentMarkdownField
-                key={agent.id}
-                id="edit-a-content"
-                label="Markdown"
-                hint="Edite o prompt/instruções do agente."
-                value={content}
-                onChange={setContent}
-                disabled={busy}
-              />
-            </div>
+            <AgentMarkdownField
+              key={`${agent.id}-${editing ? 'edit' : 'view'}`}
+              id="edit-a-content"
+              label="Markdown"
+              hint={editing ? 'Edite o conteúdo do prompt.' : undefined}
+              value={content}
+              onChange={setContent}
+              disabled={busy}
+              readOnly={!editing}
+            />
           </div>
 
           <footer className="flex items-center justify-between gap-3 border-t border-[var(--color-divider)] px-6 py-4">
-            <button
-              type="button"
-              className="btn"
-              onClick={handleDelete}
-              disabled={busy}
-              style={{
-                color: 'var(--color-accent-800)',
-                borderColor: 'var(--color-accent)',
-              }}
-            >
-              {deleting ? 'Removendo…' : 'Remover'}
-            </button>
-
             <div className="flex items-center gap-3">
-              <button type="button" className="btn" onClick={onClose} disabled={busy}>
-                Cancelar
+              <button
+                type="button"
+                className="btn"
+                onClick={handleDelete}
+                disabled={busy}
+                style={{
+                  color: 'var(--color-accent-800)',
+                  borderColor: 'var(--color-accent)',
+                }}
+              >
+                {deleting ? 'Removendo…' : 'Remover'}
               </button>
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                {saving ? 'Salvando…' : 'Salvar'}
-              </button>
+
+              {!editing ? (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setEditing(true)}
+                  disabled={busy}
+                >
+                  Editar
+                </button>
+              ) : null}
             </div>
+
+            {editing ? (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={handleCancelEdit}
+                  disabled={busy}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={busy}>
+                  {saving ? 'Salvando…' : 'Salvar'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => void handleCopyPrompt()}
+                  disabled={busy}
+                >
+                  Copiar prompt
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleDownloadPrompt}
+                  disabled={busy}
+                >
+                  Baixar prompt
+                </button>
+              </div>
+            )}
           </footer>
         </form>
       </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  hint,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-[12px] tracking-[0.08em] uppercase"
-        style={{
-          fontFamily: 'var(--font-heading)',
-          color: 'color-mix(in srgb, var(--color-text) 70%, transparent)',
-        }}
-      >
-        {label}
-      </label>
-      {children}
-      {hint ? (
-        <p
-          className="mt-1.5 text-[12px] italic"
-          style={{
-            fontFamily: 'var(--font-body)',
-            color: 'color-mix(in srgb, var(--color-text) 48%, transparent)',
-          }}
-        >
-          {hint}
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -31,6 +31,7 @@ type AgentMarkdownFieldProps = {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  readOnly?: boolean;
   heightClassName?: string;
 };
 
@@ -41,9 +42,10 @@ export default function AgentMarkdownField({
   value,
   onChange,
   disabled = false,
+  readOnly = false,
   heightClassName = 'h-[480px]',
 }: AgentMarkdownFieldProps) {
-  const [mode, setMode] = useState<ViewMode>('code');
+  const [mode, setMode] = useState<ViewMode>(readOnly ? 'preview' : 'code');
 
   const renderToggle = (
     target: ViewMode,
@@ -95,16 +97,29 @@ export default function AgentMarkdownField({
       </div>
 
       {mode === 'code' ? (
-        <textarea
-          id={id}
-          className={cn(
-            'input resize-none font-mono text-[13px] leading-relaxed',
-            heightClassName,
-          )}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-        />
+        readOnly ? (
+          <pre
+            id={id}
+            className={cn(
+              'input m-0 overflow-x-hidden overflow-y-auto whitespace-pre-wrap font-mono text-[13px] leading-relaxed',
+              heightClassName,
+            )}
+            aria-label={`${label} código`}
+          >
+            {value || 'Sem conteúdo.'}
+          </pre>
+        ) : (
+          <textarea
+            id={id}
+            className={cn(
+              'input resize-none font-mono text-[13px] leading-relaxed',
+              heightClassName,
+            )}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+          />
+        )
       ) : (
         <div
           className={cn('input min-w-0 overflow-x-hidden overflow-y-auto !p-4', heightClassName)}
