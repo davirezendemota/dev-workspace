@@ -1,11 +1,18 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { applyUiTheme, type UiTheme } from '@/app/lib/theme';
+import {
+  applyUiAppearance,
+  isUiMode,
+  isUiTheme,
+  type UiMode,
+  type UiTheme,
+} from '@/app/lib/theme';
 
 type ThemeContextValue = {
   theme: UiTheme;
-  setTheme: (theme: UiTheme) => void;
+  mode: UiMode;
+  setAppearance: (theme: UiTheme, mode: UiMode) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -23,11 +30,13 @@ type ThemeProviderProps = {
 };
 
 export default function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<UiTheme>('light');
+  const [theme, setTheme] = useState<UiTheme>('classic');
+  const [mode, setMode] = useState<UiMode>('light');
 
-  const setTheme = useCallback((next: UiTheme) => {
-    setThemeState(next);
-    applyUiTheme(next);
+  const setAppearance = useCallback((nextTheme: UiTheme, nextMode: UiMode) => {
+    setTheme(nextTheme);
+    setMode(nextMode);
+    applyUiAppearance(nextTheme, nextMode);
   }, []);
 
   useEffect(() => {
@@ -39,11 +48,11 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
         if (!response.ok) return;
         const data = await response.json();
         if (cancelled) return;
-        if (data.ui_theme === 'light' || data.ui_theme === 'dark') {
-          setTheme(data.ui_theme);
+        if (isUiTheme(data.ui_theme) && isUiMode(data.ui_mode)) {
+          setAppearance(data.ui_theme, data.ui_mode);
         }
       } catch {
-        /* keep cached theme from inline script */
+        /* keep cached appearance from inline script */
       }
     };
 
@@ -51,10 +60,10 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
     return () => {
       cancelled = true;
     };
-  }, [setTheme]);
+  }, [setAppearance]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, mode, setAppearance }}>
       {children}
     </ThemeContext.Provider>
   );

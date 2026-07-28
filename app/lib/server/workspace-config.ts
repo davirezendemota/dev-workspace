@@ -7,7 +7,12 @@ import {
   resolveAiProjectSummaryPrompt,
 } from './project-ai-summary-prompt';
 
-import { isUiTheme, type UiTheme } from '@/app/lib/theme';
+import {
+  isUiMode,
+  isUiTheme,
+  type UiMode,
+  type UiTheme,
+} from '@/app/lib/theme';
 
 type WorkspaceConfig = {
   projects_folder: string;
@@ -17,6 +22,7 @@ type WorkspaceConfig = {
   ai_api_token: string;
   ai_project_summary_prompt: string;
   ui_theme: UiTheme;
+  ui_mode: UiMode;
 };
 
 const configDir = path.dirname(serverEnv.WORKSPACE_CONFIG_PATH);
@@ -28,7 +34,8 @@ const DEFAULT_CONFIG: WorkspaceConfig = {
   ai_model: '',
   ai_api_token: '',
   ai_project_summary_prompt: '',
-  ui_theme: 'light',
+  ui_theme: 'classic',
+  ui_mode: 'light',
 };
 
 export function configPath(): string {
@@ -61,6 +68,7 @@ export function loadConfig(): WorkspaceConfig & Record<string, unknown> {
     data = {};
   }
 
+  const legacyMode = isUiMode(data.ui_theme) ? data.ui_theme : null;
   const merged = { ...DEFAULT_CONFIG, ...data };
   if (!merged.projects_folder) {
     merged.projects_folder = DEFAULT_CONFIG.projects_folder;
@@ -85,6 +93,9 @@ export function loadConfig(): WorkspaceConfig & Record<string, unknown> {
   }
   if (!isUiTheme(merged.ui_theme)) {
     merged.ui_theme = DEFAULT_CONFIG.ui_theme;
+  }
+  if (!isUiMode(merged.ui_mode)) {
+    merged.ui_mode = legacyMode ?? DEFAULT_CONFIG.ui_mode;
   }
   return merged;
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import CustomSelect from '@/app/components/CustomSelect';
 import { useUiTheme } from '@/app/components/ThemeProvider';
-import type { UiTheme } from '@/app/lib/theme';
+import type { UiMode, UiTheme } from '@/app/lib/theme';
 
 const AI_PROVIDERS = [
   { value: 'openai', label: 'OpenAI' },
@@ -20,6 +20,11 @@ const AI_PROVIDERS = [
 ] as const;
 
 const UI_THEME_OPTIONS = [
+  { value: 'classic', label: 'Classic' },
+  { value: 'github', label: 'GitHub' },
+] as const;
+
+const UI_MODE_OPTIONS = [
   { value: 'light', label: 'Claro' },
   { value: 'dark', label: 'Escuro' },
 ] as const;
@@ -35,6 +40,7 @@ export type WorkspaceSettings = {
   default_ai_project_summary_prompt: string;
   uses_custom_ai_project_summary_prompt: boolean;
   ui_theme: UiTheme;
+  ui_mode: UiMode;
 };
 
 export function isAiConfigured(
@@ -52,7 +58,7 @@ type SettingsPanelProps = {
 };
 
 export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
-  const { setTheme } = useUiTheme();
+  const { setAppearance } = useUiTheme();
   const [projectsFolder, setProjectsFolder] = useState('');
   const [agentsFolder, setAgentsFolder] = useState('');
   const [configPath, setConfigPath] = useState('');
@@ -65,7 +71,8 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
     useState('');
   const [usesCustomAiProjectSummaryPrompt, setUsesCustomAiProjectSummaryPrompt] =
     useState(false);
-  const [uiTheme, setUiTheme] = useState<UiTheme>('light');
+  const [uiTheme, setUiTheme] = useState<UiTheme>('classic');
+  const [uiMode, setUiMode] = useState<UiMode>('light');
   const [loading, setLoading] = useState(true);
   const [savingWorkspace, setSavingWorkspace] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
@@ -92,7 +99,8 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
         : data.default_ai_project_summary_prompt,
     );
     setUiTheme(data.ui_theme);
-    setTheme(data.ui_theme);
+    setUiMode(data.ui_mode);
+    setAppearance(data.ui_theme, data.ui_mode);
     onSettingsChange?.(data);
   };
 
@@ -242,10 +250,10 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
     e.preventDefault();
 
     await persistSettings(
-      { ui_theme: uiTheme },
+      { ui_theme: uiTheme, ui_mode: uiMode },
       setSavingAppearance,
       setAppearanceError,
-      'Tema salvo.',
+      'Aparência salva.',
     );
   };
 
@@ -327,14 +335,35 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
                 color: 'color-mix(in srgb, var(--color-text) 48%, transparent)',
               }}
             >
-              O tema escuro usa fundo charcoal e detalhes em dourado, como no
-              dashboard de projetos.
+              Classic preserva a identidade visual atual; GitHub usa fontes,
+              cores e componentes inspirados na interface do GitHub.
             </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="ui-mode"
+              className="mb-1.5 block text-[12px] tracking-[0.08em] uppercase"
+              style={{
+                fontFamily: 'var(--font-heading)',
+                color: 'color-mix(in srgb, var(--color-text) 70%, transparent)',
+              }}
+            >
+              Modo
+            </label>
+            <CustomSelect
+              id="ui-mode"
+              value={uiMode}
+              onChange={(value) => setUiMode(value as UiMode)}
+              options={[...UI_MODE_OPTIONS]}
+              placeholder="Selecione…"
+              disabled={savingAppearance}
+            />
           </div>
 
           <div className="flex justify-end">
             <button type="submit" className="btn btn-primary" disabled={savingAppearance}>
-              {savingAppearance ? 'Salvando…' : 'Salvar tema'}
+              {savingAppearance ? 'Salvando…' : 'Salvar aparência'}
             </button>
           </div>
         </form>

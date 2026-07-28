@@ -1,6 +1,11 @@
 import fs from 'fs';
 
-import { isUiTheme, type UiTheme } from '@/app/lib/theme';
+import {
+  isUiMode,
+  isUiTheme,
+  type UiMode,
+  type UiTheme,
+} from '@/app/lib/theme';
 import { ApiError } from './api-error';
 import {
   configPath,
@@ -20,6 +25,7 @@ export type SettingsResponse = {
   default_ai_project_summary_prompt: string;
   uses_custom_ai_project_summary_prompt: boolean;
   ui_theme: UiTheme;
+  ui_mode: UiMode;
 };
 
 export type SettingsUpdateInput = {
@@ -30,6 +36,7 @@ export type SettingsUpdateInput = {
   ai_api_token?: string | null;
   ai_project_summary_prompt?: string | null;
   ui_theme?: string | null;
+  ui_mode?: string | null;
 };
 
 export function getSettings(): SettingsResponse {
@@ -46,7 +53,8 @@ export function getSettings(): SettingsResponse {
     ai_project_summary_prompt: customPrompt,
     default_ai_project_summary_prompt: defaultProjectAiSummaryPrompt(),
     uses_custom_ai_project_summary_prompt: Boolean(customPrompt),
-    ui_theme: isUiTheme(config.ui_theme) ? config.ui_theme : 'light',
+    ui_theme: isUiTheme(config.ui_theme) ? config.ui_theme : 'classic',
+    ui_mode: isUiMode(config.ui_mode) ? config.ui_mode : 'light',
   };
 }
 
@@ -98,9 +106,17 @@ export function updateSettings(data: SettingsUpdateInput): SettingsResponse {
   if (data.ui_theme !== undefined && data.ui_theme !== null) {
     const theme = data.ui_theme.trim();
     if (!isUiTheme(theme)) {
-      throw new ApiError(400, 'Tema inválido. Use "light" ou "dark".');
+      throw new ApiError(400, 'Tema inválido. Use "classic" ou "github".');
     }
     updates.ui_theme = theme;
+  }
+
+  if (data.ui_mode !== undefined && data.ui_mode !== null) {
+    const mode = data.ui_mode.trim();
+    if (!isUiMode(mode)) {
+      throw new ApiError(400, 'Modo inválido. Use "light" ou "dark".');
+    }
+    updates.ui_mode = mode;
   }
 
   if (Object.keys(updates).length === 0) {

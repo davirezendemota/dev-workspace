@@ -721,6 +721,60 @@
               "completedCommit": "f26b00871867c3be18990b83e2e3a93f53941e97"
             }
           ]
+        },
+        {
+          "specId": "010",
+          "specFile": "features/010-settings_themes.md",
+          "title": "Temas visuais",
+          "after": [
+            "002"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Settings exibe seletores separados de Tema e Modo",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Tema e modo são persistidos e aplicados imediatamente",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Tema GitHub oferece identidade visual própria em claro e escuro",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Configuração legada preserva modo e migra para Classic",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "Tema e modo recarregam sem flash visual",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            }
+          ]
         }
       ]
     }

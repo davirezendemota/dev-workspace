@@ -2,6 +2,8 @@
 
 :root {
   color-scheme: light;
+  --font-heading: var(--font-classic-heading);
+  --font-body: var(--font-classic-body);
   --color-bg: #f3f2f2;
   --color-surface: #eae9e9;
   --color-text: #201f1d;
@@ -33,7 +35,6 @@
   --color-warning: #b68235;
   --color-destructive: #a33d3d;
 
-  /* --font-heading e --font-body vêm do next/font (layout.tsx) */
   --font-heading-weight: 600;
 
   --space-1: 4.6px;
@@ -67,7 +68,7 @@
   --scrollbar-thumb-hover: var(--color-neutral-400);
 }
 
-[data-theme="dark"] {
+[data-ui-theme="classic"][data-color-mode="dark"] {
   color-scheme: dark;
   --color-bg: #0d0d0b;
   --color-surface: #141310;
@@ -114,6 +115,125 @@
   --ring: 40 45% 55%;
 
   --scrollbar-track: transparent;
+  --scrollbar-thumb: var(--color-neutral-400);
+  --scrollbar-thumb-hover: var(--color-neutral-500);
+}
+
+[data-ui-theme="github"] {
+  color-scheme: light;
+  --font-heading: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+    Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+    Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-heading-weight: 600;
+
+  --color-bg: #f6f8fa;
+  --color-surface: #ffffff;
+  --color-text: #1f2328;
+  --color-accent: #0969da;
+  --color-accent-2: #0550ae;
+  --color-divider: #d0d7de;
+
+  --color-neutral-100: #f6f8fa;
+  --color-neutral-200: #eaeef2;
+  --color-neutral-300: #d0d7de;
+  --color-neutral-400: #afb8c1;
+  --color-neutral-500: #8c959f;
+  --color-neutral-600: #656d76;
+  --color-neutral-700: #424a53;
+  --color-neutral-800: #32383f;
+  --color-neutral-900: #24292f;
+
+  --color-accent-100: #ddf4ff;
+  --color-accent-200: #b6e3ff;
+  --color-accent-300: #80ccff;
+  --color-accent-400: #54aeff;
+  --color-accent-500: #218bff;
+  --color-accent-600: #0969da;
+  --color-accent-700: #0550ae;
+  --color-accent-800: #033d8b;
+  --color-accent-900: #0a3069;
+
+  --color-success: #1a7f37;
+  --color-warning: #9a6700;
+  --color-destructive: #cf222e;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+
+  --shadow-sm: 0 1px 0 rgba(31, 35, 40, 0.04);
+  --shadow-md: 0 3px 6px rgba(140, 149, 159, 0.15);
+  --shadow-lg: 0 8px 24px rgba(140, 149, 159, 0.2);
+
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-neutral-600);
+  --background: 210 29% 98%;
+  --foreground: 210 12% 14%;
+  --accent: 212 92% 45%;
+  --border: 210 18% 84%;
+  --input: 210 18% 84%;
+  --ring: 212 92% 45%;
+  --radius: 0.375rem;
+
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: var(--color-neutral-300);
+  --scrollbar-thumb-hover: var(--color-neutral-400);
+}
+
+[data-ui-theme="github"][data-color-mode="dark"] {
+  color-scheme: dark;
+  --color-bg: #0d1117;
+  --color-surface: #161b22;
+  --color-text: #e6edf3;
+  --color-accent: #2f81f7;
+  --color-accent-2: #58a6ff;
+  --color-divider: #30363d;
+
+  --color-neutral-100: #161b22;
+  --color-neutral-200: #21262d;
+  --color-neutral-300: #30363d;
+  --color-neutral-400: #484f58;
+  --color-neutral-500: #6e7681;
+  --color-neutral-600: #8b949e;
+  --color-neutral-700: #b1bac4;
+  --color-neutral-800: #c9d1d9;
+  --color-neutral-900: #e6edf3;
+
+  --color-accent-100: #0c2d6b;
+  --color-accent-200: #033d8b;
+  --color-accent-300: #0550ae;
+  --color-accent-400: #0969da;
+  --color-accent-500: #1f6feb;
+  --color-accent-600: #2f81f7;
+  --color-accent-700: #58a6ff;
+  --color-accent-800: #79c0ff;
+  --color-accent-900: #a5d6ff;
+
+  --color-success: #3fb950;
+  --color-warning: #d29922;
+  --color-destructive: #f85149;
+
+  --shadow-sm: 0 0 transparent;
+  --shadow-md: 0 3px 6px #010409;
+  --shadow-lg: 0 8px 24px #010409;
+
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-neutral-600);
+  --background: 216 28% 7%;
+  --foreground: 210 17% 93%;
+  --accent: 212 93% 58%;
+  --border: 215 14% 21%;
+  --input: 215 14% 21%;
+  --ring: 212 93% 58%;
+
   --scrollbar-thumb: var(--color-neutral-400);
   --scrollbar-thumb-hover: var(--color-neutral-500);
 }
@@ -343,6 +463,98 @@ h1, h2, h3, h4, h5, h6 {
 .fbtn svg {
   width: 15px;
   height: 15px;
+}
+
+[data-ui-theme="github"] body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+[data-ui-theme="github"] h1,
+[data-ui-theme="github"] h2,
+[data-ui-theme="github"] h3,
+[data-ui-theme="github"] h4,
+[data-ui-theme="github"] h5,
+[data-ui-theme="github"] h6 {
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+[data-ui-theme="github"] section.border {
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+[data-ui-theme="github"] .btn {
+  min-height: 32px;
+  padding: 5px 12px;
+  border-color: var(--color-divider);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-ui-theme="github"] .btn:hover {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-400);
+}
+
+[data-ui-theme="github"] .btn-primary {
+  color: #ffffff;
+  background: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 82%, #000000);
+}
+
+[data-ui-theme="github"] .btn-primary:hover {
+  color: #ffffff;
+  background: color-mix(in srgb, var(--color-success) 88%, #000000);
+  border-color: color-mix(in srgb, var(--color-success) 72%, #000000);
+}
+
+[data-ui-theme="github"] .input {
+  min-height: 32px;
+  padding: 5px 12px;
+  background: var(--color-surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-neutral-900) 4%, transparent);
+}
+
+[data-ui-theme="github"] .input:focus-visible {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+[data-ui-theme="github"] .input-ai:focus,
+[data-ui-theme="github"] .input-ai:focus-visible {
+  border-color: var(--color-divider);
+  box-shadow: none;
+}
+
+[data-ui-theme="github"] .fbtn {
+  min-height: 32px;
+  padding: 5px 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-ui-theme="github"] .fbtn:hover {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-400);
+}
+
+[data-ui-theme="github"] .tag {
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+[data-ui-theme="github"] .chk {
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+[data-ui-theme="github"] [role="listbox"] {
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
 
 @keyframes fade-up {

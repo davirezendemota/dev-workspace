@@ -1,6 +1,6 @@
 # 002 Settings · Configurações do workspace
 
-> **Última atualização:** 2026-07-25
+> **Última atualização:** 2026-07-28
 
 ---
 
@@ -10,6 +10,10 @@ O workspace precisa persistir preferências (pastas de projetos e agentes,
 credenciais de IA e prompt do resumo de projetos) fora do banco, em
 `config.json`. Sem uma tela de Settings, o usuário não consegue ajustar esses
 valores nem habilitar o AI input e os resumos IA da aba Projects.
+
+> A configuração inicial claro/escuro descrita nesta spec é mantida como
+> histórico dos AC9 e AC10. A separação atual entre tema visual e modo de cor,
+> incluindo Classic e GitHub, é definida pela spec 010.
 
 ## 2. Objetivo
 

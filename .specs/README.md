@@ -33,7 +33,8 @@ Specs descrevem comportamento e critérios de aceite com IDs estáveis (`AC1`, `
     ├── 006-projects_modal-dashboard.md
     ├── 007-spec-checklist_completion-metadata.md
     ├── 008-projects_tasks.md
-    └── 009-projects_modal-settings.md
+    ├── 009-projects_modal-settings.md
+    └── 010-settings_themes.md
 ```
 
 A pasta `.obsidian/` (se existir) é configuração local do editor Obsidian e não faz parte do fluxo de specs.
