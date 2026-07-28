@@ -11,6 +11,10 @@ import AgentDetailModal from './AgentDetailModal';
 import ProjectDetailModal from './ProjectDetailModal';
 import SettingsPanel, { isAiConfigured, type WorkspaceSettings } from './SettingsPanel';
 import {
+  readPinnedPromptIds,
+  writePinnedPromptIds,
+} from '@/app/lib/pinned-prompts';
+import {
   SORT_OPTIONS,
   TABS,
   tabHref,
@@ -313,6 +317,7 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [agentSearchQuery, setAgentSearchQuery] = useState('');
+  const [pinnedAgentIds, setPinnedAgentIds] = useState<string[]>([]);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [aiConfig, setAiConfig] = useState<
     Pick<WorkspaceSettings, 'ai_provider' | 'ai_model' | 'has_ai_token'>
@@ -398,6 +403,20 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
   }, []);
 
   useEffect(() => {
+    setPinnedAgentIds(readPinnedPromptIds());
+  }, []);
+
+  const togglePinAgent = useCallback((agentId: string) => {
+    setPinnedAgentIds((prev) => {
+      const next = prev.includes(agentId)
+        ? prev.filter((id) => id !== agentId)
+        : [agentId, ...prev];
+      writePinnedPromptIds(next);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
@@ -475,6 +494,12 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
   const handleAgentDeleted = (id: string) => {
     setAgents((prev) => prev.filter((a) => a.id !== id));
     setSelectedAgent((current) => (current?.id === id ? null : current));
+    setPinnedAgentIds((prev) => {
+      if (!prev.includes(id)) return prev;
+      const next = prev.filter((pinnedId) => pinnedId !== id);
+      writePinnedPromptIds(next);
+      return next;
+    });
   };
 
   const filteredProjects = useMemo(() => {
@@ -515,13 +540,24 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
       );
     }
 
+    const pinnedOrder = new Map(pinnedAgentIds.map((id, index) => [id, index]));
+
     list.sort((a, b) => {
+      const aPinned = pinnedOrder.has(a.id);
+      const bPinned = pinnedOrder.has(b.id);
+
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      if (aPinned && bPinned) {
+        return (pinnedOrder.get(a.id) ?? 0) - (pinnedOrder.get(b.id) ?? 0);
+      }
+
       const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
       const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
       return bTime - aTime;
     });
     return list;
-  }, [agents, agentSearchQuery]);
+  }, [agents, agentSearchQuery, pinnedAgentIds]);
 
   const toggleClient = (client: string) => {
     setSelectedClients((prev) =>
@@ -1015,7 +1051,9 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
                 key={agent.id}
                 agent={agent}
                 index={index}
+                pinned={pinnedAgentIds.includes(agent.id)}
                 onOpen={setSelectedAgent}
+                onTogglePin={togglePinAgent}
               />
             ))}
 
