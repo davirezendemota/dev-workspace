@@ -2,6 +2,20 @@
 
 Esta pasta concentra **o que** deve ser construído (specs em Markdown) e **onde estamos** na entrega (checklist em JSON). O conteúdo é pensado para humanos e para agentes de IA trabalharem com o mesmo contexto.
 
+O **kit** (templates, bootstrap, schema) vem de [davirezendemota/specs-kit](https://github.com/davirezendemota/specs-kit). As specs de produto (`features/`, checklist) são deste repositório.
+
+## Atualizar o kit
+
+Na raiz do **dev-workspace** (preserva `features/` e `spec-checklist.json`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/davirezendemota/specs-kit/main/install.sh | bash -s -- . --merge
+```
+
+Depois, rode `/bootstrap-specs` se `bootstrap-ai-rules.md` ou `templates/` mudaram.
+
+---
+
 ## Princípio central
 
 | O quê | Onde vive |
@@ -21,7 +35,7 @@ Specs descrevem comportamento e critérios de aceite com IDs estáveis (`AC1`, `
 ├── spec-checklist.json          ← progresso, issues, PRs e cadeamento
 ├── spec-checklist.schema.json   ← schema JSON para validação
 ├── templates/                   ← commands e skills para copiar ao projeto
-│   ├── cursor/commands/         ← /update-specs, /new-spec
+│   ├── cursor/commands/         ← /update-specs, /new-spec, /bootstrap-specs
 │   ├── cursor/skills/           ← spec-checklist (pendências)
 │   └── claude/skills/           ← equivalentes Claude Code
 └── features/
@@ -41,20 +55,19 @@ A pasta `.obsidian/` (se existir) é configuração local do editor Obsidian e n
 
 ## Repositório canônico (upstream)
 
-A pasta `.specs/` é mantida no repositório **[davirezendemota/dev-workspace](https://github.com/davirezendemota/dev-workspace)**. Quando copiada para outros projetos, use esse repositório como **fonte upstream** para atualizar a estrutura do kit (templates, bootstrap, schema, etc.).
+O kit é mantido em **[davirezendemota/specs-kit](https://github.com/davirezendemota/specs-kit)**. Use esse repositório como **fonte upstream** para atualizar templates, bootstrap, schema, etc., nos projetos consumidores.
 
 | Campo | Valor |
 |-------|-------|
-| Repositório | `https://github.com/davirezendemota/dev-workspace` |
+| Repositório | `https://github.com/davirezendemota/specs-kit` |
 | Branch | `main` |
-| Caminho no repo | `.specs/` |
-| Raw (base) | `https://raw.githubusercontent.com/davirezendemota/dev-workspace/main/.specs/` |
-| API GitHub | `https://api.github.com/repos/davirezendemota/dev-workspace/contents/.specs` |
+| Raw (base) | `https://raw.githubusercontent.com/davirezendemota/specs-kit/main/` |
+| API GitHub | `https://api.github.com/repos/davirezendemota/specs-kit/contents/` |
 
-Exemplos de URL raw para um arquivo:
+Exemplos de URL raw:
 
-- `https://raw.githubusercontent.com/davirezendemota/dev-workspace/main/.specs/bootstrap-ai-rules.md`
-- `https://raw.githubusercontent.com/davirezendemota/dev-workspace/main/.specs/templates/cursor/commands/bootstrap-specs.md`
+- `https://raw.githubusercontent.com/davirezendemota/specs-kit/main/bootstrap-ai-rules.md`
+- `https://raw.githubusercontent.com/davirezendemota/specs-kit/main/templates/cursor/commands/bootstrap-specs.md`
 
 **O que sincronizar do upstream** (kit compartilhado):
 
@@ -103,7 +116,7 @@ Arquivo único que agrega o progresso de todos os projetos. Cada projeto agrupa 
     {
       "id": "workspace",
       "name": "Workspace",
-      "specs": [ /* ... */ ]
+      "specs": []
     }
   ]
 }
@@ -208,15 +221,15 @@ Ao implementar uma feature:
 
 ### Integrar `.specs` em projeto novo
 
-1. Copie a pasta `.specs/` para a raiz do repositório (ou use o [repositório canônico](#repositório-canônico-upstream) como referência).
-2. Dispare o bootstrap pela IA com o prompt em [bootstrap-ai-rules.md](./bootstrap-ai-rules.md#prompt-para-disparar-o-bootstrap) — instala commands, skills, rules, `CLAUDE.md`, `AGENTS.md` e ajusta o checklist automaticamente.
+1. Instale o kit com `install.sh` ou copie este repositório em `.specs/`.
+2. Dispare o bootstrap com `/bootstrap-specs` ou o prompt em [bootstrap-ai-rules.md](./bootstrap-ai-rules.md#prompt-para-disparar-o-bootstrap).
 3. Ou siga manualmente a seção **Bootstrap executável pela IA** no mesmo arquivo.
 
 ### Atualizar estrutura do kit (upstream)
 
 Quando o usuário pedir para **atualizar o kit `.specs`**, **sincronizar templates** ou **trazer mudanças do upstream**:
 
-1. Consulte o [repositório canônico](#repositório-canônico-upstream) (`davirezendemota/dev-workspace`, branch `main`, pasta `.specs/`).
-2. Busque os arquivos do kit listados na seção upstream (via raw URL, API GitHub ou `gh api`).
-3. Compare com a cópia local e faça merge — preserve `features/` e o checklist do projeto.
+1. Consulte [davirezendemota/specs-kit](https://github.com/davirezendemota/specs-kit) (branch `main`).
+2. Rode `curl -fsSL https://raw.githubusercontent.com/davirezendemota/specs-kit/main/install.sh | bash -s -- . --merge`.
+3. Preserve `features/` e o checklist do projeto.
 4. Execute `/bootstrap-specs` se `bootstrap-ai-rules.md` ou `templates/` tiverem mudado.

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/spec-checklist.schema.json",
+  "$id": "https://raw.githubusercontent.com/davirezendemota/specs-kit/main/spec-checklist.schema.json",
   "title": "Spec Checklist",
   "type": "object",
   "required": ["version", "projects"],
