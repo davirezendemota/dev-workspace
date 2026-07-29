@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useLockBodyScroll } from '@/app/lib/use-lock-body-scroll';
 import type { ProjectSource } from './data';
 
 export type CreateProjectPayload = {
@@ -79,6 +80,8 @@ export default function AddProjectModal({
   const [source, setSource] = useState<ProjectSource>('local');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useLockBodyScroll(open);
 
   const [manual, setManual] = useState<ManualForm>(EMPTY_MANUAL);
   const [localPath, setLocalPath] = useState('');

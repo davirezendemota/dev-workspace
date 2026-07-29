@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
+import { useLockBodyScroll } from '@/app/lib/use-lock-body-scroll';
 import AgentMarkdownField from './AgentMarkdownField';
 import type { Agent, AgentApiResponse } from './data';
 
@@ -24,6 +25,8 @@ export default function AgentDetailModal({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useLockBodyScroll(agent !== null);
 
   useEffect(() => {
     if (!agent) return;
