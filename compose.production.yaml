@@ -2,11 +2,13 @@ services:
   app:
     platform: linux/amd64
     container_name: dev_workspace_app
+    env_file:
+      - .env
     image: ghcr.io/davirezendemota/dev-workspace:latest
     pull_policy: always
     restart: unless-stopped
     ports:
-      - "${WORKSPACE_PORT:-3000}:3000"
+      - "3000:3000"
     environment:
       - NODE_ENV=production
       - WORKSPACE_CONFIG_PATH=/data/config.json

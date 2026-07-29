@@ -2,13 +2,15 @@ services:
   app:
     platform: linux/amd64
     container_name: dev_workspace_app_build
+    env_file:
+      - .env
     build:
       context: .
       dockerfile: Dockerfile
       target: runner
     restart: unless-stopped
     ports:
-      - "${WORKSPACE_BUILD_PORT:-8080}:3000"
+      - "8080:3000"
     environment:
       - NODE_ENV=production
       - WORKSPACE_CONFIG_PATH=/data/config.json
