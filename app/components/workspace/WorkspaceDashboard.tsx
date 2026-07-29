@@ -203,51 +203,57 @@ function ProjectCard({
       />
 
       <div>
-        <div className="mb-3 flex items-baseline gap-3">
-          <span
-            className="num text-[30px] font-semibold text-[var(--color-accent-700)]"
-            style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}
-          >
-            {project.topDate}
-          </span>
-          <span
-            className="text-[14px] italic"
-            style={{
-              fontFamily: 'var(--font-body)',
-              color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
-            }}
-          >
-            checkpoint resume
-          </span>
-        </div>
-        <div className="flex flex-col">
-          {project.checkpoints.map((c, i) => (
-            <div
-              key={`${project.id}-cp-${i}-${c}`}
-              className="flex items-baseline gap-3 border-t border-[var(--color-divider)] py-1.5"
-            >
+        {project.checkpoints.length > 0 ? (
+          <>
+            <div className="mb-3 flex items-baseline gap-3">
               <span
-                className="num min-w-[52px] text-[18px] font-semibold"
-                style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontWeight: 600,
-                  color: 'color-mix(in srgb, var(--color-text) 62%, transparent)',
-                }}
+                className="num text-[30px] font-semibold text-[var(--color-accent-700)]"
+                style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}
               >
-                {c}
+                {project.topDate}
               </span>
               <span
-                className="text-[13px]"
+                className="text-[14px] italic"
                 style={{
                   fontFamily: 'var(--font-body)',
-                  color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+                  color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
                 }}
               >
-                checkpoint resume
+                {project.checkpoints[0]?.summary ||
+                  project.checkpoints[0]?.title ||
+                  'checkpoint resume'}
               </span>
             </div>
-          ))}
-        </div>
+            <div className="flex flex-col">
+              {project.checkpoints.map((checkpoint, i) => (
+                <div
+                  key={`${project.id}-cp-${i}-${checkpoint.date}-${checkpoint.title}`}
+                  className="flex items-baseline gap-3 border-t border-[var(--color-divider)] py-1.5"
+                >
+                  <span
+                    className="num min-w-[52px] text-[18px] font-semibold"
+                    style={{
+                      fontFamily: 'var(--font-heading)',
+                      fontWeight: 600,
+                      color: 'color-mix(in srgb, var(--color-text) 62%, transparent)',
+                    }}
+                  >
+                    {checkpoint.date || '—'}
+                  </span>
+                  <span
+                    className="text-[13px]"
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+                    }}
+                  >
+                    {checkpoint.summary || checkpoint.title || 'checkpoint resume'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div className="border-t border-[var(--color-divider)] pt-1">

@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useId, useMemo, useState } from 'react';
+import { useLockBodyScroll } from '@/app/lib/use-lock-body-scroll';
 import { cn } from '@/app/lib/utils';
 import type { ProjectApiResponse } from './AddProjectModal';
 import type { Project } from './data';
+import ProjectCheckpoints from './ProjectCheckpoints';
 import ProjectTasks from './ProjectTasks';
 import ProjectSettingsPanel from './ProjectSettingsPanel';
 import ProjectSpecChecklist from './ProjectSpecChecklist';
@@ -15,16 +17,19 @@ type ProjectDetailModalProps = {
   onDeleted?: (id: string) => void;
 };
 
-type TabId = 'spec-checklist' | 'tasks' | 'settings';
+type TabId = 'spec-checklist' | 'checkpoints' | 'tasks' | 'settings';
 
 export default function ProjectDetailModal({ project, onClose, onUpdated, onDeleted }: ProjectDetailModalProps) {
   const titleId = useId();
   const [activeTab, setActiveTab] = useState<TabId>('spec-checklist');
   const [tasksRefreshKey, setTasksRefreshKey] = useState(0);
 
+  useLockBodyScroll(project !== null);
+
   const tabs = useMemo(
     (): { id: TabId; label: string }[] => [
       { id: 'spec-checklist', label: 'Spec checklist' },
+      { id: 'checkpoints', label: 'Checkpoints' },
       { id: 'tasks', label: 'Tasks' },
       { id: 'settings', label: 'Settings' },
     ],
@@ -128,6 +133,12 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7">
           {activeTab === 'spec-checklist' ? <ProjectSpecChecklist project={project} /> : null}
+          {activeTab === 'checkpoints' ? (
+            <ProjectCheckpoints
+              project={project}
+              onUpdated={(updated) => onUpdated?.(updated)}
+            />
+          ) : null}
           {mountTasks ? (
             <div className={activeTab === 'tasks' ? undefined : 'hidden'} aria-hidden={activeTab !== 'tasks'}>
               <ProjectTasks project={project} refreshKey={tasksRefreshKey} />

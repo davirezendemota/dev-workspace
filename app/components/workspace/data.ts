@@ -4,6 +4,11 @@ export type ChecklistItem = {
   date: string;
 };
 
+import { normalizeCheckpoints, type Checkpoint } from '@/app/lib/checkpoints';
+
+export type { Checkpoint };
+export { normalizeCheckpoints };
+
 export type ProjectSource = 'local' | 'local_repo' | 'github';
 
 export type Project = {
@@ -13,7 +18,7 @@ export type Project = {
   client: string;
   ai: string;
   topDate: string;
-  checkpoints: string[];
+  checkpoints: Checkpoint[];
   checklist: ChecklistItem[];
   lastInteractionDays: number;
   openDemands: number;
@@ -63,9 +68,7 @@ export function mapApiProjectToCard(api: {
   const data = api.json_data ?? {};
   const checklist: ChecklistItem[] = [];
 
-  const checkpoints = Array.isArray(data.checkpoints)
-    ? data.checkpoints.map((c) => String(c))
-    : [];
+  const checkpoints = normalizeCheckpoints(data.checkpoints, String(data.topDate ?? ''));
 
   const repoFromGithub = api.github_repo_url
     ? api.github_repo_url.replace(/^https?:\/\//, '').replace(/\.git$/, '')
@@ -192,7 +195,32 @@ export const INITIAL_PROJECTS: Project[] = [
     client: 'Acme',
     ai: 'Recomenda revisar o deploy pendente na branch main…',
     topDate: '25/07',
-    checkpoints: ['23/07', '20/07', '18/07', '18/07'],
+    checkpoints: [
+      {
+        date: '25/07',
+        title: 'Deploy da v2.1 em staging',
+        summary: 'Deploy da v2.1 em staging com auth refresh e rate limiting validados.',
+        summaryUpdatedAt: null,
+      },
+      {
+        date: '23/07',
+        title: 'Review de PRs pendentes',
+        summary: 'Dois PRs críticos revisados e mergeados na main.',
+        summaryUpdatedAt: null,
+      },
+      {
+        date: '20/07',
+        title: 'Alinhamento com cliente sobre webhooks',
+        summary: 'Escopo de webhooks v2 fechado com o cliente.',
+        summaryUpdatedAt: null,
+      },
+      {
+        date: '18/07',
+        title: 'Kickoff da migração Postgres',
+        summary: 'Planejamento inicial da migração para Postgres 16.',
+        summaryUpdatedAt: null,
+      },
+    ],
     checklist: mkChecklist(
       ['Auth refresh token', 'Rate limiting', 'Webhooks v2', 'Migração Postgres 16', 'Docs OpenAPI'],
       3,
@@ -208,7 +236,32 @@ export const INITIAL_PROJECTS: Project[] = [
     client: 'Globex',
     ai: '2 PRs aguardando review há 3 dias…',
     topDate: '24/07',
-    checkpoints: ['22/07', '19/07', '15/07', '12/07'],
+    checkpoints: [
+      {
+        date: '24/07',
+        title: 'Dark mode mergeado na main',
+        summary: 'Tema escuro disponível em todas as páginas principais.',
+        summaryUpdatedAt: null,
+      },
+      {
+        date: '22/07',
+        title: 'Testes A/B do hero',
+        summary: 'Experimento A/B do hero iniciado com duas variantes.',
+        summaryUpdatedAt: null,
+      },
+      {
+        date: '19/07',
+        title: 'Refatoração do checkout',
+        summary: 'Checkout refatorado para reduzir abandono de carrinho.',
+        summaryUpdatedAt: null,
+      },
+      {
+        date: '15/07',
+        title: 'Sprint planning Q3',
+        summary: 'Prioridades do Q3 definidas com o time de produto.',
+        summaryUpdatedAt: null,
+      },
+    ],
     checklist: mkChecklist(
       ['Refatorar checkout', 'Dark mode', 'A/B do hero', 'Lighthouse 90+', 'Remover jQuery legado'],
       2,
@@ -224,7 +277,26 @@ export const INITIAL_PROJECTS: Project[] = [
     client: 'Umbrella',
     ai: '3 demandas abertas sem resposta do cliente…',
     topDate: '21/07',
-    checkpoints: ['17/07', '10/07', '05/07'],
+    checkpoints: [
+      {
+        date: '21/07',
+        title: 'Push notifications em beta',
+        summary: 'Notificações push liberadas para grupo beta no iOS.',
+        summaryUpdatedAt: null,
+      },
+      {
+        date: '17/07',
+        title: 'Correção crash iOS 17',
+        summary: 'Crash em cold start no iOS 17 corrigido.',
+        summaryUpdatedAt: null,
+      },
+      {
+        date: '14/07',
+        title: 'Onboarding redesenhado',
+        summary: 'Novo fluxo de onboarding com menos etapas.',
+        summaryUpdatedAt: null,
+      },
+    ],
     checklist: mkChecklist(
       ['Push notifications', 'Fluxo de onboarding', 'Crash em iOS 17', 'Eventos de analytics'],
       3,
@@ -240,7 +312,20 @@ export const INITIAL_PROJECTS: Project[] = [
     client: 'Initech',
     ai: 'Sem interação há 12 dias — considerar arquivar…',
     topDate: '12/07',
-    checkpoints: ['08/07', '01/07'],
+    checkpoints: [
+      {
+        date: '12/07',
+        title: 'Autocomplete zsh entregue',
+        summary: 'Autocomplete para zsh publicado na v0.4.',
+        summaryUpdatedAt: null,
+      },
+      {
+        date: '08/07',
+        title: 'Config schema v1 publicada',
+        summary: 'Schema de configuração v1 documentado e validado.',
+        summaryUpdatedAt: null,
+      },
+    ],
     checklist: mkChecklist(
       ['Autocomplete zsh', 'Config schema', 'Binário Windows', 'Testes e2e'],
       1,
