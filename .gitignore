@@ -21,6 +21,7 @@ tsconfig.tsbuildinfo
 .env
 .env.local
 .env*.local
+!.env.example
 
 # IDE / AI assistants (local only)
 .idea/
