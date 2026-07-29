@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { ApiError } from './api-error';
+import { normalizeCheckpoints, serializeCheckpoints, type Checkpoint } from '@/app/lib/checkpoints';
 import { LOCAL_PROJECTS_MOUNT, serverEnv } from './env';
 import {
   fetchGithubCommitDate,
@@ -254,6 +255,43 @@ export function updateProjectAiField(
   meta.ai_updated_at = new Date().toISOString();
   overwriteJsonFile(filePath, withMeta(body, meta));
   return fileToResponse(filePath);
+}
+
+export function updateProjectCheckpoints(
+  id: string,
+  checkpoints: Checkpoint[],
+): ProjectResponse | null {
+  const filePath = pathForId(id);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    return null;
+  }
+
+  const current = readJsonFile(filePath);
+  const meta = { ...((current[META_KEY] as Record<string, unknown>) ?? {}) };
+  const body = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== META_KEY),
+  );
+
+  body.checkpoints = serializeCheckpoints(checkpoints);
+
+  const latestDate = checkpoints.find((item) => item.date.trim())?.date.trim();
+  if (latestDate) {
+    body.topDate = latestDate;
+  }
+
+  overwriteJsonFile(filePath, withMeta(body, meta));
+  return fileToResponse(filePath);
+}
+
+export function getProjectCheckpoints(id: string): Checkpoint[] {
+  const filePath = pathForId(id);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new ApiError(404, 'Project not found');
+  }
+
+  const current = readJsonFile(filePath);
+  const topDate = typeof current.topDate === 'string' ? current.topDate : undefined;
+  return normalizeCheckpoints(current.checkpoints, topDate);
 }
 
 export function readProjectMeta(id: string): Record<string, unknown> | null {

@@ -1,4 +1,5 @@
 import { ApiError } from './api-error';
+import { normalizeCheckpoints } from '@/app/lib/checkpoints';
 import { completeChat } from './project-ai';
 import {
   getProject,
@@ -153,7 +154,10 @@ function buildSummaryContext(
 ): string {
   const data = project.json_data ?? {};
   const cardChecklist = Array.isArray(data.checklist) ? data.checklist : [];
-  const checkpoints = Array.isArray(data.checkpoints) ? data.checkpoints : [];
+  const checkpoints = normalizeCheckpoints(
+    data.checkpoints,
+    typeof data.topDate === 'string' ? data.topDate : undefined,
+  );
 
   const payload: Record<string, unknown> = {
     id: project.id,
