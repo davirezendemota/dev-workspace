@@ -77,11 +77,18 @@ Siga os passos abaixo para rodar o Dev Workspace localmente ou via Docker Compos
    cp .env.example .env
    ```
 3. Ajuste `WORKSPACE_LOCAL_PROJECTS_ROOT` no `.env` para a pasta onde seus repos locais ficam
-4. Suba o app
+4. Suba o ambiente desejado
    ```sh
-   docker compose up --build
+   # Dev com hot reload (porta 3010)
+   docker compose -f compose.yaml up -d
+
+   # Build local / staging (porta 8080)
+   docker compose -f compose.build.yaml up -d
+
+   # Production via GHCR (porta 3000)
+   docker compose -f compose.production.yaml up -d
    ```
-5. Acesse http://localhost:3000
+5. Acesse a porta do ambiente (`3010`, `8080` ou `3000`)
 
 **Opção B — desenvolvimento local**
 
@@ -91,7 +98,7 @@ Siga os passos abaixo para rodar o Dev Workspace localmente ou via Docker Compos
    cd dev-workspace
    npm install
    ```
-2. Copie `.env.example` para `.env` (todas as variáveis são opcionais)
+2. Copie `.env.example` para `.env`
 3. Inicie o servidor de desenvolvimento
    ```sh
    npm run dev
