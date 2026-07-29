@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
+import { copyTextToClipboard } from '@/app/lib/copy-to-clipboard';
 import { useLockBodyScroll } from '@/app/lib/use-lock-body-scroll';
 import AgentMarkdownField from './AgentMarkdownField';
 import type { Agent, AgentApiResponse } from './data';
@@ -58,10 +59,10 @@ export default function AgentDetailModal({
   const fileName = agent.localFilePath?.split('/').pop() ?? `${agent.id}.md`;
 
   const handleCopyPrompt = async () => {
-    try {
-      await navigator.clipboard.writeText(content);
+    const ok = await copyTextToClipboard(content);
+    if (ok) {
       toast.success('Prompt copiado');
-    } catch {
+    } else {
       toast.error('Não foi possível copiar o prompt');
     }
   };

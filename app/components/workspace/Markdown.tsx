@@ -4,6 +4,7 @@ import { Children, isValidElement, useMemo, useState, type ReactNode } from 'rea
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
+import { copyTextToClipboard } from '@/app/lib/copy-to-clipboard';
 import { cn } from '@/app/lib/utils';
 
 function hastText(node: unknown): string {
@@ -88,12 +89,12 @@ function CopyCodeBlock({
   const handleCopy = async () => {
     if (!code) return;
 
-    try {
-      await navigator.clipboard.writeText(code);
+    const ok = await copyTextToClipboard(code);
+    if (ok) {
       setCopied(true);
       toast.success('Código copiado');
       window.setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error('Não foi possível copiar');
     }
   };

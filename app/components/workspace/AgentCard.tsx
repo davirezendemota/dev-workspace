@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { copyTextToClipboard } from '@/app/lib/copy-to-clipboard';
 import type { Agent } from './data';
 
 type AgentCardProps = {
@@ -129,12 +130,12 @@ export default function AgentCard({
 
   const handleCopy = async (event: React.MouseEvent) => {
     event.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(agent.content);
+    const ok = await copyTextToClipboard(agent.content);
+    if (ok) {
       setCopied(true);
       toast.success('Prompt copiado');
       window.setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error('Não foi possível copiar o prompt');
     }
   };
