@@ -17,18 +17,19 @@ Dashboard local para gerenciar projetos, agentes de IA e specs com rastreamento 
 
 ## About The Project
 
-Dev Workspace é um painel Next.js fullstack para organizar seu fluxo de desenvolvimento local. Ele centraliza projetos em arquivos JSON, agentes de IA reutilizáveis, integração com GitHub e um sistema de especificações (`.specs`) com checklist de entrega.
+Dev Workspace é um painel que **lê o `.specs/` de cada repositório vinculado** e oferece interface sobre andamento, tasks, pendências, resumo de IA e integrações. Os repos de produto mantêm `.specs/` genérico (specs + checklist); o **agent-cli consulta o DW**, não o `.specs` diretamente, para status operacional.
 
 Principais capacidades:
 
-- **Projects** — cadastro Manual, Manual · repo (pasta local) ou GitHub com sync
-- **Agents** — CRUD de agentes em Markdown com metadados em JSON
-- **Settings** — pastas de projetos/agentes, provider de IA e prompt de resumo
-- **AI input** — perguntas contextuais sobre projetos com resposta do agente configurado
-- **AI summary** — resumo automático de status do projeto a partir das specs
-- **Specs workflow** — requisitos em `.specs/features/*.md` e progresso em `spec-checklist.json`
+- **Projects** — repos locais ou GitHub; DW lê `.specs/spec-checklist.json` e specs do repo
+- **Agents** — biblioteca de agentes de IA reutilizáveis
+- **Settings** — pastas, provider de IA e prompt de resumo
+- **AI input** — perguntas contextuais sobre projetos
+- **AI summary** — resumo de status derivado das specs
+- **Tasks** — tarefas do projeto (embedded no registro DW)
+- **Bridge** — `install-kit/` instala `.dev-workspace/.env` nos consumidores para o agente falar com a API
 
-A fonte da verdade dos projetos é o filesystem (`projects/*.json`), compatível com Docker e desenvolvimento no host.
+Separação: [.specs/](./docs/specs-workflow.md) no repo · **skill `/dev-workspace-planning`** para API DW · ver [install-kit/ARCHITECTURE.md](./install-kit/ARCHITECTURE.md).
 
 ## Screenshots
 
@@ -113,6 +114,21 @@ Siga os passos abaixo para rodar o Dev Workspace localmente ou via Docker Compos
 5. Consulte a [documentação do `.specs`](./docs/specs-workflow.md) para entender a estrutura, o fluxo e como reutilizá-lo em outros projetos.
 
 Comandos úteis de agente (Cursor/Claude): `/bootstrap-specs`, `/update-specs`, `/new-spec`, `/spec-checklist`.
+
+## Bridge — conectar outros projetos ao Dev Workspace
+
+Um comando instala **`.dev-workspace/.env`** + **skill `dev-workspace`** (tudo na skill — sem bootstrap manual).
+
+```bash
+./install-kit/install.sh /path/to/consumer --dw-root /path/to/dev-workspace
+```
+
+Token API: gerado no container (`DEV_WORKSPACE_API_TOKEN` nos logs).
+
+- **Specs no repo** → `.specs/`
+- **Planejamento, pendências, tasks, resumo IA** → skill `dev-workspace`
+
+Ver [install-kit/README.md](./install-kit/README.md).
 ## Roadmap
 
 - [x] Settings (pastas, IA, prompt de resumo)
@@ -121,7 +137,7 @@ Comandos úteis de agente (Cursor/Claude): `/bootstrap-specs`, `/update-specs`, 
 - [x] AI input na aba Projects
 - [x] AI summary de status do projeto
 - [x] Checklist editável para projetos Manual (sem repo)
-- [ ] Autenticação nos endpoints da API
+- [x] Autenticação nos endpoints da API (Bearer token; exibido nos logs do container)
 - [ ] Edição completa do JSON de projeto pela UI
 - [ ] Re-sync periódica de projetos GitHub
 
