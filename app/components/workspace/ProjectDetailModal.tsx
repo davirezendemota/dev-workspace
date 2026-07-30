@@ -11,6 +11,7 @@ import ProjectPlans from './ProjectPlans';
 import ProjectTasks from './ProjectTasks';
 import ProjectSettingsPanel from './ProjectSettingsPanel';
 import ProjectFeatures from './ProjectFeatures';
+import ProjectSpecGraph from './ProjectSpecGraph';
 
 type ProjectDetailModalProps = {
   project: Project | null;
@@ -19,7 +20,14 @@ type ProjectDetailModalProps = {
   onDeleted?: (id: string) => void;
 };
 
-type TabId = 'features' | 'milestones' | 'plans' | 'checkpoints' | 'tasks' | 'settings';
+type TabId =
+  | 'graph'
+  | 'features'
+  | 'milestones'
+  | 'plans'
+  | 'checkpoints'
+  | 'tasks'
+  | 'settings';
 
 type TabDef = {
   id: TabId;
@@ -40,6 +48,16 @@ function TabIcon({ id }: { id: TabId }) {
   };
 
   switch (id) {
+    case 'graph':
+      return (
+        <svg {...props}>
+          <circle cx="6" cy="6" r="2.5" />
+          <circle cx="18" cy="8" r="2.5" />
+          <circle cx="8" cy="18" r="2.5" />
+          <circle cx="17" cy="17" r="2.5" />
+          <path d="M8 7.5 16 9M7.5 8.2 9.5 15.5M16.2 10.2 15.5 14.8M10.2 17.5 14.5 17.2" />
+        </svg>
+      );
     case 'features':
       return (
         <svg {...props}>
@@ -91,14 +109,16 @@ function TabIcon({ id }: { id: TabId }) {
 
 export default function ProjectDetailModal({ project, onClose, onUpdated, onDeleted }: ProjectDetailModalProps) {
   const titleId = useId();
-  const [activeTab, setActiveTab] = useState<TabId>('features');
+  const [activeTab, setActiveTab] = useState<TabId>('graph');
   const [tasksRefreshKey, setTasksRefreshKey] = useState(0);
   const [milestoneDraft, setMilestoneDraft] = useState<MilestoneDraft | null>(null);
+  const [featuresSpecId, setFeaturesSpecId] = useState<string | null>(null);
 
   useLockBodyScroll(project !== null);
 
   const tabs = useMemo(
     (): TabDef[] => [
+      { id: 'graph', label: 'Grafo' },
       { id: 'features', label: 'Features' },
       { id: 'milestones', label: 'Milestones' },
       { id: 'plans', label: 'Planos' },
@@ -108,6 +128,15 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
     ],
     [],
   );
+
+  const handleOpenSpecFromGraph = useCallback((specId: string) => {
+    setFeaturesSpecId(specId);
+    setActiveTab('features');
+  }, []);
+
+  const consumeFeaturesSpecId = useCallback(() => {
+    setFeaturesSpecId(null);
+  }, []);
 
   const consumeMilestoneDraft = useCallback(() => {
     setMilestoneDraft(null);
@@ -123,9 +152,10 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
 
   useEffect(() => {
     if (!project) return;
-    setActiveTab('features');
+    setActiveTab('graph');
     setTasksRefreshKey((key) => key + 1);
     setMilestoneDraft(null);
+    setFeaturesSpecId(null);
   }, [project]);
 
   useEffect(() => {
@@ -219,12 +249,23 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
         <div
           className={cn(
             'min-h-0 flex-1 px-5 py-4 sm:px-6 sm:py-5',
-            activeTab === 'features' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto',
+            activeTab === 'features' || activeTab === 'graph'
+              ? 'flex flex-col overflow-hidden'
+              : 'overflow-y-auto',
           )}
         >
+          {activeTab === 'graph' ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <ProjectSpecGraph project={project} onOpenSpec={handleOpenSpecFromGraph} />
+            </div>
+          ) : null}
           {activeTab === 'features' ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <ProjectFeatures project={project} />
+              <ProjectFeatures
+                project={project}
+                initialSpecId={featuresSpecId}
+                onInitialSpecConsumed={consumeFeaturesSpecId}
+              />
             </div>
           ) : null}
           {activeTab === 'milestones' ? (

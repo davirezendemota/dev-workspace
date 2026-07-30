@@ -14,6 +14,8 @@ import {
 
 type ProjectFeaturesProps = {
   project: Project;
+  initialSpecId?: string | null;
+  onInitialSpecConsumed?: () => void;
 };
 
 type FeatureContent = {
@@ -35,11 +37,15 @@ function FeatureContentPanel({
   content,
   contentLoading,
   contentError,
+  knownSpecIds,
+  onSpecLinkClick,
 }: {
   spec: SpecChecklistSpec;
   content: FeatureContent | null;
   contentLoading: boolean;
   contentError: string | null;
+  knownSpecIds: Set<string>;
+  onSpecLinkClick?: (specId: string, anchor?: string) => void;
 }) {
   const { done, total } = specProgress(spec);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -153,7 +159,13 @@ function FeatureContentPanel({
           </div>
         ) : null}
         {!contentLoading && !contentError && content ? (
-          <Markdown preview>{content.content}</Markdown>
+          <Markdown
+            preview
+            knownSpecIds={knownSpecIds}
+            onSpecLinkClick={onSpecLinkClick}
+          >
+            {content.content}
+          </Markdown>
         ) : null}
 
         {spec.checklist.length > 0 ? (
@@ -178,7 +190,11 @@ function FeatureContentPanel({
   );
 }
 
-export default function ProjectFeatures({ project }: ProjectFeaturesProps) {
+export default function ProjectFeatures({
+  project,
+  initialSpecId = null,
+  onInitialSpecConsumed,
+}: ProjectFeaturesProps) {
   const [checklist, setChecklist] = useState<ProjectSpecChecklistData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -187,6 +203,11 @@ export default function ProjectFeatures({ project }: ProjectFeaturesProps) {
   const [content, setContent] = useState<FeatureContent | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const [contentError, setContentError] = useState<string | null>(null);
+
+  const knownSpecIds = useMemo(
+    () => new Set((checklist?.specs ?? []).map((s) => s.specId)),
+    [checklist?.specs],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -251,6 +272,23 @@ export default function ProjectFeatures({ project }: ProjectFeaturesProps) {
   }, [filteredSpecs, selectedSpecId]);
 
   useEffect(() => {
+    if (!initialSpecId) return;
+    if (!checklist) return;
+    const exists = checklist.specs.some((s) => s.specId === initialSpecId);
+    if (exists) {
+      setSearchQuery('');
+      setSelectedSpecId(initialSpecId);
+    }
+    onInitialSpecConsumed?.();
+  }, [initialSpecId, checklist, onInitialSpecConsumed]);
+
+  const handleSpecLinkClick = useCallback((specId: string) => {
+    if (!knownSpecIds.has(specId)) return;
+    setSearchQuery('');
+    setSelectedSpecId(specId);
+  }, [knownSpecIds]);
+
+  useEffect(() => {
     if (!selectedSpecId) {
       setContent(null);
       setContentError(null);
@@ -258,6 +296,7 @@ export default function ProjectFeatures({ project }: ProjectFeaturesProps) {
       return;
     }
 
+    const specId = selectedSpecId;
     let cancelled = false;
     setContentLoading(true);
     setContentError(null);
@@ -265,7 +304,7 @@ export default function ProjectFeatures({ project }: ProjectFeaturesProps) {
     async function loadContent() {
       try {
         const response = await fetch(
-          `/api/projects/${project.id}/features/${encodeURIComponent(selectedSpecId)}`,
+          `/api/projects/${project.id}/features/${encodeURIComponent(specId)}`,
         );
         if (!response.ok) {
           let detail = `Erro ${response.status}`;
@@ -368,6 +407,8 @@ export default function ProjectFeatures({ project }: ProjectFeaturesProps) {
                 content={content}
                 contentLoading={contentLoading}
                 contentError={contentError}
+                knownSpecIds={knownSpecIds}
+                onSpecLinkClick={handleSpecLinkClick}
               />
             ) : null}
           </SpecSidebarLayout>

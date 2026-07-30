@@ -5,6 +5,10 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
 import { copyTextToClipboard } from '@/app/lib/copy-to-clipboard';
+import {
+  parseSpecHref,
+  preprocessWikilinksForMarkdown,
+} from '@/app/lib/spec-links';
 import { cn } from '@/app/lib/utils';
 
 function hastText(node: unknown): string {
@@ -115,7 +119,12 @@ function CopyCodeBlock({
   );
 }
 
-function buildComponents(copyable: boolean): Components {
+type SpecLinkOptions = {
+  knownSpecIds?: Set<string>;
+  onSpecLinkClick?: (specId: string, anchor?: string) => void;
+};
+
+function buildComponents(copyable: boolean, specLinks?: SpecLinkOptions): Components {
   return {
     tr({ node, children, ...props }) {
       const cls = rowStatusClass(hastText(node));
@@ -140,6 +149,64 @@ function buildComponents(copyable: boolean): Components {
 
       return <CopyCodeBlock {...props}>{children}</CopyCodeBlock>;
     },
+    a({ href, children, ...props }) {
+      const parsed = href ? parseSpecHref(href) : null;
+      if (!parsed) {
+        return (
+          <a href={href} {...props}>
+            {children}
+          </a>
+        );
+      }
+
+      const known = !specLinks?.knownSpecIds || specLinks.knownSpecIds.has(parsed.specId);
+      const label = parsed.anchor
+        ? `${parsed.specId}#${parsed.anchor}`
+        : parsed.specId;
+
+      if (!known) {
+        return (
+          <span
+            className="spec-wikilink-broken"
+            title={`Spec ${parsed.specId} não encontrada no checklist`}
+            style={{
+              color: 'var(--color-accent-800, #9f1239)',
+              textDecoration: 'underline wavy',
+              textDecorationColor: 'var(--color-accent, #e11d48)',
+              cursor: 'help',
+            }}
+          >
+            {children ?? label}
+          </span>
+        );
+      }
+
+      return (
+        <button
+          type="button"
+          className="spec-wikilink"
+          title={`Abrir spec ${label}`}
+          onClick={(e) => {
+            e.preventDefault();
+            specLinks?.onSpecLinkClick?.(parsed.specId, parsed.anchor);
+          }}
+          style={{
+            display: 'inline',
+            padding: 0,
+            margin: 0,
+            border: 'none',
+            background: 'none',
+            color: 'var(--color-accent)',
+            cursor: 'pointer',
+            font: 'inherit',
+            textDecoration: 'underline',
+            textUnderlineOffset: '2px',
+          }}
+        >
+          {children ?? label}
+        </button>
+      );
+    },
   };
 }
 
@@ -147,17 +214,33 @@ export default function Markdown({
   children,
   className,
   preview = false,
+  knownSpecIds,
+  onSpecLinkClick,
 }: {
   children: string;
   className?: string;
   preview?: boolean;
+  knownSpecIds?: Set<string>;
+  onSpecLinkClick?: (specId: string, anchor?: string) => void;
 }) {
-  const components = useMemo(() => buildComponents(preview), [preview]);
+  const source = useMemo(
+    () => preprocessWikilinksForMarkdown(children),
+    [children],
+  );
+
+  const components = useMemo(
+    () =>
+      buildComponents(preview, {
+        knownSpecIds,
+        onSpecLinkClick,
+      }),
+    [preview, knownSpecIds, onSpecLinkClick],
+  );
 
   return (
     <div className={cn('prose-spec min-w-0', preview && 'prose-spec-preview overflow-x-hidden', className)}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-        {children}
+        {source}
       </ReactMarkdown>
     </div>
   );
