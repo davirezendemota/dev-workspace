@@ -1,17 +1,23 @@
+import { normalizeCheckpoints } from '@/app/lib/checkpoints';
 import { errorResponse } from '@/app/lib/server/api-error';
+import {
+  requireProjectAccess,
+  resolveApiAuthOptional,
+} from '@/app/lib/server/api-auth';
 import {
   getProjectCheckpoints,
   updateProjectCheckpoints,
 } from '@/app/lib/server/projects';
-import { normalizeCheckpoints } from '@/app/lib/checkpoints';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   try {
+    const auth = resolveApiAuthOptional(request);
     const { id } = await context.params;
+    requireProjectAccess(auth, id);
     const checkpoints = getProjectCheckpoints(id);
     return Response.json({ checkpoints });
   } catch (error) {
@@ -21,7 +27,9 @@ export async function GET(_request: Request, context: RouteContext) {
 
 export async function PUT(request: Request, context: RouteContext) {
   try {
+    const auth = resolveApiAuthOptional(request);
     const { id } = await context.params;
+    requireProjectAccess(auth, id);
     const body = await request.json();
     const raw = Array.isArray(body?.checkpoints) ? body.checkpoints : [];
     const checkpoints = normalizeCheckpoints(raw, body?.topDate);
