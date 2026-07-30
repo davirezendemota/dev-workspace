@@ -224,34 +224,36 @@ function ProjectCard({
                   'checkpoint resume'}
               </span>
             </div>
-            <div className="flex flex-col">
-              {project.checkpoints.map((checkpoint, i) => (
-                <div
-                  key={`${project.id}-cp-${i}-${checkpoint.date}-${checkpoint.title}`}
-                  className="flex items-baseline gap-3 border-t border-[var(--color-divider)] py-1.5"
-                >
-                  <span
-                    className="num min-w-[52px] text-[18px] font-semibold"
-                    style={{
-                      fontFamily: 'var(--font-heading)',
-                      fontWeight: 600,
-                      color: 'color-mix(in srgb, var(--color-text) 62%, transparent)',
-                    }}
+            {project.checkpoints.length > 1 ? (
+              <div className="flex flex-col">
+                {project.checkpoints.slice(1).map((checkpoint, i) => (
+                  <div
+                    key={`${project.id}-cp-${i + 1}-${checkpoint.date}-${checkpoint.title}`}
+                    className="flex items-baseline gap-3 border-t border-[var(--color-divider)] py-1.5"
                   >
-                    {checkpoint.date || '—'}
-                  </span>
-                  <span
-                    className="text-[13px]"
-                    style={{
-                      fontFamily: 'var(--font-body)',
-                      color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
-                    }}
-                  >
-                    {checkpoint.summary || checkpoint.title || 'checkpoint resume'}
-                  </span>
-                </div>
-              ))}
-            </div>
+                    <span
+                      className="num min-w-[52px] text-[18px] font-semibold"
+                      style={{
+                        fontFamily: 'var(--font-heading)',
+                        fontWeight: 600,
+                        color: 'color-mix(in srgb, var(--color-text) 62%, transparent)',
+                      }}
+                    >
+                      {checkpoint.date || '—'}
+                    </span>
+                    <span
+                      className="text-[13px]"
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+                      }}
+                    >
+                      {checkpoint.summary || checkpoint.title || 'checkpoint resume'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </>
         ) : null}
       </div>

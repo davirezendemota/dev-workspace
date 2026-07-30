@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useLockBodyScroll } from '@/app/lib/use-lock-body-scroll';
 import { cn } from '@/app/lib/utils';
 import type { ProjectApiResponse } from './AddProjectModal';
 import type { Project } from './data';
 import ProjectCheckpoints from './ProjectCheckpoints';
+import ProjectMilestones, { type MilestoneDraft } from './ProjectMilestones';
+import ProjectPlans from './ProjectPlans';
 import ProjectTasks from './ProjectTasks';
 import ProjectSettingsPanel from './ProjectSettingsPanel';
-import ProjectSpecChecklist from './ProjectSpecChecklist';
+import ProjectFeatures from './ProjectFeatures';
 
 type ProjectDetailModalProps = {
   project: Project | null;
@@ -17,18 +19,89 @@ type ProjectDetailModalProps = {
   onDeleted?: (id: string) => void;
 };
 
-type TabId = 'spec-checklist' | 'checkpoints' | 'tasks' | 'settings';
+type TabId = 'features' | 'milestones' | 'plans' | 'checkpoints' | 'tasks' | 'settings';
+
+type TabDef = {
+  id: TabId;
+  label: string;
+};
+
+function TabIcon({ id }: { id: TabId }) {
+  const props = {
+    width: 15,
+    height: 15,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.5,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  };
+
+  switch (id) {
+    case 'features':
+      return (
+        <svg {...props}>
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          <path d="M8 7h8M8 11h8M8 15h5" />
+        </svg>
+      );
+    case 'milestones':
+      return (
+        <svg {...props}>
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+          <line x1="4" y1="22" x2="4" y2="15" />
+        </svg>
+      );
+    case 'plans':
+      return (
+        <svg {...props}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="8" y1="13" x2="16" y2="13" />
+          <line x1="8" y1="17" x2="16" y2="17" />
+          <line x1="8" y1="9" x2="10" y2="9" />
+        </svg>
+      );
+    case 'checkpoints':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+    case 'tasks':
+      return (
+        <svg {...props}>
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+        </svg>
+      );
+    case 'settings':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+        </svg>
+      );
+  }
+}
 
 export default function ProjectDetailModal({ project, onClose, onUpdated, onDeleted }: ProjectDetailModalProps) {
   const titleId = useId();
-  const [activeTab, setActiveTab] = useState<TabId>('spec-checklist');
+  const [activeTab, setActiveTab] = useState<TabId>('features');
   const [tasksRefreshKey, setTasksRefreshKey] = useState(0);
+  const [milestoneDraft, setMilestoneDraft] = useState<MilestoneDraft | null>(null);
 
   useLockBodyScroll(project !== null);
 
   const tabs = useMemo(
-    (): { id: TabId; label: string }[] => [
-      { id: 'spec-checklist', label: 'Spec checklist' },
+    (): TabDef[] => [
+      { id: 'features', label: 'Features' },
+      { id: 'milestones', label: 'Milestones' },
+      { id: 'plans', label: 'Planos' },
       { id: 'checkpoints', label: 'Checkpoints' },
       { id: 'tasks', label: 'Tasks' },
       { id: 'settings', label: 'Settings' },
@@ -36,10 +109,23 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
     [],
   );
 
+  const consumeMilestoneDraft = useCallback(() => {
+    setMilestoneDraft(null);
+  }, []);
+
+  const handlePlanMilestone = useCallback((draft: { title: string; description: string }) => {
+    setMilestoneDraft({
+      title: draft.title,
+      description: draft.description,
+    });
+    setActiveTab('milestones');
+  }, []);
+
   useEffect(() => {
     if (!project) return;
-    setActiveTab('spec-checklist');
+    setActiveTab('features');
     setTasksRefreshKey((key) => key + 1);
+    setMilestoneDraft(null);
   }, [project]);
 
   useEffect(() => {
@@ -72,27 +158,25 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="anim-fade-up relative z-10 flex max-h-[min(92vh,900px)] w-full max-w-[min(96vw,1180px)] flex-col border border-[var(--color-divider)] bg-[var(--color-bg)] shadow-[var(--shadow-lg)]"
+        className="anim-fade-up relative z-10 flex h-[min(92vh,900px)] w-full max-w-[min(96vw,1180px)] flex-col border border-[var(--color-divider)] bg-[var(--color-bg)] shadow-[var(--shadow-lg)]"
       >
-        <header className="flex flex-none items-start justify-between gap-4 border-b border-[var(--color-divider)] px-6 py-5 sm:px-8">
-          <div className="min-w-0">
-            <p className="chk mb-2">Projeto</p>
+        <header className="flex flex-none items-center justify-between gap-3 border-b border-[var(--color-divider)] px-5 py-3 sm:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <h2
               id={titleId}
-              className="truncate text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight"
+              className="min-w-0 truncate text-[1.25rem] font-semibold leading-tight sm:text-[1.375rem]"
               style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}
             >
               {project.name}
             </h2>
-            <p
-              className="mt-1.5 truncate text-[13px] italic"
+            <span
+              className="shrink-0 font-mono text-[12px]"
               style={{
-                fontFamily: 'var(--font-body)',
-                color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+                color: 'color-mix(in srgb, var(--color-text) 50%, transparent)',
               }}
             >
-              {project.repo}
-            </p>
+              {project.specProjectId ?? project.id}
+            </span>
           </div>
           <button
             type="button"
@@ -105,7 +189,7 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
         </header>
 
         <nav
-          className="flex flex-none gap-1 border-b border-[var(--color-divider)] px-6 sm:px-8"
+          className="flex flex-none gap-1 border-b border-[var(--color-divider)] px-5 sm:px-6"
           aria-label="Abas do projeto"
         >
           {tabs.map((tab) => {
@@ -115,13 +199,14 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
                 key={tab.id}
                 type="button"
                 className={cn(
-                  'relative px-4 py-3 text-[13px] transition-colors',
+                  'relative flex items-center gap-2 px-3 py-2.5 text-[13px] transition-colors',
                   active ? 'text-[var(--color-accent)]' : 'text-[var(--color-text)]',
                 )}
                 style={{ fontFamily: 'var(--font-heading)' }}
                 onClick={() => setActiveTab(tab.id)}
                 aria-current={active ? 'page' : undefined}
               >
+                <TabIcon id={tab.id} />
                 {tab.label}
                 {active ? (
                   <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--color-accent)]" />
@@ -131,12 +216,30 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
           })}
         </nav>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7">
-          {activeTab === 'spec-checklist' ? <ProjectSpecChecklist project={project} /> : null}
+        <div
+          className={cn(
+            'min-h-0 flex-1 px-5 py-4 sm:px-6 sm:py-5',
+            activeTab === 'features' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto',
+          )}
+        >
+          {activeTab === 'features' ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <ProjectFeatures project={project} />
+            </div>
+          ) : null}
+          {activeTab === 'milestones' ? (
+            <ProjectMilestones
+              project={project}
+              draft={milestoneDraft}
+              onDraftConsumed={consumeMilestoneDraft}
+            />
+          ) : null}
+          {activeTab === 'plans' ? <ProjectPlans project={project} /> : null}
           {activeTab === 'checkpoints' ? (
             <ProjectCheckpoints
               project={project}
               onUpdated={(updated) => onUpdated?.(updated)}
+              onPlanMilestone={handlePlanMilestone}
             />
           ) : null}
           {mountTasks ? (

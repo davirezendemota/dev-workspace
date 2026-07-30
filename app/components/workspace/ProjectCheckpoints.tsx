@@ -16,6 +16,7 @@ import type { Project } from './data';
 type ProjectCheckpointsProps = {
   project: Project;
   onUpdated?: (project: ProjectApiResponse) => void;
+  onPlanMilestone?: (draft: { title: string; description: string }) => void;
 };
 
 type DayGroup = {
@@ -111,11 +112,13 @@ function CheckpointContent({
   index,
   loading,
   onRefresh,
+  onPlanMilestone,
 }: {
   checkpoint: Checkpoint;
   index: number;
   loading: boolean;
   onRefresh: (index: number) => void;
+  onPlanMilestone?: (draft: { title: string; description: string }) => void;
 }) {
   const label = checkpoint.title.trim() || 'Checkpoint sem título';
 
@@ -190,6 +193,22 @@ function CheckpointContent({
           </p>
         ) : null}
       </div>
+
+      {onPlanMilestone ? (
+        <button
+          type="button"
+          className="mt-3 text-[12px] text-[var(--color-accent)] hover:underline"
+          style={{ fontFamily: 'var(--font-heading)' }}
+          onClick={() =>
+            onPlanMilestone({
+              title: checkpoint.title.trim() || label,
+              description: checkpoint.summary.trim(),
+            })
+          }
+        >
+          Planejar milestone
+        </button>
+      ) : null}
     </>
   );
 }
@@ -198,10 +217,12 @@ function TimelineEntryRow({
   entry,
   refreshingIndex,
   onRefresh,
+  onPlanMilestone,
 }: {
   entry: TimelineEntry;
   refreshingIndex: number | null;
   onRefresh: (index: number) => void;
+  onPlanMilestone?: (draft: { title: string; description: string }) => void;
 }) {
   const displayDate = formatCheckpointDate(entry.date);
   const showDateWithAnchor = entry.isDayAnchor && Boolean(displayDate);
@@ -258,13 +279,18 @@ function TimelineEntryRow({
           index={entry.index}
           loading={refreshingIndex === entry.index}
           onRefresh={onRefresh}
+          onPlanMilestone={onPlanMilestone}
         />
       </div>
     </li>
   );
 }
 
-export default function ProjectCheckpoints({ project, onUpdated }: ProjectCheckpointsProps) {
+export default function ProjectCheckpoints({
+  project,
+  onUpdated,
+  onPlanMilestone,
+}: ProjectCheckpointsProps) {
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>(project.checkpoints);
   const [loading, setLoading] = useState(true);
   const [refreshingIndex, setRefreshingIndex] = useState<number | null>(null);
@@ -444,6 +470,7 @@ export default function ProjectCheckpoints({ project, onUpdated }: ProjectCheckp
               entry={entry}
               refreshingIndex={refreshingIndex}
               onRefresh={refreshSummary}
+              onPlanMilestone={onPlanMilestone}
             />
           ))}
         </ol>

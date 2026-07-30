@@ -143,6 +143,7 @@ export default function AddProjectModal({
       ai: '',
       topDate: '—',
       checkpoints: [],
+      milestones: [],
       tasks: [],
       lastInteractionDays: 0,
       openDemands: 0,
