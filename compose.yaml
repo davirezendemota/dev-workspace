@@ -20,4 +20,3 @@ services:
       - ./workspace_data:/data
       - ${WORKSPACE_LOCAL_PROJECTS_ROOT}:/local-projects:ro
       - /app/.next
-    command: sh -c "npm install && npm run dev"

@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:host": "node scripts/ensure-api-token.mjs && next dev",
     "build": "next build",
     "start": "next start",
+    "start:host": "node scripts/ensure-api-token.mjs && next start",
     "lint": "next lint"
   },
   "dependencies": {
