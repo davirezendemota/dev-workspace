@@ -138,3 +138,6 @@ Descreva o papel e o tom do agente.
 - `GET /api/agents` → lista a partir dos `*.md`
 - `POST /api/agents` → `{ name: string, content?: string }`
 - `GET|PUT|DELETE /api/agents/{id}` → `id` = slug do arquivo
+- `GET /api/prompts` → leitura (alias da aba Prompts; `?q=` busca opcional)
+- `GET /api/prompts/{id}` → mesmo dado que `GET /api/agents/{id}`
+- Edição de prompts: apenas `POST|PUT|DELETE /api/agents` (UI do DW)

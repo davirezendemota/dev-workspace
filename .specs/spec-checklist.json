@@ -1,7 +1,7 @@
 {
   "$schema": "./spec-checklist.schema.json",
   "version": 1,
-  "updatedAt": "2026-07-26",
+  "updatedAt": "2026-07-30",
   "projects": [
     {
       "id": "workspace",
@@ -767,6 +767,198 @@
             {
               "ac": "AC5",
               "description": "Tema e modo recarregam sem flash visual",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "011",
+          "specFile": "features/011-skill-dev-workspace.md",
+          "title": "Install-kit skill-dev-workspace",
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "install-kit/ com install.sh, .env.example e skill-dev-workspace.md na raiz",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "install.sh instala .env e skills Cursor/Claude no consumidor",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "install.sh --merge preserva .env e atualiza skill",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "API token gerado no container e exibido nos logs",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "skill-dev-workspace.md documenta API, projetos e vs .specs",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "README documenta instalação Bridge em um comando",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "012",
+          "specFile": "features/012-projects_milestones.md",
+          "title": "Milestones de planejamento",
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Aba Milestones no modal de projeto para todos os tipos",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "GET milestones retorna lista vazia quando ausente",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "CRUD persiste milestones no JSON do projeto",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "UI vincula e exibe specs do checklist por specIds",
+              "status": "in-progress",
+              "after": [
+                "AC3"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "Checkpoint Planejar milestone pré-preenche sem vínculo",
+              "status": "in-progress",
+              "after": [
+                "AC3"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "PUT com title vazio retorna 400",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "013",
+          "specFile": "features/013-projects_plans.md",
+          "title": "Planos de ação por milestone",
+          "after": [
+            "012"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Aba Planos no modal de projeto para todos os tipos",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "GET plans retorna lista vazia quando ausente",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "POST generate adiciona plano com passos via IA",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "UI lista planos da milestone do mais recente ao mais antigo",
+              "status": "in-progress",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "Expandir plano exibe o texto do plano",
+              "status": "in-progress",
+              "after": [
+                "AC4"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "Skill documenta PUT plans após aprovação e tasks somente leitura",
               "status": "in-progress",
               "after": [
                 "AC2"
