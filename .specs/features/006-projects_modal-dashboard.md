@@ -33,7 +33,8 @@ repositório local ou GitHub vinculado ao projeto.
   (`spec_project_id`, slug do projeto, nome, basename do `local_path`)
 - Override de caminho via `_meta.spec_checklist_path` (default: `.specs/spec-checklist.json`)
 - Estados: loading, erro, vazio (sem specs/ACs)
-- Uso do checklist como contexto na geração de resumo IA (spec 004)
+- Uso do checklist como contexto na geração de resumo IA ([[004-projects_ai-summary]])
+- Grafo documental entre specs (wikilinks) na aba Grafo — ver [[014-projects_spec-graph]]
 
 ### Fora do escopo
 - Edição do spec-checklist do repositório pela UI (somente leitura nesta spec)

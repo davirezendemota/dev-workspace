@@ -70,13 +70,13 @@ foi identificado e rola a lista até ele.
 ## 5b. Comportamento do modelo (IA)
 
 - **Entrada:** texto livre do usuário.
-- **Config:** `ai_provider`, `ai_model`, `ai_api_token` de Settings (spec 002).
+- **Config:** `ai_provider`, `ai_model`, `ai_api_token` de Settings ([[002-settings]]).
 - **Saída esperada:** JSON com `answer` (texto da resposta) e
   `referenced_project_id` (id do projeto ou `null`).
 - **Fallback de referência:** se `referenced_project_id` vier `null`, tentar
   detectar projeto pelo nome ou cliente mencionado no prompt do usuário.
 - **Fallback de erro:** se Settings incompleto ou API falhar, exibir erro sem
-  quebrar a tela.
+  quebrar a tela. Ver também listagem de projetos em [[003-projects]].
 
 ## 6. Critérios de aceite
 

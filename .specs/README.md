@@ -48,7 +48,11 @@ Specs descrevem comportamento e critérios de aceite com IDs estáveis (`AC1`, `
     ├── 007-spec-checklist_completion-metadata.md
     ├── 008-projects_tasks.md
     ├── 009-projects_modal-settings.md
-    └── 010-settings_themes.md
+    ├── 010-settings_themes.md
+    ├── 011-skill-dev-workspace.md
+    ├── 012-projects_milestones.md
+    ├── 013-projects_plans.md
+    └── 014-projects_spec-graph.md
 ```
 
 A pasta `.obsidian/` (se existir) é configuração local do editor Obsidian e não faz parte do fluxo de specs.
@@ -194,6 +198,20 @@ Funciona em dois níveis:
 ```
 
 Declare a dependência em **um** dos lados (`after` no dependente ou `before` no pré-requisito). Não é obrigatório espelhar nos dois.
+
+## Wikilinks entre specs (relações documentais)
+
+Para **mencionar** outra spec no texto (documentação, não ordem de entrega), use wikilinks estilo Obsidian no Markdown:
+
+| Sintaxe | Resolve para |
+|---------|----------------|
+| `[[002]]` | Spec `002` |
+| `[[002-settings]]` | Spec `002` (slug opcional após o ID) |
+| `[[002#AC5]]` | Spec `002`, âncora `AC5` |
+| `[[002#RF3]]` | Spec `002`, âncora `RF3` |
+| `[[002\|Settings]]` | Spec `002`, rótulo exibido “Settings” |
+
+O Dev Workspace extrai esses links, monta o **grafo documental** (`GET /api/projects/{id}/spec-graph`) e renderiza links clicáveis na aba Features. Arestas de entrega (`before`/`after`), milestones e planos **não** entram nesse grafo.
 
 ## Fluxo de trabalho sugerido
 

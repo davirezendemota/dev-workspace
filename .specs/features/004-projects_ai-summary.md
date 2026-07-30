@@ -21,8 +21,8 @@ pelo usuário.
 
 ### Dentro do escopo
 - Bloco de resumo IA no card (`ProjectAiSummary`)
-- Geração via IA usando provider, modelo e token de Settings (spec 002)
-- Contexto: campos do JSON do projeto + specs/ACs do bloco `projects[]` correspondente ao projeto em `spec-checklist.json` (resolução via `spec_project_id` e heurísticas — mesma lógica da spec 006), não o arquivo inteiro do checklist
+- Geração via IA usando provider, modelo e token de Settings ([[002#RF3]])
+- Contexto: campos do JSON do projeto + specs/ACs do bloco `projects[]` correspondente ao projeto em `spec-checklist.json` (resolução via `spec_project_id` e heurísticas — mesma lógica de [[006-projects_modal-dashboard]]), não o arquivo inteiro do checklist
 - Persistência do resumo no campo `ai` do `{slug}.json`
 - Timestamp `_meta.ai_updated_at` para controle de staleness
 - Atualização imediata ao criar projeto GitHub (`POST /api/projects` com `source_type: github`)

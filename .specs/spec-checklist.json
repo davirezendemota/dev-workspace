@@ -967,6 +967,77 @@
               "prs": []
             }
           ]
+        },
+        {
+          "specId": "014",
+          "specFile": "features/014-projects_spec-graph.md",
+          "title": "Grafo de relações documentais entre specs",
+          "after": [
+            "006"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Wikilink [[NNN]] / [[NNN-slug]] / [[NNN#ACn]] resolve para specId",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "6ca64c8375f23bdd5d2c46e600b6a58246117cb8"
+            },
+            {
+              "ac": "AC2",
+              "description": "GET spec-graph retorna nós, arestas doc-only e brokenLinks",
+              "status": "done",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "9f142d2c1488f0116c9d4650a4e108e98c59321a"
+            },
+            {
+              "ac": "AC3",
+              "description": "Aba Grafo é a primeira e abre por default no modal",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "fbe3939e8d3b45da7ad4e32fb3013790b1965a66"
+            },
+            {
+              "ac": "AC4",
+              "description": "Grafo force-directed com zoom/pan, tamanho ∝ conexões e profundidade local",
+              "status": "done",
+              "after": [
+                "AC2",
+                "AC3"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "fbe3939e8d3b45da7ad4e32fb3013790b1965a66"
+            },
+            {
+              "ac": "AC5",
+              "description": "Clique no nó abre Features com a spec selecionada",
+              "status": "done",
+              "after": [
+                "AC4"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "fbe3939e8d3b45da7ad4e32fb3013790b1965a66"
+            },
+            {
+              "ac": "AC6",
+              "description": "Wikilinks clicáveis na Features; alvo inexistente com estilo de aviso",
+              "status": "done",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "fbe3939e8d3b45da7ad4e32fb3013790b1965a66"
+            }
+          ]
         }
       ]
     }
