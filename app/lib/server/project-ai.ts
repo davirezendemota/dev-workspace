@@ -16,7 +16,10 @@ type ProjectSummary = {
   data: Record<string, unknown>;
 };
 
-export async function askAboutProjects(prompt: string): Promise<ProjectAskResult> {
+export async function askAboutProjects(
+  prompt: string,
+  allowedProjectIds?: string[] | null,
+): Promise<ProjectAskResult> {
   if (!isAiConfigured()) {
     throw new ApiError(
       400,
@@ -30,7 +33,11 @@ export async function askAboutProjects(prompt: string): Promise<ProjectAskResult
   }
 
   const { items } = listProjects(0, 100);
-  const summaries = items.map((project) => summarizeProject(project));
+  const scopedItems =
+    allowedProjectIds && allowedProjectIds.length > 0
+      ? items.filter((project) => allowedProjectIds.includes(project.id))
+      : items;
+  const summaries = scopedItems.map((project) => summarizeProject(project));
   const validIds = summaries.map((project) => project.id);
 
   const systemPrompt = buildSystemPrompt(summaries);

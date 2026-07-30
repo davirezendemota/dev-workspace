@@ -13,6 +13,7 @@ import {
   loadConfig,
   saveConfig,
 } from './workspace-config';
+import { getWorkspaceApiToken } from './api-token';
 
 export type SettingsResponse = {
   projects_folder: string;
@@ -21,6 +22,7 @@ export type SettingsResponse = {
   ai_provider: string;
   ai_model: string;
   has_ai_token: boolean;
+  workspace_api_token: string;
   ai_project_summary_prompt: string;
   default_ai_project_summary_prompt: string;
   uses_custom_ai_project_summary_prompt: boolean;
@@ -50,6 +52,7 @@ export function getSettings(): SettingsResponse {
     ai_provider: String(config.ai_provider ?? ''),
     ai_model: String(config.ai_model ?? ''),
     has_ai_token: Boolean(token),
+    workspace_api_token: getWorkspaceApiToken(),
     ai_project_summary_prompt: customPrompt,
     default_ai_project_summary_prompt: defaultProjectAiSummaryPrompt(),
     uses_custom_ai_project_summary_prompt: Boolean(customPrompt),

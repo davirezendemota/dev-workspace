@@ -4,6 +4,22 @@ import path from 'path';
 
 import { ApiError } from './api-error';
 import { normalizeCheckpoints, serializeCheckpoints, type Checkpoint } from '@/app/lib/checkpoints';
+import {
+  normalizeMilestones,
+  serializeMilestones,
+  type Milestone,
+} from '@/app/lib/milestones';
+import {
+  isValidPlanTitle,
+  normalizePlans,
+  parsePlanTitle,
+  serializePlans,
+  type Plan,
+  type PlanSource,
+  type PlanSpecRef,
+  type PlanStep,
+  type PlanStepStatus,
+} from '@/app/lib/plans';
 import { LOCAL_PROJECTS_MOUNT, serverEnv } from './env';
 import {
   fetchGithubCommitDate,
@@ -11,6 +27,15 @@ import {
 } from './github-json';
 import { slugify } from './slugify';
 import { projectsFolder } from './workspace-config';
+import {
+  generateConsumerToken,
+  logConsumerTokenBanner,
+  normalizeLocalPath,
+  readConsumerTokenIndex,
+  writeConsumerTokenIndex,
+  syncConsumerTokensToEnv,
+  getConsumerTokenForProject,
+} from './consumer-api-token';
 
 const META_KEY = '_meta';
 
@@ -93,6 +118,7 @@ export async function createProject(
     const body = stripRepoFields(jsonData);
     const payload = withMeta(body, { source_type: 'local' });
     const filePath = writeProjectFile(name, payload);
+    rebuildConsumerTokenRegistry();
     return fileToResponse(filePath);
   }
 
@@ -106,6 +132,7 @@ export async function createProject(
       local_path: localPath,
     });
     const filePath = writeProjectFile(name, payload);
+    rebuildConsumerTokenRegistry();
     return fileToResponse(filePath);
   }
 
@@ -147,6 +174,7 @@ export async function createProject(
 
   const payload = withMeta(body, meta);
   const filePath = writeProjectFile(name, payload);
+  rebuildConsumerTokenRegistry();
   return fileToResponse(filePath);
 }
 
@@ -185,6 +213,7 @@ export function updateProject(
     }
   }
 
+  rebuildConsumerTokenRegistry();
   return fileToResponse(filePath);
 }
 
@@ -316,6 +345,7 @@ export function deleteProject(id: string): boolean {
   const backupPath = backupPathForProjectFile(filePath);
   fs.renameSync(filePath, backupPath);
 
+  rebuildConsumerTokenRegistry();
   return true;
 }
 
@@ -334,6 +364,12 @@ export type ProjectTasksDocument = {
 };
 
 const TASK_LABEL_MAX = 200;
+const MILESTONE_TITLE_MAX = 200;
+const MILESTONE_DESCRIPTION_MAX = 2000;
+const PLAN_TITLE_MAX = 200;
+const PLAN_CONTENT_MAX = 20000;
+const PLAN_STEP_TITLE_MAX = 200;
+const PLAN_STEP_DESCRIPTION_MAX = 2000;
 const DEFAULT_REPO_TASKS_PATH = 'tasks.json';
 
 function legacyLocalChecklistPathForId(projectId: string): string {
@@ -771,6 +807,401 @@ export async function saveProjectTasks(
   return buildProjectTasksResponse(ctx, document.items, updatedAt);
 }
 
+export type ProjectMilestonesDocument = {
+  version: 1;
+  items: Milestone[];
+  updated_at: string | null;
+};
+
+function readEmbeddedMilestonesFromProject(data: Record<string, unknown>): Milestone[] {
+  return normalizeMilestones(data.milestones);
+}
+
+function writeEmbeddedMilestonesToProject(id: string, items: Milestone[]): string {
+  const filePath = pathForId(id);
+  const current = readJsonFile(filePath);
+  const meta = {
+    ...((current[META_KEY] as Record<string, unknown>) ?? {}),
+  };
+  const body = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== META_KEY),
+  );
+  body.milestones = serializeMilestones(items);
+  overwriteJsonFile(filePath, withMeta(body, meta));
+  return fs.statSync(filePath).mtime.toISOString();
+}
+
+function parseProjectMilestonesDocument(raw: unknown): { version: 1; items: Milestone[] } {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new ApiError(400, 'O documento de milestones deve ser um objeto JSON.');
+  }
+
+  const data = raw as Record<string, unknown>;
+  if (data.version !== 1) {
+    throw new ApiError(400, 'version do documento de milestones deve ser 1.');
+  }
+  if (!Array.isArray(data.items)) {
+    throw new ApiError(400, 'items do documento de milestones deve ser um array.');
+  }
+
+  const seen = new Set<string>();
+  const items: Milestone[] = data.items.map((entry, index) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new ApiError(400, `Item ${index} de milestones é inválido.`);
+    }
+    const row = entry as Record<string, unknown>;
+    const id = typeof row.id === 'string' ? row.id.trim() : '';
+    const title = typeof row.title === 'string' ? row.title.trim() : '';
+    if (!id) {
+      throw new ApiError(400, `Item ${index} precisa de id não vazio.`);
+    }
+    if (seen.has(id)) {
+      throw new ApiError(400, `id duplicado em milestones: ${id}`);
+    }
+    seen.add(id);
+    if (!title) {
+      throw new ApiError(400, `Item ${index} precisa de title não vazio.`);
+    }
+    if (title.length > MILESTONE_TITLE_MAX) {
+      throw new ApiError(
+        400,
+        `Title do item ${index} excede ${MILESTONE_TITLE_MAX} caracteres.`,
+      );
+    }
+
+    const targetDate = typeof row.targetDate === 'string' ? row.targetDate.trim() : '';
+    const description =
+      typeof row.description === 'string' ? row.description.trim() : '';
+    if (description.length > MILESTONE_DESCRIPTION_MAX) {
+      throw new ApiError(
+        400,
+        `Description do item ${index} excede ${MILESTONE_DESCRIPTION_MAX} caracteres.`,
+      );
+    }
+
+    const specIds: string[] = [];
+    if (Array.isArray(row.specIds)) {
+      for (const specId of row.specIds) {
+        if (typeof specId !== 'string' || !specId.trim()) {
+          throw new ApiError(400, `specIds do item ${index} deve conter strings não vazias.`);
+        }
+        const normalized = specId.trim();
+        if (!specIds.includes(normalized)) specIds.push(normalized);
+      }
+    }
+
+    return { id, title, targetDate, description, specIds };
+  });
+
+  return { version: 1, items };
+}
+
+export function getProjectMilestones(id: string): ProjectMilestonesDocument {
+  const filePath = pathForId(id);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new ApiError(404, 'Project not found');
+  }
+
+  const current = readJsonFile(filePath);
+  const body = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== META_KEY),
+  );
+  const items = readEmbeddedMilestonesFromProject(body);
+  const stat = fs.statSync(filePath);
+
+  return {
+    version: 1,
+    items,
+    updated_at: stat.mtime.toISOString(),
+  };
+}
+
+export function saveProjectMilestones(
+  id: string,
+  payload: unknown,
+): ProjectMilestonesDocument {
+  const filePath = pathForId(id);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new ApiError(404, 'Project not found');
+  }
+
+  const document = parseProjectMilestonesDocument(payload);
+  const updatedAt = writeEmbeddedMilestonesToProject(id, document.items);
+
+  return {
+    version: 1,
+    items: document.items,
+    updated_at: updatedAt,
+  };
+}
+
+export type ProjectPlansDocument = {
+  version: 1;
+  items: Plan[];
+  updated_at: string | null;
+};
+
+function readEmbeddedPlansFromProject(data: Record<string, unknown>): Plan[] {
+  return normalizePlans(data.plans);
+}
+
+function writeEmbeddedPlansToProject(id: string, items: Plan[]): string {
+  const filePath = pathForId(id);
+  const current = readJsonFile(filePath);
+  const meta = {
+    ...((current[META_KEY] as Record<string, unknown>) ?? {}),
+  };
+  const body = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== META_KEY),
+  );
+  body.plans = serializePlans(items);
+  overwriteJsonFile(filePath, withMeta(body, meta));
+  return fs.statSync(filePath).mtime.toISOString();
+}
+
+const PLAN_STEP_STATUSES: PlanStepStatus[] = ['todo', 'in-progress', 'done', 'blocked'];
+const PLAN_SOURCES: PlanSource[] = ['manual', 'ai'];
+
+function parsePlanSpecRef(raw: unknown, stepIndex: number, planIndex: number): PlanSpecRef | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new ApiError(400, `specRef do passo ${stepIndex} do plano ${planIndex} é inválido.`);
+  }
+  const row = raw as Record<string, unknown>;
+  const specId = typeof row.specId === 'string' ? row.specId.trim() : '';
+  if (!specId) {
+    throw new ApiError(400, `specRef do passo ${stepIndex} do plano ${planIndex} precisa de specId.`);
+  }
+  const ac = typeof row.ac === 'string' ? row.ac.trim() : '';
+  return ac ? { specId, ac } : { specId };
+}
+
+function parseProjectPlansDocument(
+  raw: unknown,
+  milestoneIds?: Set<string>,
+): { version: 1; items: Plan[] } {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new ApiError(400, 'O documento de plans deve ser um objeto JSON.');
+  }
+
+  const data = raw as Record<string, unknown>;
+  if (data.version !== 1) {
+    throw new ApiError(400, 'version do documento de plans deve ser 1.');
+  }
+  if (!Array.isArray(data.items)) {
+    throw new ApiError(400, 'items do documento de plans deve ser um array.');
+  }
+
+  const seenPlanIds = new Set<string>();
+  const seenPlanCodes = new Set<string>();
+  const items: Plan[] = data.items.map((entry, planIndex) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new ApiError(400, `Item ${planIndex} de plans é inválido.`);
+    }
+    const row = entry as Record<string, unknown>;
+    const id = typeof row.id === 'string' ? row.id.trim() : '';
+    const milestoneId = typeof row.milestoneId === 'string' ? row.milestoneId.trim() : '';
+    const title = typeof row.title === 'string' ? row.title.trim() : '';
+    if (!id) {
+      throw new ApiError(400, `Item ${planIndex} de plans precisa de id não vazio.`);
+    }
+    if (seenPlanIds.has(id)) {
+      throw new ApiError(400, `id duplicado em plans: ${id}`);
+    }
+    seenPlanIds.add(id);
+    if (!milestoneId) {
+      throw new ApiError(400, `Item ${planIndex} de plans precisa de milestoneId não vazio.`);
+    }
+    if (milestoneIds && !milestoneIds.has(milestoneId)) {
+      throw new ApiError(400, `milestoneId desconhecido: ${milestoneId}`);
+    }
+    if (!title) {
+      throw new ApiError(400, `Item ${planIndex} de plans precisa de title não vazio.`);
+    }
+    if (!isValidPlanTitle(title)) {
+      throw new ApiError(
+        400,
+        `Title do plano ${planIndex} deve seguir o padrão PXXX - nome (ex.: P001 - Auth refresh).`,
+      );
+    }
+    const planTitle = parsePlanTitle(title);
+    if (!planTitle) {
+      throw new ApiError(400, `Title do plano ${planIndex} é inválido.`);
+    }
+    if (seenPlanCodes.has(planTitle.code)) {
+      throw new ApiError(400, `Código de plano duplicado: ${planTitle.code}`);
+    }
+    seenPlanCodes.add(planTitle.code);
+    if (title.length > PLAN_TITLE_MAX) {
+      throw new ApiError(
+        400,
+        `Title do plano ${planIndex} excede ${PLAN_TITLE_MAX} caracteres.`,
+      );
+    }
+
+    const sourceRaw = typeof row.source === 'string' ? row.source.trim() : 'manual';
+    if (!PLAN_SOURCES.includes(sourceRaw as PlanSource)) {
+      throw new ApiError(400, `source do plano ${planIndex} deve ser manual ou ai.`);
+    }
+    const source = sourceRaw as PlanSource;
+
+    const generatedAt =
+      typeof row.generatedAt === 'string' && row.generatedAt.trim()
+        ? row.generatedAt.trim()
+        : new Date().toISOString();
+
+    const content = typeof row.content === 'string' ? row.content.trim() : '';
+    if (content.length > PLAN_CONTENT_MAX) {
+      throw new ApiError(
+        400,
+        `Content do plano ${planIndex} excede ${PLAN_CONTENT_MAX} caracteres.`,
+      );
+    }
+
+    if (!Array.isArray(row.items)) {
+      throw new ApiError(400, `items do plano ${planIndex} deve ser um array.`);
+    }
+
+    const seenStepIds = new Set<string>();
+    const steps: PlanStep[] = row.items.map((stepEntry, stepIndex) => {
+      if (!stepEntry || typeof stepEntry !== 'object' || Array.isArray(stepEntry)) {
+        throw new ApiError(400, `Passo ${stepIndex} do plano ${planIndex} é inválido.`);
+      }
+      const stepRow = stepEntry as Record<string, unknown>;
+      const stepId = typeof stepRow.id === 'string' ? stepRow.id.trim() : '';
+      const stepTitle = typeof stepRow.title === 'string' ? stepRow.title.trim() : '';
+      if (!stepId) {
+        throw new ApiError(400, `Passo ${stepIndex} do plano ${planIndex} precisa de id.`);
+      }
+      if (seenStepIds.has(stepId)) {
+        throw new ApiError(400, `id duplicado em passos do plano ${planIndex}: ${stepId}`);
+      }
+      seenStepIds.add(stepId);
+
+      if (!stepTitle) {
+        throw new ApiError(400, `Passo ${stepIndex} do plano ${planIndex} precisa de title.`);
+      }
+      if (stepTitle.length > PLAN_STEP_TITLE_MAX) {
+        throw new ApiError(
+          400,
+          `Title do passo ${stepIndex} do plano ${planIndex} excede ${PLAN_STEP_TITLE_MAX} caracteres.`,
+        );
+      }
+
+      const order =
+        typeof stepRow.order === 'number' && Number.isFinite(stepRow.order)
+          ? stepRow.order
+          : stepIndex + 1;
+      const description =
+        typeof stepRow.description === 'string' ? stepRow.description.trim() : '';
+      if (description.length > PLAN_STEP_DESCRIPTION_MAX) {
+        throw new ApiError(
+          400,
+          `Description do passo ${stepIndex} do plano ${planIndex} excede ${PLAN_STEP_DESCRIPTION_MAX} caracteres.`,
+        );
+      }
+
+      const statusRaw = typeof stepRow.status === 'string' ? stepRow.status.trim() : 'todo';
+      if (!PLAN_STEP_STATUSES.includes(statusRaw as PlanStepStatus)) {
+        throw new ApiError(400, `status inválido no passo ${stepIndex} do plano ${planIndex}.`);
+      }
+
+      const specRef = parsePlanSpecRef(stepRow.specRef, stepIndex, planIndex);
+
+      const dependsOn: string[] = [];
+      if (Array.isArray(stepRow.dependsOn)) {
+        for (const dep of stepRow.dependsOn) {
+          if (typeof dep !== 'string' || !dep.trim()) {
+            throw new ApiError(
+              400,
+              `dependsOn do passo ${stepIndex} do plano ${planIndex} deve conter strings.`,
+            );
+          }
+          const normalized = dep.trim();
+          if (!dependsOn.includes(normalized)) dependsOn.push(normalized);
+        }
+      }
+
+      return {
+        id: stepId,
+        order,
+        title: stepTitle,
+        description,
+        specRef,
+        dependsOn,
+        status: statusRaw as PlanStepStatus,
+      };
+    });
+
+    for (const step of steps) {
+      for (const dep of step.dependsOn) {
+        if (!seenStepIds.has(dep)) {
+          throw new ApiError(
+            400,
+            `dependsOn "${dep}" no plano ${planIndex} referencia passo inexistente.`,
+          );
+        }
+      }
+    }
+
+    steps.sort((a, b) => a.order - b.order);
+
+    const normalizedTitle = `${planTitle.code} - ${planTitle.name}`;
+
+    return { id, milestoneId, title: normalizedTitle, source, generatedAt, content, items: steps };
+  });
+
+  return { version: 1, items };
+}
+
+export function getProjectPlans(id: string): ProjectPlansDocument {
+  const filePath = pathForId(id);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new ApiError(404, 'Project not found');
+  }
+
+  const current = readJsonFile(filePath);
+  const body = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== META_KEY),
+  );
+  const items = readEmbeddedPlansFromProject(body);
+  const stat = fs.statSync(filePath);
+
+  return {
+    version: 1,
+    items,
+    updated_at: stat.mtime.toISOString(),
+  };
+}
+
+export function saveProjectPlans(id: string, payload: unknown): ProjectPlansDocument {
+  const filePath = pathForId(id);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new ApiError(404, 'Project not found');
+  }
+
+  const current = readJsonFile(filePath);
+  const body = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== META_KEY),
+  );
+  const milestones = readEmbeddedMilestonesFromProject(body);
+  const milestoneIds = new Set(milestones.map((m) => m.id));
+
+  const document = parseProjectPlansDocument(payload, milestoneIds);
+  const updatedAt = writeEmbeddedPlansToProject(id, document.items);
+
+  return {
+    version: 1,
+    items: document.items,
+    updated_at: updatedAt,
+  };
+}
+
+export function addProjectPlan(id: string, plan: Plan): ProjectPlansDocument {
+  const current = getProjectPlans(id);
+  return saveProjectPlans(id, { version: 1, items: [...current.items, plan] });
+}
+
 export type AcStatus = 'todo' | 'in-progress' | 'blocked' | 'done';
 
 export type SpecChecklistAc = {
@@ -883,13 +1314,23 @@ function checklistProjectCandidates(
   return [...new Set(candidates.filter(Boolean))];
 }
 
-function findChecklistProject(data: RawChecklistFile, candidates: string[]) {
+function findChecklistProject(
+  data: RawChecklistFile,
+  candidates: string[],
+) {
   const projects = Array.isArray(data.projects) ? data.projects : [];
-  const normalized = new Set(candidates.map((id) => id.toLowerCase()));
+  if (projects.length === 0 || candidates.length === 0) return null;
 
-  return (
-    projects.find((project) => normalized.has(project.id.toLowerCase())) ?? null
-  );
+  // Respect candidate priority (spec_project_id first) — do not match the first
+  // checklist project that appears in the set; that breaks when multiple projects
+  // share the same local repo path (e.g. erp-varejo vs analise-credito).
+  for (const candidate of candidates) {
+    const normalized = candidate.toLowerCase();
+    const match = projects.find((project) => project.id.toLowerCase() === normalized);
+    if (match) return match;
+  }
+
+  return null;
 }
 
 function mapChecklistSpecs(
@@ -1195,6 +1636,103 @@ export async function getProjectSpecChecklist(
     specs: [],
     source: null,
   });
+}
+
+export type ProjectFeatureContent = {
+  specId: string;
+  specFile: string;
+  title: string;
+  content: string;
+  updated_at: string | null;
+};
+
+function specsRelativeFilePath(specFile: string): string {
+  const normalized = specFile.trim().replace(/^\//, '');
+  if (normalized.startsWith('.specs/')) {
+    return normalized;
+  }
+  return path.posix.join('.specs', normalized);
+}
+
+export async function getProjectFeatureContent(
+  projectId: string,
+  specId: string,
+): Promise<ProjectFeatureContent | null> {
+  const filePath = pathForId(projectId);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    return null;
+  }
+
+  const checklist = await getProjectSpecChecklist(projectId);
+  if (!checklist) {
+    return null;
+  }
+
+  const spec = checklist.specs.find((item) => item.specId === specId);
+  if (!spec) {
+    throw new ApiError(404, 'Feature not found');
+  }
+
+  const data = readJsonFile(filePath);
+  const meta =
+    data[META_KEY] && typeof data[META_KEY] === 'object' && !Array.isArray(data[META_KEY])
+      ? (data[META_KEY] as Record<string, unknown>)
+      : {};
+
+  const relativeSpecPath = specsRelativeFilePath(spec.specFile);
+  const localPath =
+    typeof meta.local_path === 'string' && meta.local_path.trim()
+      ? meta.local_path.trim()
+      : null;
+
+  if (localPath) {
+    const resolvedRoot = resolveLocalProjectPath(localPath);
+    if (!resolvedRoot) {
+      throw new ApiError(404, 'Spec file not found');
+    }
+    const absolutePath = path.join(resolvedRoot, relativeSpecPath);
+    if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+      throw new ApiError(404, 'Spec file not found');
+    }
+    const content = fs.readFileSync(absolutePath, 'utf-8');
+    return {
+      specId: spec.specId,
+      specFile: spec.specFile,
+      title: spec.title,
+      content,
+      updated_at: fs.statSync(absolutePath).mtime.toISOString(),
+    };
+  }
+
+  const sourceType = resolveSourceType(meta);
+  if (sourceType === 'github') {
+    const repo = meta.github_repo_url;
+    const pat = meta.github_pat;
+    const branch = meta.github_branch;
+    if (!repo || !pat || !branch) {
+      throw new ApiError(404, 'Spec file not found');
+    }
+
+    try {
+      const remote = await fetchGithubTextFile({
+        repoUrl: String(repo),
+        pat: String(pat),
+        branch: String(branch),
+        filePath: relativeSpecPath,
+      });
+      return {
+        specId: spec.specId,
+        specFile: spec.specFile,
+        title: spec.title,
+        content: remote.content,
+        updated_at: null,
+      };
+    } catch {
+      throw new ApiError(404, 'Spec file not found');
+    }
+  }
+
+  throw new ApiError(404, 'Spec file not found');
 }
 
 function expandLocalPath(localPath: string): string {
@@ -1674,4 +2212,104 @@ function renameProjectFile(oldId: string, newId: string): string {
   }
 
   return newPath;
+}
+
+export type ProjectConsumerConnection = {
+  project_id: string;
+  local_path: string;
+  consumer_api_token: string;
+  project_ids: string[];
+};
+
+export function getProjectConsumerConnection(projectId: string): ProjectConsumerConnection | null {
+  const project = getProject(projectId);
+  if (!project?.local_path) {
+    return null;
+  }
+
+  rebuildConsumerTokenRegistry();
+  const token = getConsumerTokenForProject(projectId);
+  if (!token) {
+    return null;
+  }
+
+  const entry = readConsumerTokenIndex()[token];
+  return {
+    project_id: projectId,
+    local_path: project.local_path,
+    consumer_api_token: token,
+    project_ids: entry?.project_ids ?? [projectId],
+  };
+}
+
+/** Assign consumer tokens per local_path; sync index for middleware. */
+export function rebuildConsumerTokenRegistry(): void {
+  const byPath = new Map<string, { token: string; projectIds: string[] }>();
+  const newlyIssued: Array<{ projectId: string; localPath: string; token: string }> = [];
+
+  for (const filePath of listProjectFiles()) {
+    const projectId = path.basename(filePath, '.json');
+    const data = readJsonFile(filePath);
+    const meta =
+      data[META_KEY] && typeof data[META_KEY] === 'object' && !Array.isArray(data[META_KEY])
+        ? { ...(data[META_KEY] as Record<string, unknown>) }
+        : {};
+
+    const rawLocalPath =
+      typeof meta.local_path === 'string' ? meta.local_path.trim() : '';
+    if (!rawLocalPath) {
+      if (meta.consumer_api_token) {
+        delete meta.consumer_api_token;
+        const body = Object.fromEntries(
+          Object.entries(data).filter(([key]) => key !== META_KEY),
+        );
+        overwriteJsonFile(filePath, withMeta(body, meta));
+      }
+      continue;
+    }
+
+    const localPath = normalizeLocalPath(rawLocalPath);
+    const existing = byPath.get(localPath);
+    const hadToken =
+      typeof meta.consumer_api_token === 'string' && meta.consumer_api_token.trim();
+
+    let token = hadToken
+      ? (meta.consumer_api_token as string).trim()
+      : existing?.token ?? generateConsumerToken();
+
+    if (!hadToken) {
+      newlyIssued.push({ projectId, localPath: rawLocalPath, token });
+    }
+
+    if (!meta.consumer_api_token || meta.consumer_api_token !== token) {
+      meta.consumer_api_token = token;
+      const body = Object.fromEntries(
+        Object.entries(data).filter(([key]) => key !== META_KEY),
+      );
+      overwriteJsonFile(filePath, withMeta(body, meta));
+    }
+
+    if (existing) {
+      if (!existing.projectIds.includes(projectId)) {
+        existing.projectIds.push(projectId);
+      }
+    } else {
+      byPath.set(localPath, { token, projectIds: [projectId] });
+    }
+  }
+
+  const index: Record<string, { local_path: string; project_ids: string[] }> = {};
+  for (const [localPath, { token, projectIds }] of byPath.entries()) {
+    index[token] = {
+      local_path: localPath,
+      project_ids: [...new Set(projectIds)].sort(),
+    };
+  }
+
+  writeConsumerTokenIndex(index);
+  syncConsumerTokensToEnv();
+
+  for (const item of newlyIssued) {
+    logConsumerTokenBanner(item.projectId, item.localPath, item.token);
+  }
 }
