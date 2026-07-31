@@ -15,6 +15,7 @@ import {
   writePinnedPromptIds,
 } from '@/app/lib/pinned-prompts';
 import {
+  DEFAULT_SORT,
   SORT_OPTIONS,
   TABS,
   tabHref,
@@ -27,6 +28,7 @@ import {
   type SortId,
   type TabId,
 } from './data';
+import { latestCheckpointSortKey } from '@/app/lib/checkpoints';
 
 function IconSend() {
   return (
@@ -134,10 +136,16 @@ function ProjectCard({
   onAiUpdated?: (projectId: string, ai: string) => void;
 }) {
   const githubHref = resolveGithubHref(project);
-  const githubBranch =
+  const repoBranch =
     project.sourceType === 'github' && githubHref
       ? project.githubBranch?.trim() || 'main'
-      : null;
+      : project.sourceType === 'local_repo'
+        ? project.localRepoBranch?.trim() || 'main'
+        : null;
+  const repoLabel =
+    repoBranch && project.repo !== '—'
+      ? `${project.repo}:${repoBranch}`
+      : project.repo;
 
   const repoMutedStyle = {
     fontFamily: 'var(--font-body)',
@@ -176,24 +184,13 @@ function ProjectCard({
             className="mt-[3px] block text-[13px] italic transition-colors hover:text-[var(--color-accent)]"
             style={repoMutedStyle}
           >
-            {project.repo}
+            {repoLabel}
           </a>
         ) : (
           <p className="mt-[3px] text-[13px] italic" style={repoMutedStyle}>
-            {project.repo}
+            {repoLabel}
           </p>
         )}
-        {githubBranch ? (
-          <p
-            className="mt-0.5 text-[12px] not-italic"
-            style={{
-              fontFamily: 'var(--font-body)',
-              color: 'color-mix(in srgb, var(--color-text) 42%, transparent)',
-            }}
-          >
-            {githubBranch}
-          </p>
-        ) : null}
       </header>
 
       <ProjectAiSummary
@@ -524,11 +521,17 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
       list = list.filter((p) => selectedClients.includes(p.client));
     }
 
-    if (sortBy === 'idle') {
+    const activeSort = sortBy ?? DEFAULT_SORT;
+
+    if (activeSort === 'checkpoint') {
+      list.sort(
+        (a, b) => latestCheckpointSortKey(b.checkpoints) - latestCheckpointSortKey(a.checkpoints),
+      );
+    } else if (activeSort === 'idle') {
       list.sort((a, b) => b.lastInteractionDays - a.lastInteractionDays);
-    } else if (sortBy === 'demands') {
+    } else if (activeSort === 'demands') {
       list.sort((a, b) => b.openDemands - a.openDemands);
-    } else if (sortBy === 'recent') {
+    } else if (activeSort === 'recent') {
       list.sort((a, b) => a.lastInteractionDays - b.lastInteractionDays);
     }
 
@@ -967,7 +970,7 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
               {sortOpen && (
                 <div className="anim-fade-in flex flex-wrap justify-end gap-2">
                   {SORT_OPTIONS.map((opt) => {
-                    const active = (sortBy ?? 'idle') === opt.id;
+                    const active = (sortBy ?? DEFAULT_SORT) === opt.id;
                     return (
                       <button
                         key={opt.id}
