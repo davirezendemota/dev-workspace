@@ -100,6 +100,41 @@ export function formatCheckpointDate(value: string): string {
   return trimmed;
 }
 
+/** Parses a checkpoint date for sorting (later = larger). Invalid/empty → -Infinity. */
+export function checkpointSortKey(date: string): number {
+  const trimmed = date.trim();
+  if (!trimmed || trimmed === '—') return Number.NEGATIVE_INFINITY;
+
+  const iso = Date.parse(trimmed);
+  if (!Number.isNaN(iso)) return iso;
+
+  const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (match) {
+    const day = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const yearRaw = match[3];
+    const year = yearRaw
+      ? yearRaw.length === 2
+        ? 2000 + Number(yearRaw)
+        : Number(yearRaw)
+      : new Date().getFullYear();
+    return new Date(year, month, day).getTime();
+  }
+
+  return Number.NEGATIVE_INFINITY;
+}
+
+/** Returns the sort key of the most recent checkpoint in a newest-first list. */
+export function latestCheckpointSortKey(checkpoints: Checkpoint[]): number {
+  if (checkpoints.length === 0) return Number.NEGATIVE_INFINITY;
+
+  const resolvedDates = resolveCheckpointDatesForTimeline(checkpoints);
+  return resolvedDates.reduce(
+    (max, date) => Math.max(max, checkpointSortKey(date)),
+    Number.NEGATIVE_INFINITY,
+  );
+}
+
 /** Normalizes a checkpoint date to a day key for grouping timeline entries. */
 export function checkpointDayKey(date: string): string {
   const trimmed = date.trim();
