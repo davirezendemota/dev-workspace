@@ -1,6 +1,6 @@
 # 009 Projects · Modal settings
 
-> **Última atualização:** 2026-07-25
+> **Última atualização:** 2026-07-30
 
 ---
 
@@ -21,7 +21,7 @@ incluindo tipo de origem, ID do arquivo, `spec_project_id` e caminhos GitHub/loc
 - Aba **Settings** em `ProjectDetailModal`
 - Formulário `ProjectSettingsPanel` com tipo Manual / Manual·repo / GitHub
 - Campos: ID do projeto (slug do arquivo), `spec_project_id`, `spec_checklist_path`
-- Campos condicionais: `local_path` (local_repo), credenciais GitHub (github)
+- Campos condicionais: `local_path` e `local_repo_branch` (local_repo), credenciais GitHub (github)
 - `PUT /api/projects/{id}` aceita `source_type`, `new_id`, `spec_project_id` e campos de origem
 - Renomear arquivo JSON ao alterar ID do projeto
 - PAT GitHub opcional na edição quando já configurado
@@ -38,7 +38,7 @@ incluindo tipo de origem, ID do arquivo, `spec_project_id` e caminhos GitHub/loc
 - **RF2:** Usuário altera `source_type` entre local, local_repo e github.
 - **RF3:** Usuário edita ID do projeto (renomeia o arquivo na pasta de projetos).
 - **RF4:** Usuário edita `spec_project_id` e `spec_checklist_path`.
-- **RF5:** Para local_repo, usuário edita `local_path`.
+- **RF5:** Para local_repo, usuário edita `local_path` e `local_repo_branch` (branch das specs, padrão `main`).
 - **RF6:** Para github, usuário edita repo, branch e PAT (opcional se já existir).
 - **RF7:** Salvar persiste `_meta` e atualiza lista de cards.
 
@@ -56,7 +56,7 @@ incluindo tipo de origem, ID do arquivo, `spec_project_id` e caminhos GitHub/loc
 ## 6. Critérios de aceite
 
 - **AC1:** Dado o modal de projeto aberto, quando o usuário seleciona a aba Settings, então o formulário de metadados é exibido.
-- **AC2:** Dado um projeto local_repo, quando o usuário altera `local_path` e salva, então o valor persiste em `_meta.local_path`.
+- **AC2:** Dado um projeto local_repo, quando o usuário altera `local_path` e/ou `local_repo_branch` e salva, então os valores persistem em `_meta.local_path` e `_meta.local_repo_branch`.
 - **AC3:** Dado um projeto, quando o usuário altera `spec_project_id` e salva, então o valor persiste em `_meta.spec_project_id`.
 - **AC4:** Dado um projeto, quando o usuário troca o tipo para GitHub com credenciais válidas e salva, então `_meta.source_type` é `github` e campos GitHub são gravados.
 - **AC5:** Dado um projeto, quando o usuário altera o ID do projeto e salva, então o arquivo JSON é renomeado e o card usa o novo id.

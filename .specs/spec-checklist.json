@@ -1,7 +1,7 @@
 {
   "$schema": "./spec-checklist.schema.json",
   "version": 1,
-  "updatedAt": "2026-07-30",
+  "updatedAt": "2026-07-30T22:00:00-03:00",
   "projects": [
     {
       "id": "workspace",
@@ -495,7 +495,7 @@
             },
             {
               "ac": "AC4",
-              "description": "Checklist lido do repositório local via local_path",
+              "description": "Checklist lido do repositório local via local_path e local_repo_branch",
               "status": "done",
               "issues": [],
               "prs": [],
@@ -667,7 +667,7 @@
             },
             {
               "ac": "AC2",
-              "description": "Edição de local_path persiste em _meta",
+              "description": "Edição de local_path e local_repo_branch persiste em _meta",
               "status": "done",
               "after": [
                 "AC1"
@@ -1036,6 +1036,51 @@
               "issues": [],
               "prs": [],
               "completedCommit": "fbe3939e8d3b45da7ad4e32fb3013790b1965a66"
+            }
+          ]
+        },
+        {
+          "specId": "015",
+          "specFile": "features/015-projects_local-repo-branch.md",
+          "title": "Branch de specs em repositório local",
+          "after": [
+            "003"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Spec-checklist e features lidos da branch local_repo_branch",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "0527c6ff23d6fff75262a1575ce99dec8519a62f"
+            },
+            {
+              "ac": "AC2",
+              "description": "Card exibe subtítulo repo:branch (local_repo e GitHub)",
+              "status": "done",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "3f6c1af918945d9fc4d71f483fbcf5aa493ecfaf"
+            },
+            {
+              "ac": "AC3",
+              "description": "Branch padrão main quando não informada",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "0527c6ff23d6fff75262a1575ce99dec8519a62f"
+            },
+            {
+              "ac": "AC4",
+              "description": "Campo de branch em criação e settings de local_repo",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "256d9ee36a788e07a2bbdd61a85fe65b49893ec5"
             }
           ]
         }

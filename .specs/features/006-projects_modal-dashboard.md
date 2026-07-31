@@ -1,6 +1,6 @@
 # 006 Projects · Modal dashboard
 
-> **Última atualização:** 2026-07-25
+> **Última atualização:** 2026-07-30
 
 ---
 
@@ -27,8 +27,8 @@ repositório local ou GitHub vinculado ao projeto.
 - Busca por AC, descrição, status, hash ou data de conclusão
 - API `GET /api/projects/{id}/spec-checklist`
 - Leitura do checklist a partir de:
-  - repositório local (`_meta.local_path`) → arquivo em disco
-  - projeto GitHub (`_meta` com PAT) → fetch remoto
+  - repositório local (`_meta.local_path`) → arquivo via `git show` na `_meta.local_repo_branch` (default `main`), com fallback ao working tree
+  - projeto GitHub (`_meta` com PAT) → fetch remoto na `github_branch`
 - Resolução do bloco `projects[]` no JSON por candidatos de id
   (`spec_project_id`, slug do projeto, nome, basename do `local_path`)
 - Override de caminho via `_meta.spec_checklist_path` (default: `.specs/spec-checklist.json`)
@@ -48,12 +48,12 @@ repositório local ou GitHub vinculado ao projeto.
 ## 4. Requisitos
 
 ### Funcionais
-- **RF1:** Botão expandir no card abre modal com nome e repo do projeto.
+- **RF1:** Botão expandir no card abre modal com nome e repo do projeto (subtítulo `repo:branch` quando aplicável).
 - **RF2:** Aba Spec checklist carrega `GET /api/projects/{id}/spec-checklist` ao abrir.
 - **RF3:** Exibir cards de estatística: total, concluídos, em progresso, bloqueados, pendentes.
 - **RF4:** Listar specs com `specId`, título, `specFile` e tabela de ACs.
 - **RF5:** Cada AC exibe id, descrição, badge de status, data de conclusão e issues/PRs quando presentes.
-- **RF6:** Para projeto com `local_path`, ler checklist do filesystem do repo local.
+- **RF6:** Para projeto com `local_path`, ler checklist da branch `_meta.local_repo_branch` via git (fallback: working tree).
 - **RF7:** Para projeto GitHub, buscar checklist via Contents API com credenciais em `_meta`.
 - **RF8:** Resolver entrada em `projects[]` usando `spec_project_id` ou heurísticas de slug.
 - **RF9:** Estado vazio orienta a adicionar `.specs/spec-checklist.json` e configurar `local_path` ou `spec_project_id`.
