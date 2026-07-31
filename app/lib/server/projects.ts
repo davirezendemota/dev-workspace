@@ -3,7 +3,12 @@ import fs from 'fs';
 import path from 'path';
 
 import { ApiError } from './api-error';
-import { normalizeCheckpoints, serializeCheckpoints, type Checkpoint } from '@/app/lib/checkpoints';
+import {
+  latestCheckpointSortKey,
+  normalizeCheckpoints,
+  serializeCheckpoints,
+  type Checkpoint,
+} from '@/app/lib/checkpoints';
 import {
   normalizeMilestones,
   serializeMilestones,
@@ -52,6 +57,8 @@ export type ProjectResponse = {
   github_file_path: string | null;
   local_path: string | null;
   local_path_relative: string | null;
+  local_repo_branch: string | null;
+  local_repo_checked_out_branch: string | null;
   spec_project_id: string | null;
   spec_checklist_path: string | null;
   tasks_path: string | null;
@@ -65,6 +72,7 @@ export type ProjectCreateInput = {
   source_type: ProjectSourceType;
   json_content?: string | Record<string, unknown> | null;
   local_path?: string | null;
+  local_repo_branch?: string | null;
   spec_project_id?: string | null;
   spec_checklist_path?: string | null;
   github_repo_url?: string | null;
@@ -79,6 +87,7 @@ export type ProjectUpdateInput = {
   source_type?: ProjectSourceType;
   new_id?: string | null;
   local_path?: string | null;
+  local_repo_branch?: string | null;
   spec_project_id?: string | null;
   spec_checklist_path?: string | null;
   tasks_path?: string | null;
@@ -90,13 +99,31 @@ export type ProjectUpdateInput = {
 
 export function listProjects(skip = 0, limit = 100) {
   const files = listProjectFiles();
-  const items = files.map((filePath) => fileToResponse(filePath));
+  const items = files
+    .map((filePath) => fileToResponse(filePath))
+    .sort((a, b) => compareProjectsByLatestCheckpoint(a, b));
   return {
     items: items.slice(skip, skip + limit),
     total: items.length,
     skip,
     limit,
   };
+}
+
+function compareProjectsByLatestCheckpoint(
+  a: ProjectResponse,
+  b: ProjectResponse,
+): number {
+  const keyA = latestCheckpointSortKeyFromJson(a.json_data);
+  const keyB = latestCheckpointSortKeyFromJson(b.json_data);
+  if (keyB !== keyA) return keyB - keyA;
+  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+}
+
+function latestCheckpointSortKeyFromJson(json: Record<string, unknown>): number {
+  const topDate = typeof json.topDate === 'string' ? json.topDate : undefined;
+  const checkpoints = normalizeCheckpoints(json.checkpoints, topDate);
+  return latestCheckpointSortKey(checkpoints);
 }
 
 export function getProject(id: string): ProjectResponse | null {
@@ -124,12 +151,19 @@ export async function createProject(
 
   if (data.source_type === 'local_repo') {
     const localPath = requireLocalPath(data.local_path);
+    const localRepoBranch = resolveLocalRepoBranchInput(data.local_repo_branch);
+    const resolvedRoot = resolveLocalProjectPath(localPath);
+    if (resolvedRoot) {
+      assertGitBranchExists(resolvedRoot, localRepoBranch);
+    }
+
     const jsonData = parseJsonContent(data.json_content);
     const name = requireNameFromJson(jsonData);
     const body = stripRepoFields(jsonData);
     const payload = withMeta(body, {
       source_type: 'local_repo',
       local_path: localPath,
+      local_repo_branch: localRepoBranch,
     });
     const filePath = writeProjectFile(name, payload);
     rebuildConsumerTokenRegistry();
@@ -1239,6 +1273,130 @@ export type ProjectSpecChecklistResponse = {
 };
 
 const DEFAULT_CHECKLIST_PATH = '.specs/spec-checklist.json';
+const DEFAULT_LOCAL_REPO_BRANCH = 'main';
+
+function resolveLocalRepoBranchInput(value: string | null | undefined): string {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+  return DEFAULT_LOCAL_REPO_BRANCH;
+}
+
+function resolveLocalRepoBranch(meta: Record<string, unknown>): string {
+  return resolveLocalRepoBranchInput(
+    typeof meta.local_repo_branch === 'string' ? meta.local_repo_branch : null,
+  );
+}
+
+function getGitCurrentBranch(repositoryRoot: string): string | null {
+  try {
+    const branch = execFileSync(
+      'git',
+      ['rev-parse', '--abbrev-ref', 'HEAD'],
+      {
+        cwd: repositoryRoot,
+        encoding: 'utf-8',
+        timeout: 5_000,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    ).trim();
+    return branch && branch !== 'HEAD' ? branch : null;
+  } catch {
+    return null;
+  }
+}
+
+function gitBranchExists(repositoryRoot: string, branch: string): boolean {
+  try {
+    execFileSync(
+      'git',
+      ['rev-parse', '--verify', `${branch}^{commit}`],
+      {
+        cwd: repositoryRoot,
+        encoding: 'utf-8',
+        timeout: 5_000,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function assertGitBranchExists(repositoryRoot: string, branch: string): void {
+  if (!gitBranchExists(repositoryRoot, branch)) {
+    throw new ApiError(
+      400,
+      `Branch "${branch}" não encontrada no repositório local.`,
+    );
+  }
+}
+
+function readGitFileAtRef(
+  repositoryRoot: string,
+  ref: string,
+  relativePath: string,
+): string | null {
+  const normalized = relativePath.trim().replace(/^\//, '');
+  if (!normalized) return null;
+
+  try {
+    return execFileSync(
+      'git',
+      ['show', `${ref.trim()}:${normalized}`],
+      {
+        cwd: repositoryRoot,
+        encoding: 'utf-8',
+        timeout: 5_000,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    );
+  } catch {
+    return null;
+  }
+}
+
+function getGitFileCommitDate(
+  repositoryRoot: string,
+  ref: string,
+  relativePath: string,
+): string | null {
+  const normalized = relativePath.trim().replace(/^\//, '');
+  if (!normalized) return null;
+
+  try {
+    const committedAt = execFileSync(
+      'git',
+      ['log', '-1', '--format=%cI', ref.trim(), '--', normalized],
+      {
+        cwd: repositoryRoot,
+        encoding: 'utf-8',
+        timeout: 5_000,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    ).trim();
+    return committedAt && !Number.isNaN(Date.parse(committedAt)) ? committedAt : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveLocalRepoCheckedOutBranch(
+  meta: Record<string, unknown>,
+  sourceType: ProjectSourceType,
+): string | null {
+  if (sourceType !== 'local_repo') return null;
+
+  const localPath =
+    typeof meta.local_path === 'string' ? meta.local_path.trim() : '';
+  if (!localPath) return null;
+
+  const resolvedRoot = resolveLocalProjectPath(localPath);
+  if (!resolvedRoot) return null;
+
+  return getGitCurrentBranch(resolvedRoot);
+}
 
 type RawChecklistFile = {
   updatedAt?: string;
@@ -1473,7 +1631,33 @@ function readLocalSpecChecklist(
   resolvedRoot: string,
   checklistPath: string,
   candidates: string[],
+  specsBranch?: string,
 ): ProjectSpecChecklistResponse {
+  const branch = specsBranch?.trim() || DEFAULT_LOCAL_REPO_BRANCH;
+  const gitRaw = readGitFileAtRef(resolvedRoot, branch, checklistPath);
+
+  if (gitRaw !== null) {
+    const parsed = parseChecklistFile(gitRaw);
+    const match = parsed ? findChecklistProject(parsed, candidates) : null;
+    const specs = resolveLocalCompletionDates(
+      mapChecklistSpecs(match?.specs),
+      resolvedRoot,
+    );
+
+    return buildChecklistResponse({
+      checklistPath,
+      updatedAt: getGitFileCommitDate(resolvedRoot, branch, checklistPath),
+      globalUpdatedAt:
+        parsed && typeof parsed.updatedAt === 'string' && parsed.updatedAt.trim()
+          ? parsed.updatedAt.trim()
+          : null,
+      projectId: match?.id ?? null,
+      projectName: match?.name ?? null,
+      specs,
+      source: 'local',
+    });
+  }
+
   const checklistFile = path.join(resolvedRoot, checklistPath);
   if (!fs.existsSync(checklistFile) || !fs.statSync(checklistFile).isFile()) {
     return buildChecklistResponse({
@@ -1565,7 +1749,12 @@ export async function getProjectSpecChecklist(
         source: 'local',
       });
     }
-    return readLocalSpecChecklist(resolvedRoot, checklistPath, candidates);
+    return readLocalSpecChecklist(
+      resolvedRoot,
+      checklistPath,
+      candidates,
+      resolveLocalRepoBranch(meta),
+    );
   }
 
   const sourceType = resolveSourceType(meta);
@@ -1690,6 +1879,18 @@ export async function getProjectFeatureContent(
     if (!resolvedRoot) {
       throw new ApiError(404, 'Spec file not found');
     }
+    const specsBranch = resolveLocalRepoBranch(meta);
+    const gitContent = readGitFileAtRef(resolvedRoot, specsBranch, relativeSpecPath);
+    if (gitContent !== null) {
+      return {
+        specId: spec.specId,
+        specFile: spec.specFile,
+        title: spec.title,
+        content: gitContent,
+        updated_at: getGitFileCommitDate(resolvedRoot, specsBranch, relativeSpecPath),
+      };
+    }
+
     const absolutePath = path.join(resolvedRoot, relativeSpecPath);
     if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
       throw new ApiError(404, 'Spec file not found');
@@ -1963,6 +2164,9 @@ function fileToResponse(filePath: string): ProjectResponse {
     local_path_relative: toRelativeLocalProjectPath(
       (meta.local_path as string | undefined) ?? null,
     ),
+    local_repo_branch:
+      sourceType === 'local_repo' ? resolveLocalRepoBranch(meta) : null,
+    local_repo_checked_out_branch: resolveLocalRepoCheckedOutBranch(meta, sourceType),
     spec_project_id: (meta.spec_project_id as string | undefined) ?? null,
     spec_checklist_path:
       typeof meta.spec_checklist_path === 'string' && meta.spec_checklist_path.trim()
@@ -2084,6 +2288,7 @@ function applyProjectMetaUpdates(
     meta.source_type = data.source_type;
     if (data.source_type === 'local') {
       delete meta.local_path;
+      delete meta.local_repo_branch;
       delete meta.github_repo_url;
       delete meta.github_pat;
       delete meta.github_branch;
@@ -2096,8 +2301,12 @@ function applyProjectMetaUpdates(
       delete meta.github_branch;
       delete meta.github_file_path;
       delete meta.last_synced_at;
+      if (typeof meta.local_repo_branch !== 'string' || !meta.local_repo_branch.trim()) {
+        meta.local_repo_branch = DEFAULT_LOCAL_REPO_BRANCH;
+      }
     } else if (data.source_type === 'github') {
       delete meta.local_path;
+      delete meta.local_repo_branch;
     }
   }
 
@@ -2130,6 +2339,7 @@ function applyProjectMetaUpdates(
 
   for (const key of [
     'local_path',
+    'local_repo_branch',
     'github_repo_url',
     'github_pat',
     'github_branch',
@@ -2151,6 +2361,12 @@ function applyProjectMetaUpdates(
       throw new ApiError(400, 'Informe o caminho local do repositório.');
     }
     meta.local_path = localPath;
+    meta.local_repo_branch = resolveLocalRepoBranch(meta);
+
+    const resolvedRoot = resolveLocalProjectPath(localPath);
+    if (resolvedRoot) {
+      assertGitBranchExists(resolvedRoot, meta.local_repo_branch as string);
+    }
   }
 
   if (sourceType === 'github') {

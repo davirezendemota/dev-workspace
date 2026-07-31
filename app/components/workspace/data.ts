@@ -28,6 +28,8 @@ export type Project = {
   githubFilePath?: string | null;
   localFilePath?: string | null;
   localRepoPath?: string | null;
+  localRepoBranch?: string | null;
+  localRepoCheckedOutBranch?: string | null;
   specProjectId?: string | null;
   specChecklistPath?: string | null;
   tasksPath?: string | null;
@@ -56,6 +58,8 @@ export function mapApiProjectToCard(api: {
   local_file_path?: string | null;
   local_path?: string | null;
   local_path_relative?: string | null;
+  local_repo_branch?: string | null;
+  local_repo_checked_out_branch?: string | null;
   github_repo_url?: string | null;
   github_branch?: string | null;
   github_file_path?: string | null;
@@ -106,6 +110,8 @@ export function mapApiProjectToCard(api: {
     githubFilePath: api.github_file_path ?? null,
     localFilePath: api.local_file_path ?? null,
     localRepoPath: api.local_path ?? null,
+    localRepoBranch: api.local_repo_branch ?? null,
+    localRepoCheckedOutBranch: api.local_repo_checked_out_branch ?? null,
     specProjectId: api.spec_project_id ?? null,
     specChecklistPath: api.spec_checklist_path ?? null,
     tasksPath: api.tasks_path ?? null,
@@ -129,12 +135,15 @@ export function tabHref(tabId: TabId): string {
 export const CLIENTS = ['Acme', 'Globex', 'Umbrella', 'Initech'] as const;
 
 export const SORT_OPTIONS = [
+  { id: 'checkpoint', label: 'Checkpoint mais recente' },
   { id: 'idle', label: 'Mais tempo sem interação' },
   { id: 'demands', label: 'Mais demandas' },
   { id: 'recent', label: 'Recentes' },
 ] as const;
 
 export type SortId = (typeof SORT_OPTIONS)[number]['id'];
+
+export const DEFAULT_SORT: SortId = 'checkpoint';
 
 export type Agent = {
   id: string;
