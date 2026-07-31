@@ -42,10 +42,11 @@ export default function ProjectSettingsPanel({
     project.specChecklistPath ?? '.specs/spec-checklist.json',
   );
   const [localPath, setLocalPath] = useState(project.localRepoPath ?? '');
+  const [localRepoBranch, setLocalRepoBranch] = useState(project.localRepoBranch ?? 'main');
   const [repoUrl, setRepoUrl] = useState(project.githubRepoUrl ?? '');
   const [pat, setPat] = useState('');
   const [hasGithubPat, setHasGithubPat] = useState(project.hasGithubPat ?? false);
-  const [branch, setBranch] = useState(project.githubBranch ?? 'main');
+  const [githubBranch, setGithubBranch] = useState(project.githubBranch ?? 'main');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,10 +57,11 @@ export default function ProjectSettingsPanel({
     setSpecProjectId(project.specProjectId ?? '');
     setSpecChecklistPath(project.specChecklistPath ?? '.specs/spec-checklist.json');
     setLocalPath(project.localRepoPath ?? '');
+    setLocalRepoBranch(project.localRepoBranch ?? 'main');
     setRepoUrl(project.githubRepoUrl ?? '');
     setPat('');
     setHasGithubPat(project.hasGithubPat ?? false);
-    setBranch(project.githubBranch ?? 'main');
+    setGithubBranch(project.githubBranch ?? 'main');
     setError(null);
   }, [project]);
 
@@ -72,13 +74,19 @@ export default function ProjectSettingsPanel({
       return;
     }
 
-    if (source === 'local_repo' && !localPath.trim()) {
-      setError('Informe o caminho local do repositório.');
-      return;
+    if (source === 'local_repo') {
+      if (!localPath.trim()) {
+        setError('Informe o caminho local do repositório.');
+        return;
+      }
+      if (!localRepoBranch.trim()) {
+        setError('Informe a branch das specs.');
+        return;
+      }
     }
 
     if (source === 'github') {
-      if (!repoUrl.trim() || !branch.trim()) {
+      if (!repoUrl.trim() || !githubBranch.trim()) {
         setError('Preencha link do repo e branch.');
         return;
       }
@@ -97,11 +105,12 @@ export default function ProjectSettingsPanel({
 
     if (source === 'local_repo') {
       payload.local_path = localPath.trim();
+      payload.local_repo_branch = localRepoBranch.trim();
     }
 
     if (source === 'github') {
       payload.github_repo_url = repoUrl.trim();
-      payload.github_branch = branch.trim();
+      payload.github_branch = githubBranch.trim();
       if (pat.trim()) {
         payload.github_pat = pat.trim();
       }
@@ -323,6 +332,37 @@ export default function ProjectSettingsPanel({
               required
             />
           </Field>
+
+          <Field
+            label="Branch das specs"
+            htmlFor="ps-local-repo-branch"
+            hint="Branch de onde ler .specs/ (padrão: main). O checkout atual pode ser outro."
+          >
+            <input
+              id="ps-local-repo-branch"
+              className="input"
+              value={localRepoBranch}
+              onChange={(e) => setLocalRepoBranch(e.target.value)}
+              placeholder="main"
+              disabled={busy}
+              required
+            />
+          </Field>
+
+          {project.localRepoCheckedOutBranch ? (
+            <p
+              className="text-[12px] italic"
+              style={{
+                fontFamily: 'var(--font-body)',
+                color: 'color-mix(in srgb, var(--color-text) 48%, transparent)',
+              }}
+            >
+              Checkout atual no disco:{' '}
+              <span className="not-italic text-[var(--color-text)]">
+                {project.localRepoCheckedOutBranch}
+              </span>
+            </p>
+          ) : null}
         </section>
       ) : null}
 
@@ -378,8 +418,8 @@ export default function ProjectSettingsPanel({
               <input
                 id="ps-gh-branch"
                 className="input"
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
+                value={githubBranch}
+                onChange={(e) => setGithubBranch(e.target.value)}
                 placeholder="main"
                 disabled={busy}
                 required

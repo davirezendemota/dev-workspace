@@ -9,6 +9,7 @@ export type CreateProjectPayload = {
   source_type: ProjectSource;
   json_content?: Record<string, unknown>;
   local_path?: string;
+  local_repo_branch?: string;
   spec_project_id?: string;
   spec_checklist_path?: string;
   github_repo_url?: string;
@@ -24,6 +25,8 @@ export type ProjectApiResponse = {
   local_file_path: string | null;
   local_path: string | null;
   local_path_relative: string | null;
+  local_repo_branch: string | null;
+  local_repo_checked_out_branch: string | null;
   github_repo_url: string | null;
   github_branch: string | null;
   github_file_path: string | null;
@@ -85,6 +88,7 @@ export default function AddProjectModal({
 
   const [manual, setManual] = useState<ManualForm>(EMPTY_MANUAL);
   const [localPath, setLocalPath] = useState('');
+  const [localRepoBranch, setLocalRepoBranch] = useState('main');
 
   const [repoUrl, setRepoUrl] = useState('');
   const [pat, setPat] = useState('');
@@ -114,6 +118,7 @@ export default function AddProjectModal({
     setSource('local');
     setManual(EMPTY_MANUAL);
     setLocalPath('');
+    setLocalRepoBranch('main');
     setRepoUrl('');
     setPat('');
     setBranch('main');
@@ -167,10 +172,15 @@ export default function AddProjectModal({
         setError('Informe o caminho local do repositório.');
         return;
       }
+      if (!localRepoBranch.trim()) {
+        setError('Informe a branch das specs.');
+        return;
+      }
       payload = {
         source_type: 'local_repo',
         json_content,
         local_path: localPath.trim(),
+        local_repo_branch: localRepoBranch.trim(),
       };
     } else {
       const json_content = buildManualJson();
@@ -460,21 +470,38 @@ export default function AddProjectModal({
                 </Field>
 
                 {source === 'local_repo' ? (
-                  <Field
-                    label="Caminho local do repositório"
-                    htmlFor="p-local-path"
-                    hint="Pasta no disco onde o código do projeto está."
-                  >
-                    <input
-                      id="p-local-path"
-                      className="input"
-                      value={localPath}
-                      onChange={(e) => setLocalPath(e.target.value)}
-                      placeholder="/Users/voce/workspace/meu-projeto"
-                      disabled={submitting}
-                      required
-                    />
-                  </Field>
+                  <>
+                    <Field
+                      label="Caminho local do repositório"
+                      htmlFor="p-local-path"
+                      hint="Pasta no disco onde o código do projeto está."
+                    >
+                      <input
+                        id="p-local-path"
+                        className="input"
+                        value={localPath}
+                        onChange={(e) => setLocalPath(e.target.value)}
+                        placeholder="/Users/voce/workspace/meu-projeto"
+                        disabled={submitting}
+                        required
+                      />
+                    </Field>
+                    <Field
+                      label="Branch das specs"
+                      htmlFor="p-local-repo-branch"
+                      hint="Branch de onde ler .specs/ (padrão: main). O checkout atual pode ser outro."
+                    >
+                      <input
+                        id="p-local-repo-branch"
+                        className="input"
+                        value={localRepoBranch}
+                        onChange={(e) => setLocalRepoBranch(e.target.value)}
+                        placeholder="main"
+                        disabled={submitting}
+                        required
+                      />
+                    </Field>
+                  </>
                 ) : null}
               </div>
             )}
