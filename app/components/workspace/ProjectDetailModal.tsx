@@ -34,6 +34,27 @@ type TabDef = {
   label: string;
 };
 
+function IconRefresh({ spinning }: { spinning?: boolean }) {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={cn('shrink-0', spinning && 'animate-spin')}
+    >
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  );
+}
+
 function TabIcon({ id }: { id: TabId }) {
   const props = {
     width: 15,
@@ -111,6 +132,8 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
   const titleId = useId();
   const [activeTab, setActiveTab] = useState<TabId>('graph');
   const [tasksRefreshKey, setTasksRefreshKey] = useState(0);
+  const [dataRefreshKey, setDataRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [milestoneDraft, setMilestoneDraft] = useState<MilestoneDraft | null>(null);
   const [featuresSpecId, setFeaturesSpecId] = useState<string | null>(null);
 
@@ -150,13 +173,33 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
     setActiveTab('milestones');
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    if (refreshing || !project) return;
+
+    setRefreshing(true);
+    try {
+      const response = await fetch(`/api/projects/${project.id}`, { cache: 'no-store' });
+      if (!response.ok) return;
+
+      const data: ProjectApiResponse = await response.json();
+      onUpdated?.(data);
+      setDataRefreshKey((key) => key + 1);
+      setTasksRefreshKey((key) => key + 1);
+    } catch {
+      /* keep current data */
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onUpdated, project, refreshing]);
+
   useEffect(() => {
     if (!project) return;
     setActiveTab('graph');
     setTasksRefreshKey((key) => key + 1);
+    setDataRefreshKey((key) => key + 1);
     setMilestoneDraft(null);
     setFeaturesSpecId(null);
-  }, [project]);
+  }, [project?.id]);
 
   useEffect(() => {
     if (!project) return;
@@ -208,14 +251,26 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
               {project.specProjectId ?? project.id}
             </span>
           </div>
-          <button
-            type="button"
-            className="btn flex-none"
-            onClick={onClose}
-            aria-label="Fechar"
-          >
-            ✕
-          </button>
+          <div className="flex flex-none items-center gap-1">
+            <button
+              type="button"
+              className="btn flex-none"
+              onClick={() => void handleRefresh()}
+              disabled={refreshing}
+              aria-label="Atualizar projeto"
+              title="Atualizar projeto"
+            >
+              <IconRefresh spinning={refreshing} />
+            </button>
+            <button
+              type="button"
+              className="btn flex-none"
+              onClick={onClose}
+              aria-label="Fechar"
+            >
+              ✕
+            </button>
+          </div>
         </header>
 
         <nav
@@ -255,12 +310,12 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
           )}
         >
           {activeTab === 'graph' ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div key={dataRefreshKey} className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <ProjectSpecGraph project={project} onOpenSpec={handleOpenSpecFromGraph} />
             </div>
           ) : null}
           {activeTab === 'features' ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div key={dataRefreshKey} className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <ProjectFeatures
                 project={project}
                 initialSpecId={featuresSpecId}
@@ -270,26 +325,33 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
           ) : null}
           {activeTab === 'milestones' ? (
             <ProjectMilestones
+              key={dataRefreshKey}
               project={project}
               draft={milestoneDraft}
               onDraftConsumed={consumeMilestoneDraft}
             />
           ) : null}
-          {activeTab === 'plans' ? <ProjectPlans project={project} /> : null}
+          {activeTab === 'plans' ? <ProjectPlans key={dataRefreshKey} project={project} /> : null}
           {activeTab === 'checkpoints' ? (
             <ProjectCheckpoints
+              key={dataRefreshKey}
               project={project}
               onUpdated={(updated) => onUpdated?.(updated)}
               onPlanMilestone={handlePlanMilestone}
             />
           ) : null}
           {mountTasks ? (
-            <div className={activeTab === 'tasks' ? undefined : 'hidden'} aria-hidden={activeTab !== 'tasks'}>
+            <div
+              key={dataRefreshKey}
+              className={activeTab === 'tasks' ? undefined : 'hidden'}
+              aria-hidden={activeTab !== 'tasks'}
+            >
               <ProjectTasks project={project} refreshKey={tasksRefreshKey} />
             </div>
           ) : null}
           {activeTab === 'settings' ? (
             <ProjectSettingsPanel
+              key={dataRefreshKey}
               project={project}
               onUpdated={(updated) => onUpdated?.(updated)}
               onDeleted={(id) => onDeleted?.(id)}
