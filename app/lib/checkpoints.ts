@@ -1,7 +1,14 @@
+export type CheckpointAta = {
+  title: string;
+  content: string;
+};
+
 export type Checkpoint = {
   date: string;
   title: string;
   summary: string;
+  description: string;
+  atas: CheckpointAta[];
   summaryUpdatedAt: string | null;
 };
 
@@ -44,11 +51,43 @@ function formatDateParts({ day, month, year }: DateParts): string {
   return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
 }
 
+function normalizeAtas(raw: unknown): CheckpointAta[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((entry) => {
+      if (typeof entry === 'string') {
+        const content = entry.trim();
+        if (!content) return null;
+        return { title: '', content };
+      }
+
+      if (entry && typeof entry === 'object') {
+        const obj = entry as Record<string, unknown>;
+        const title = typeof obj.title === 'string' ? obj.title.trim() : '';
+        const content =
+          typeof obj.content === 'string'
+            ? obj.content.trim()
+            : typeof obj.body === 'string'
+              ? obj.body.trim()
+              : typeof obj.text === 'string'
+                ? obj.text.trim()
+                : '';
+
+        if (!title && !content) return null;
+        return { title, content };
+      }
+
+      return null;
+    })
+    .filter((item): item is CheckpointAta => item !== null);
+}
+
 export function isCheckpointDateString(value: string): boolean {
   return DATE_LIKE.test(value.trim());
 }
 
-/** Normalizes legacy checkpoints into `{ date, title, summary }` objects. */
+/** Normalizes legacy checkpoints into `{ date, title, summary, description, atas }` objects. */
 export function normalizeCheckpoints(raw: unknown, topDate?: string): Checkpoint[] {
   if (!Array.isArray(raw)) return [];
 
@@ -68,14 +107,16 @@ export function normalizeCheckpoints(raw: unknown, topDate?: string): Checkpoint
         const date = String(obj.date ?? '').trim();
         const title = String(obj.title ?? '').trim();
         const summary = String(obj.summary ?? '').trim();
+        const description = String(obj.description ?? '').trim();
+        const atas = normalizeAtas(obj.atas);
         const summaryUpdatedAt =
           typeof obj.summaryUpdatedAt === 'string' && obj.summaryUpdatedAt.trim()
             ? obj.summaryUpdatedAt.trim()
             : null;
 
-        if (!date && !title && !summary) return null;
+        if (!date && !title && !summary && !description && atas.length === 0) return null;
 
-        return { date, title, summary, summaryUpdatedAt };
+        return { date, title, summary, description, atas, summaryUpdatedAt };
       }
 
       return null;
@@ -106,18 +147,36 @@ export function resolveCheckpointDatesForTimeline(checkpoints: Checkpoint[]): st
   });
 }
 
-export function serializeCheckpoint(checkpoint: Checkpoint): Record<string, string> {
-  const payload: Record<string, string> = {};
+/** Full markdown body for expanded view; falls back to AI summary for legacy data. */
+export function checkpointExpandedDescription(checkpoint: Checkpoint): string {
+  const description = checkpoint.description.trim();
+  if (description) return description;
+  return checkpoint.summary.trim();
+}
+
+export function serializeCheckpoint(checkpoint: Checkpoint): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
 
   if (checkpoint.date.trim()) payload.date = checkpoint.date.trim();
   if (checkpoint.title.trim()) payload.title = checkpoint.title.trim();
   if (checkpoint.summary.trim()) payload.summary = checkpoint.summary.trim();
+  if (checkpoint.description.trim()) payload.description = checkpoint.description.trim();
+  if (checkpoint.atas.length > 0) {
+    payload.atas = checkpoint.atas
+      .map((ata) => {
+        const item: Record<string, string> = {};
+        if (ata.title.trim()) item.title = ata.title.trim();
+        if (ata.content.trim()) item.content = ata.content.trim();
+        return item;
+      })
+      .filter((item) => Object.keys(item).length > 0);
+  }
   if (checkpoint.summaryUpdatedAt) payload.summaryUpdatedAt = checkpoint.summaryUpdatedAt;
 
   return payload;
 }
 
-export function serializeCheckpoints(checkpoints: Checkpoint[]): Record<string, string>[] {
+export function serializeCheckpoints(checkpoints: Checkpoint[]): Record<string, unknown>[] {
   return checkpoints.map(serializeCheckpoint).filter((item) => Object.keys(item).length > 0);
 }
 
@@ -173,6 +232,8 @@ function emptyCheckpoint(partial: Partial<Checkpoint>): Checkpoint {
     date: partial.date ?? '',
     title: partial.title ?? '',
     summary: partial.summary ?? '',
+    description: partial.description ?? '',
+    atas: partial.atas ?? [],
     summaryUpdatedAt: partial.summaryUpdatedAt ?? null,
   };
 }

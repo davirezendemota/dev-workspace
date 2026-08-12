@@ -5,11 +5,13 @@ import { toast } from 'sonner';
 import AiResponseSkeleton from '@/app/components/AiResponseSkeleton';
 import {
   checkpointDayKey,
+  checkpointExpandedDescription,
   formatCheckpointDate,
   resolveCheckpointDatesForTimeline,
   type Checkpoint,
 } from '@/app/lib/checkpoints';
 import { cn } from '@/app/lib/utils';
+import CheckpointDetailSidebar from './CheckpointDetailSidebar';
 import type { ProjectApiResponse } from './AddProjectModal';
 import type { Project } from './data';
 
@@ -107,20 +109,45 @@ function IconRefresh({ spinning }: { spinning?: boolean }) {
   );
 }
 
+function IconExpand() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="shrink-0"
+    >
+      <polyline points="15 3 21 3 21 9" />
+      <polyline points="9 21 3 21 3 15" />
+      <line x1="21" y1="3" x2="14" y2="10" />
+      <line x1="3" y1="21" x2="10" y2="14" />
+    </svg>
+  );
+}
+
 function CheckpointContent({
   checkpoint,
   index,
   loading,
   onRefresh,
+  onExpand,
   onPlanMilestone,
 }: {
   checkpoint: Checkpoint;
   index: number;
   loading: boolean;
   onRefresh: (index: number) => void;
+  onExpand: (index: number) => void;
   onPlanMilestone?: (draft: { title: string; description: string }) => void;
 }) {
   const label = checkpoint.title.trim() || 'Checkpoint sem título';
+  const expandedDescription = checkpointExpandedDescription(checkpoint);
 
   return (
     <>
@@ -132,21 +159,33 @@ function CheckpointContent({
           {label}
         </h3>
 
-        <button
-          type="button"
-          className={cn(
-            'flex h-6 w-6 flex-none items-center justify-center transition-colors',
-            loading
-              ? 'text-[var(--color-accent)]'
-              : 'text-[color-mix(in_srgb,var(--color-text)_55%,transparent)] hover:text-[var(--color-accent)]',
-          )}
-          aria-label="Gerar resumo novamente"
-          title="Gerar resumo novamente"
-          onClick={() => onRefresh(index)}
-          disabled={loading}
-        >
-          <IconRefresh spinning={loading} />
-        </button>
+        <div className="flex flex-none items-center gap-0.5">
+          <button
+            type="button"
+            className={cn(
+              'flex h-6 w-6 items-center justify-center transition-colors',
+              loading
+                ? 'text-[var(--color-accent)]'
+                : 'text-[color-mix(in_srgb,var(--color-text)_55%,transparent)] hover:text-[var(--color-accent)]',
+            )}
+            aria-label="Gerar resumo novamente"
+            title="Gerar resumo novamente"
+            onClick={() => onRefresh(index)}
+            disabled={loading}
+          >
+            <IconRefresh spinning={loading} />
+          </button>
+
+          <button
+            type="button"
+            className="flex h-6 w-6 items-center justify-center text-[color-mix(in_srgb,var(--color-text)_55%,transparent)] transition-colors hover:text-[var(--color-accent)]"
+            aria-label="Expandir checkpoint"
+            title="Expandir checkpoint"
+            onClick={() => onExpand(index)}
+          >
+            <IconExpand />
+          </button>
+        </div>
       </div>
 
       <div className="mt-3">
@@ -202,7 +241,7 @@ function CheckpointContent({
           onClick={() =>
             onPlanMilestone({
               title: checkpoint.title.trim() || label,
-              description: checkpoint.summary.trim(),
+              description: expandedDescription,
             })
           }
         >
@@ -217,11 +256,13 @@ function TimelineEntryRow({
   entry,
   refreshingIndex,
   onRefresh,
+  onExpand,
   onPlanMilestone,
 }: {
   entry: TimelineEntry;
   refreshingIndex: number | null;
   onRefresh: (index: number) => void;
+  onExpand: (index: number) => void;
   onPlanMilestone?: (draft: { title: string; description: string }) => void;
 }) {
   const displayDate = formatCheckpointDate(entry.date);
@@ -279,6 +320,7 @@ function TimelineEntryRow({
           index={entry.index}
           loading={refreshingIndex === entry.index}
           onRefresh={onRefresh}
+          onExpand={onExpand}
           onPlanMilestone={onPlanMilestone}
         />
       </div>
@@ -294,9 +336,23 @@ export default function ProjectCheckpoints({
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>(project.checkpoints);
   const [loading, setLoading] = useState(true);
   const [refreshingIndex, setRefreshingIndex] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const timelineEntries = useMemo(() => buildTimelineEntries(checkpoints), [checkpoints]);
+
+  const expandedEntry = useMemo(() => {
+    if (expandedIndex === null) return null;
+    const checkpoint = checkpoints[expandedIndex];
+    if (!checkpoint) return null;
+
+    const resolvedDates = resolveCheckpointDatesForTimeline(checkpoints);
+    return {
+      checkpoint,
+      index: expandedIndex,
+      date: resolvedDates[expandedIndex] ?? checkpoint.date,
+    };
+  }, [checkpoints, expandedIndex]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -328,6 +384,17 @@ export default function ProjectCheckpoints({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (expandedIndex === null) return;
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setExpandedIndex(null);
+    };
+
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [expandedIndex]);
 
   const refreshSummary = useCallback(
     async (index: number) => {
@@ -403,7 +470,7 @@ export default function ProjectCheckpoints({
             color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
           }}
         >
-          Adicione marcos no JSON do projeto (`checkpoints`) com data, título e resumo.
+          Adicione marcos no JSON do projeto (`checkpoints`) com data, título, descrição e atas.
         </p>
       </div>
     );
@@ -415,66 +482,77 @@ export default function ProjectCheckpoints({
       : checkpoints.find((item) => item.date.trim())?.date;
 
   return (
-    <div className="flex flex-col gap-6">
-      {error ? (
-        <div
-          className="border border-[var(--color-accent)] px-4 py-3 text-[13px]"
-          style={{
-            background: 'var(--color-accent-100)',
-            color: 'var(--color-accent-800)',
-            fontFamily: 'var(--font-body)',
-          }}
-          role="alert"
-        >
-          {error}
-        </div>
-      ) : null}
+    <>
+      <div className="flex flex-col gap-6">
+        {error ? (
+          <div
+            className="border border-[var(--color-accent)] px-4 py-3 text-[13px]"
+            style={{
+              background: 'var(--color-accent-100)',
+              color: 'var(--color-accent-800)',
+              fontFamily: 'var(--font-body)',
+            }}
+            role="alert"
+          >
+            {error}
+          </div>
+        ) : null}
 
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <p
-          className="text-[13px]"
-          style={{
-            fontFamily: 'var(--font-body)',
-            color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
-          }}
-        >
-          {checkpoints.length} checkpoint{checkpoints.length === 1 ? '' : 's'} no histórico
-        </p>
-        {latestDate ? (
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
           <p
-            className="num text-[12px]"
+            className="text-[13px]"
             style={{
               fontFamily: 'var(--font-body)',
-              color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+              color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
             }}
           >
-            Último: {formatCheckpointDate(latestDate) || latestDate}
+            {checkpoints.length} checkpoint{checkpoints.length === 1 ? '' : 's'} no histórico
           </p>
-        ) : null}
+          {latestDate ? (
+            <p
+              className="num text-[12px]"
+              style={{
+                fontFamily: 'var(--font-body)',
+                color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+              }}
+            >
+              Último: {formatCheckpointDate(latestDate) || latestDate}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="relative">
+          <span
+            className="absolute bottom-0 top-0 w-px"
+            style={{
+              left: TIMELINE_LINE_LEFT,
+              background: 'color-mix(in srgb, var(--color-text) 18%, transparent)',
+            }}
+            aria-hidden
+          />
+
+          <ol className="relative m-0 list-none p-0" aria-label="Timeline de checkpoints">
+            {timelineEntries.map((entry) => (
+              <TimelineEntryRow
+                key={`${entry.index}-${entry.checkpoint.title}`}
+                entry={entry}
+                refreshingIndex={refreshingIndex}
+                onRefresh={refreshSummary}
+                onExpand={setExpandedIndex}
+                onPlanMilestone={onPlanMilestone}
+              />
+            ))}
+          </ol>
+        </div>
       </div>
 
-      <div className="relative">
-        <span
-          className="absolute bottom-0 top-0 w-px"
-          style={{
-            left: TIMELINE_LINE_LEFT,
-            background: 'color-mix(in srgb, var(--color-text) 18%, transparent)',
-          }}
-          aria-hidden
+      {expandedEntry ? (
+        <CheckpointDetailSidebar
+          checkpoint={expandedEntry.checkpoint}
+          date={expandedEntry.date}
+          onClose={() => setExpandedIndex(null)}
         />
-
-        <ol className="relative m-0 list-none p-0" aria-label="Timeline de checkpoints">
-          {timelineEntries.map((entry) => (
-            <TimelineEntryRow
-              key={`${entry.index}-${entry.checkpoint.title}`}
-              entry={entry}
-              refreshingIndex={refreshingIndex}
-              onRefresh={refreshSummary}
-              onPlanMilestone={onPlanMilestone}
-            />
-          ))}
-        </ol>
-      </div>
-    </div>
+      ) : null}
+    </>
   );
 }

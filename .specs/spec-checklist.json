@@ -1,7 +1,7 @@
 {
   "$schema": "./spec-checklist.schema.json",
   "version": 1,
-  "updatedAt": "2026-07-30T22:00:00-03:00",
+  "updatedAt": "2026-08-12T19:34:00-03:00",
   "projects": [
     {
       "id": "workspace",
@@ -1081,6 +1081,54 @@
               "issues": [],
               "prs": [],
               "completedCommit": "256d9ee36a788e07a2bbdd61a85fe65b49893ec5"
+            }
+          ]
+        },
+        {
+          "specId": "016",
+          "specFile": "features/016-projects_checkpoints-rich.md",
+          "title": "Checkpoints com atas e descrição markdown",
+          "after": [
+            "003"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Descrição markdown renderizada no painel expandido",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Atas listadas em coluna no painel expandido",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Checkpoint legado com summary exibe fallback no painel",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "API persiste description e atas sem truncar",
+              "status": "in-progress",
+              "after": [
+                "AC1",
+                "AC2"
+              ],
+              "issues": [],
+              "prs": []
             }
           ]
         }
