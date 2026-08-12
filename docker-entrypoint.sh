@@ -1,10 +1,11 @@
 #!/bin/sh
 set -e
 
+PUID=${PUID:-1000}
+PGID=${PGID:-1000}
+
 if [ -d /data ]; then
-  if id nextjs >/dev/null 2>&1; then
-    chown -R nextjs:nodejs /data
-  fi
+  chown -R "${PUID}:${PGID}" /data
 fi
 
 CONFIG_PATH="${WORKSPACE_CONFIG_PATH:-/data/config.json}"
@@ -26,9 +27,7 @@ else
   printf '%s\n' "$WORKSPACE_API_TOKEN" > "$TOKEN_FILE"
 fi
 
-if id nextjs >/dev/null 2>&1; then
-  chown nextjs:nodejs "$TOKEN_FILE"
-fi
+chown "${PUID}:${PGID}" "$TOKEN_FILE"
 chmod 600 "$TOKEN_FILE"
 
 export WORKSPACE_API_TOKEN
@@ -41,10 +40,7 @@ echo "============================================================"
 echo ""
 
 run_as_app() {
-  if id nextjs >/dev/null 2>&1; then
-    exec su-exec nextjs env WORKSPACE_API_TOKEN="$WORKSPACE_API_TOKEN" "$@"
-  fi
-  exec env WORKSPACE_API_TOKEN="$WORKSPACE_API_TOKEN" "$@"
+  exec su-exec "${PUID}:${PGID}" env WORKSPACE_API_TOKEN="$WORKSPACE_API_TOKEN" "$@"
 }
 
 run_as_app "$@"
