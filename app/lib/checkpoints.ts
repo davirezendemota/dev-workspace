@@ -6,6 +6,43 @@ export type Checkpoint = {
 };
 
 const DATE_LIKE = /^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/;
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})/;
+
+type DateParts = { day: number; month: number; year: number };
+
+/** Slash dates in checkpoints are always DD/MM[/YYYY] (pt-BR). */
+function parseCheckpointDateParts(value: string): DateParts | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const slash = trimmed.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (slash) {
+    const day = Number(slash[1]);
+    const month = Number(slash[2]);
+    const yearRaw = slash[3];
+    const year = yearRaw
+      ? yearRaw.length === 2
+        ? 2000 + Number(yearRaw)
+        : Number(yearRaw)
+      : new Date().getFullYear();
+    return { day, month, year };
+  }
+
+  const iso = trimmed.match(ISO_DATE);
+  if (iso) {
+    return {
+      year: Number(iso[1]),
+      month: Number(iso[2]),
+      day: Number(iso[3]),
+    };
+  }
+
+  return null;
+}
+
+function formatDateParts({ day, month, year }: DateParts): string {
+  return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+}
 
 export function isCheckpointDateString(value: string): boolean {
   return DATE_LIKE.test(value.trim());
@@ -88,14 +125,8 @@ export function formatCheckpointDate(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return '';
 
-  const iso = Date.parse(trimmed);
-  if (!Number.isNaN(iso)) {
-    return new Date(iso).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
+  const parts = parseCheckpointDateParts(trimmed);
+  if (parts) return formatDateParts(parts);
 
   return trimmed;
 }
@@ -105,20 +136,9 @@ export function checkpointSortKey(date: string): number {
   const trimmed = date.trim();
   if (!trimmed || trimmed === '—') return Number.NEGATIVE_INFINITY;
 
-  const iso = Date.parse(trimmed);
-  if (!Number.isNaN(iso)) return iso;
-
-  const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (match) {
-    const day = Number(match[1]);
-    const month = Number(match[2]) - 1;
-    const yearRaw = match[3];
-    const year = yearRaw
-      ? yearRaw.length === 2
-        ? 2000 + Number(yearRaw)
-        : Number(yearRaw)
-      : new Date().getFullYear();
-    return new Date(year, month, day).getTime();
+  const parts = parseCheckpointDateParts(trimmed);
+  if (parts) {
+    return new Date(parts.year, parts.month - 1, parts.day).getTime();
   }
 
   return Number.NEGATIVE_INFINITY;
@@ -140,20 +160,9 @@ export function checkpointDayKey(date: string): string {
   const trimmed = date.trim();
   if (!trimmed) return '__no_date__';
 
-  const iso = Date.parse(trimmed);
-  if (!Number.isNaN(iso)) {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-  }
-
-  const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (match) {
-    const year = match[3]
-      ? match[3].length === 2
-        ? `20${match[3]}`
-        : match[3]
-      : 'unknown';
-    return `${year}-${Number(match[2])}-${Number(match[1])}`;
+  const parts = parseCheckpointDateParts(trimmed);
+  if (parts) {
+    return `${parts.year}-${parts.month}-${parts.day}`;
   }
 
   return trimmed;
