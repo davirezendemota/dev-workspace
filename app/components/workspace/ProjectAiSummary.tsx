@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AiResponseSkeleton from '@/app/components/AiResponseSkeleton';
 import { cn } from '@/app/lib/utils';
 
@@ -19,25 +19,6 @@ function IconSpark() {
       className="shrink-0"
     >
       <path d="M12 3l1.9 5.6L19.5 10l-5.1 2 -1.4 5.4 -1.4-5.4L6.5 10l5.6-1.4z" />
-    </svg>
-  );
-}
-
-function IconChevron({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className={cn('shrink-0 transition-transform duration-150', expanded && 'rotate-180')}
-    >
-      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }
@@ -75,33 +56,12 @@ export default function ProjectAiSummary({
   onUpdated,
 }: ProjectAiSummaryProps) {
   const [text, setText] = useState(summary);
-  const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [overflows, setOverflows] = useState(false);
-  const textRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     setText(summary);
-    setExpanded(false);
   }, [summary]);
-
-  useEffect(() => {
-    if (expanded || loading) {
-      if (expanded) setOverflows(true);
-      return;
-    }
-
-    const measure = () => {
-      const el = textRef.current;
-      if (!el) return;
-      setOverflows(el.scrollHeight > el.clientHeight + 1);
-    };
-
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, [text, expanded, loading]);
 
   const refreshSummary = useCallback(
     async (event: React.MouseEvent) => {
@@ -143,17 +103,6 @@ export default function ProjectAiSummary({
     [loading, onUpdated, projectId],
   );
 
-  const toggleExpanded = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!overflows) return;
-      setExpanded((current) => !current);
-    },
-    [overflows],
-  );
-
-  const showChevron = overflows && !loading;
   const showRefresh = hovered || loading;
 
   return (
@@ -171,11 +120,7 @@ export default function ProjectAiSummary({
           <AiResponseSkeleton />
         ) : (
           <p
-            ref={textRef}
-            className={cn(
-              'italic leading-[1.45]',
-              !expanded && 'line-clamp-2',
-            )}
+            className="italic leading-[1.45]"
             style={{ color: 'color-mix(in srgb, var(--color-text) 72%, transparent)' }}
           >
             {text}
@@ -200,18 +145,6 @@ export default function ProjectAiSummary({
         >
           <IconRefresh spinning={loading} />
         </button>
-
-        {showChevron ? (
-          <button
-            type="button"
-            className="flex h-6 w-6 items-center justify-center text-[color-mix(in_srgb,var(--color-text)_55%,transparent)] transition-colors hover:text-[var(--color-accent)]"
-            aria-label={expanded ? 'Recolher resumo' : 'Expandir resumo'}
-            aria-expanded={expanded}
-            onClick={toggleExpanded}
-          >
-            <IconChevron expanded={expanded} />
-          </button>
-        ) : null}
       </div>
     </div>
   );

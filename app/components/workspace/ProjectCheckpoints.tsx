@@ -7,6 +7,7 @@ import {
   checkpointDayKey,
   checkpointExpandedDescription,
   formatCheckpointDate,
+  getCheckpointDisplayDateTime,
   resolveCheckpointDatesForTimeline,
   type Checkpoint,
 } from '@/app/lib/checkpoints';
@@ -265,7 +266,9 @@ function TimelineEntryRow({
   onExpand: (index: number) => void;
   onPlanMilestone?: (draft: { title: string; description: string }) => void;
 }) {
-  const displayDate = formatCheckpointDate(entry.date);
+  const { date: displayDate, time: displayTime } = getCheckpointDisplayDateTime({
+    date: entry.date,
+  });
   const showDateWithAnchor = entry.isDayAnchor && Boolean(displayDate);
 
   return (
@@ -301,6 +304,17 @@ function TimelineEntryRow({
             >
               {displayDate}
             </time>
+            {displayTime ? (
+              <span
+                className="num text-[12px] leading-none"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+                }}
+              >
+                {displayTime}
+              </span>
+            ) : null}
             {entry.isLatestDayAnchor ? (
               <span
                 className="text-[11px] uppercase tracking-wide"

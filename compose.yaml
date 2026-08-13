@@ -21,4 +21,5 @@ services:
       - .:/app
       - ./workspace_data:/data
       - ${WORKSPACE_LOCAL_PROJECTS_ROOT}:/local-projects:ro
+      - /app/node_modules
       - /app/.next

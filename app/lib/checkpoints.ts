@@ -4,6 +4,7 @@ export type CheckpointAta = {
 };
 
 export type Checkpoint = {
+  /** Canonical format: DD/MM/YYYY HH:mm */
   date: string;
   title: string;
   summary: string;
@@ -12,10 +13,15 @@ export type Checkpoint = {
   summaryUpdatedAt: string | null;
 };
 
-const DATE_LIKE = /^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/;
+const DATE_ONLY = /^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/;
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})/;
+const CANONICAL_DATETIME =
+  /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/;
+const SLASH_WITH_TIME =
+  /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(\d{1,2}:\d{2}(?::\d{2})?)$/;
 
 type DateParts = { day: number; month: number; year: number };
+type DateTimeParts = DateParts & { hour: number; minute: number };
 
 /** Slash dates in checkpoints are always DD/MM[/YYYY] (pt-BR). */
 function parseCheckpointDateParts(value: string): DateParts | null {
@@ -51,6 +57,82 @@ function formatDateParts({ day, month, year }: DateParts): string {
   return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
 }
 
+function formatTimeParts({ hour, minute }: Pick<DateTimeParts, 'hour' | 'minute'>): string {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function formatCanonicalDateTime(parts: DateTimeParts): string {
+  return `${formatDateParts(parts)} ${formatTimeParts(parts)}`;
+}
+
+function parseTimeToken(value: string): Pick<DateTimeParts, 'hour' | 'minute'> | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return null;
+
+  return {
+    hour: Number(match[1]),
+    minute: Number(match[2]),
+  };
+}
+
+function parseCheckpointDateTimeParts(date: string, time = ''): DateTimeParts | null {
+  const dateTrim = date.trim();
+  const timeTrim = time.trim();
+  if (!dateTrim && !timeTrim) return null;
+
+  const canonical = dateTrim.match(CANONICAL_DATETIME);
+  if (canonical) {
+    return {
+      day: Number(canonical[1]),
+      month: Number(canonical[2]),
+      year: Number(canonical[3]),
+      hour: Number(canonical[4]),
+      minute: Number(canonical[5]),
+    };
+  }
+
+  const slashWithTime = dateTrim.match(SLASH_WITH_TIME);
+  if (slashWithTime) {
+    const dateParts = parseCheckpointDateParts(slashWithTime[1]);
+    const timeParts = parseTimeToken(slashWithTime[2]);
+    if (dateParts && timeParts) {
+      return { ...dateParts, ...timeParts };
+    }
+  }
+
+  const dateParts = parseCheckpointDateParts(dateTrim.split(/\s+/)[0] ?? dateTrim);
+  if (!dateParts) {
+    const parsed = Date.parse(dateTrim);
+    if (!Number.isNaN(parsed) && /[T\s]\d/.test(dateTrim)) {
+      const d = new Date(parsed);
+      return {
+        day: d.getDate(),
+        month: d.getMonth() + 1,
+        year: d.getFullYear(),
+        hour: d.getHours(),
+        minute: d.getMinutes(),
+      };
+    }
+    return null;
+  }
+
+  const embeddedTime = parseTimeToken(dateTrim.split(/\s+/).slice(1).join(' '));
+  const explicitTime = parseTimeToken(timeTrim);
+  const timeParts = explicitTime ?? embeddedTime ?? { hour: 0, minute: 0 };
+
+  return { ...dateParts, ...timeParts };
+}
+
+/** Normalizes any legacy checkpoint date/time to DD/MM/YYYY HH:mm. */
+export function normalizeCheckpointDateString(date: string, time = ''): string {
+  const parts = parseCheckpointDateTimeParts(date, time);
+  if (!parts) return date.trim();
+  return formatCanonicalDateTime(parts);
+}
+
 function normalizeAtas(raw: unknown): CheckpointAta[] {
   if (!Array.isArray(raw)) return [];
 
@@ -84,10 +166,29 @@ function normalizeAtas(raw: unknown): CheckpointAta[] {
 }
 
 export function isCheckpointDateString(value: string): boolean {
-  return DATE_LIKE.test(value.trim());
+  const trimmed = value.trim();
+  return DATE_ONLY.test(trimmed) || CANONICAL_DATETIME.test(trimmed) || SLASH_WITH_TIME.test(trimmed);
 }
 
-/** Normalizes legacy checkpoints into `{ date, title, summary, description, atas }` objects. */
+function normalizeCheckpointRecord(
+  partial: Partial<Checkpoint> & { time?: string },
+): Checkpoint {
+  const legacyTime = typeof partial.time === 'string' ? partial.time : '';
+  const date = partial.date
+    ? normalizeCheckpointDateString(partial.date, legacyTime)
+    : '';
+
+  return {
+    date,
+    title: partial.title ?? '',
+    summary: partial.summary ?? '',
+    description: partial.description ?? '',
+    atas: partial.atas ?? [],
+    summaryUpdatedAt: partial.summaryUpdatedAt ?? null,
+  };
+}
+
+/** Normalizes legacy checkpoints into canonical `{ date, title, summary, ... }` objects. */
 export function normalizeCheckpoints(raw: unknown, topDate?: string): Checkpoint[] {
   if (!Array.isArray(raw)) return [];
 
@@ -97,14 +198,15 @@ export function normalizeCheckpoints(raw: unknown, topDate?: string): Checkpoint
         const text = entry.trim();
         if (!text) return null;
         if (isCheckpointDateString(text)) {
-          return emptyCheckpoint({ date: text });
+          return normalizeCheckpointRecord({ date: text });
         }
-        return emptyCheckpoint({ title: text });
+        return normalizeCheckpointRecord({ title: text });
       }
 
       if (entry && typeof entry === 'object') {
         const obj = entry as Record<string, unknown>;
         const date = String(obj.date ?? '').trim();
+        const legacyTime = typeof obj.time === 'string' ? obj.time.trim() : '';
         const title = String(obj.title ?? '').trim();
         const summary = String(obj.summary ?? '').trim();
         const description = String(obj.description ?? '').trim();
@@ -116,7 +218,15 @@ export function normalizeCheckpoints(raw: unknown, topDate?: string): Checkpoint
 
         if (!date && !title && !summary && !description && atas.length === 0) return null;
 
-        return { date, title, summary, description, atas, summaryUpdatedAt };
+        return normalizeCheckpointRecord({
+          date,
+          time: legacyTime,
+          title,
+          summary,
+          description,
+          atas,
+          summaryUpdatedAt,
+        });
       }
 
       return null;
@@ -125,7 +235,10 @@ export function normalizeCheckpoints(raw: unknown, topDate?: string): Checkpoint
 
   const latestDate = String(topDate ?? '').trim();
   if (latestDate && latestDate !== '—' && items[0] && !items[0].date) {
-    items[0] = { ...items[0], date: latestDate };
+    items[0] = normalizeCheckpointRecord({
+      ...items[0],
+      date: latestDate,
+    });
   }
 
   return items;
@@ -156,8 +269,9 @@ export function checkpointExpandedDescription(checkpoint: Checkpoint): string {
 
 export function serializeCheckpoint(checkpoint: Checkpoint): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
+  const date = normalizeCheckpointDateString(checkpoint.date);
 
-  if (checkpoint.date.trim()) payload.date = checkpoint.date.trim();
+  if (date) payload.date = date;
   if (checkpoint.title.trim()) payload.title = checkpoint.title.trim();
   if (checkpoint.summary.trim()) payload.summary = checkpoint.summary.trim();
   if (checkpoint.description.trim()) payload.description = checkpoint.description.trim();
@@ -180,24 +294,53 @@ export function serializeCheckpoints(checkpoints: Checkpoint[]): Record<string, 
   return checkpoints.map(serializeCheckpoint).filter((item) => Object.keys(item).length > 0);
 }
 
-export function formatCheckpointDate(value: string): string {
+/** Splits a canonical or legacy checkpoint datetime into display parts (pt-BR). */
+export function formatCheckpointDateTime(value: string): { date: string; time: string | null } {
   const trimmed = value.trim();
-  if (!trimmed) return '';
+  if (!trimmed) return { date: '', time: null };
 
-  const parts = parseCheckpointDateParts(trimmed);
-  if (parts) return formatDateParts(parts);
+  const parts = parseCheckpointDateTimeParts(trimmed);
+  if (!parts) return { date: trimmed, time: null };
 
-  return trimmed;
+  const time = formatTimeParts(parts);
+  return {
+    date: formatDateParts(parts),
+    time: time === '00:00' ? null : time,
+  };
 }
 
-/** Parses a checkpoint date for sorting (later = larger). Invalid/empty → -Infinity. */
+export function getCheckpointDisplayDateTime(
+  checkpoint: Pick<Checkpoint, 'date'>,
+  fallbackDate = '',
+): { date: string; time: string | null } {
+  const sourceDate = checkpoint.date.trim() || fallbackDate.trim();
+  return formatCheckpointDateTime(normalizeCheckpointDateString(sourceDate));
+}
+
+export function formatCheckpointDate(value: string): string {
+  return formatCheckpointDateTime(value).date;
+}
+
+export function formatCheckpointTime(value: string): string {
+  const parts = parseCheckpointDateTimeParts(value);
+  if (!parts) return '';
+  return formatTimeParts(parts);
+}
+
+/** Parses a checkpoint datetime for sorting (later = larger). Invalid/empty → -Infinity. */
 export function checkpointSortKey(date: string): number {
   const trimmed = date.trim();
   if (!trimmed || trimmed === '—') return Number.NEGATIVE_INFINITY;
 
-  const parts = parseCheckpointDateParts(trimmed);
+  const parts = parseCheckpointDateTimeParts(trimmed);
   if (parts) {
-    return new Date(parts.year, parts.month - 1, parts.day).getTime();
+    return new Date(
+      parts.year,
+      parts.month - 1,
+      parts.day,
+      parts.hour,
+      parts.minute,
+    ).getTime();
   }
 
   return Number.NEGATIVE_INFINITY;
@@ -219,21 +362,10 @@ export function checkpointDayKey(date: string): string {
   const trimmed = date.trim();
   if (!trimmed) return '__no_date__';
 
-  const parts = parseCheckpointDateParts(trimmed);
+  const parts = parseCheckpointDateTimeParts(trimmed);
   if (parts) {
     return `${parts.year}-${parts.month}-${parts.day}`;
   }
 
   return trimmed;
-}
-
-function emptyCheckpoint(partial: Partial<Checkpoint>): Checkpoint {
-  return {
-    date: partial.date ?? '',
-    title: partial.title ?? '',
-    summary: partial.summary ?? '',
-    description: partial.description ?? '',
-    atas: partial.atas ?? [],
-    summaryUpdatedAt: partial.summaryUpdatedAt ?? null,
-  };
 }

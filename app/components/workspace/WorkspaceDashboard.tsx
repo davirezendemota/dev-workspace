@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import AiResponseSkeleton from '@/app/components/AiResponseSkeleton';
 import ProjectAiSummary from './ProjectAiSummary';
 import AddProjectModal, { type ProjectApiResponse } from './AddProjectModal';
@@ -28,7 +28,11 @@ import {
   type SortId,
   type TabId,
 } from './data';
-import { latestCheckpointSortKey } from '@/app/lib/checkpoints';
+import {
+  getCheckpointDisplayDateTime,
+  latestCheckpointSortKey,
+  type Checkpoint,
+} from '@/app/lib/checkpoints';
 
 function IconSend() {
   return (
@@ -124,6 +128,41 @@ function detectProjectFromPrompt(prompt: string, projects: Project[]): string | 
   return null;
 }
 
+const checkpointTimeMutedStyle = {
+  fontFamily: 'var(--font-body)',
+  color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+} as const;
+
+function CheckpointCardDateRow({
+  checkpoint,
+  fallbackDate = '',
+  dateClassName,
+  dateStyle,
+}: {
+  checkpoint: Checkpoint;
+  fallbackDate?: string;
+  dateClassName: string;
+  dateStyle?: CSSProperties;
+}) {
+  const { date, time } = getCheckpointDisplayDateTime(checkpoint, fallbackDate);
+
+  return (
+    <div className="flex w-full items-baseline gap-2">
+      <span
+        className={dateClassName}
+        style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, ...dateStyle }}
+      >
+        {date || '—'}
+      </span>
+      {time ? (
+        <span className="num text-[11px] leading-none" style={checkpointTimeMutedStyle}>
+          {time}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function ProjectCard({
   project,
   index,
@@ -202,15 +241,14 @@ function ProjectCard({
       <div>
         {project.checkpoints.length > 0 ? (
           <>
-            <div className="mb-3 flex items-baseline gap-3">
+            <div className="mb-3 flex flex-col items-start gap-1">
+              <CheckpointCardDateRow
+                checkpoint={project.checkpoints[0]}
+                fallbackDate={project.topDate}
+                dateClassName="num text-[30px] leading-none text-[var(--color-accent-700)]"
+              />
               <span
-                className="num text-[30px] font-semibold text-[var(--color-accent-700)]"
-                style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}
-              >
-                {project.topDate}
-              </span>
-              <span
-                className="text-[14px] italic"
+                className="mt-2 line-clamp-5 w-full min-w-0 text-left text-[12px] italic leading-snug"
                 style={{
                   fontFamily: 'var(--font-body)',
                   color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
@@ -226,20 +264,17 @@ function ProjectCard({
                 {project.checkpoints.slice(1).map((checkpoint, i) => (
                   <div
                     key={`${project.id}-cp-${i + 1}-${checkpoint.date}-${checkpoint.title}`}
-                    className="flex items-baseline gap-3 border-t border-[var(--color-divider)] py-1.5"
+                    className="flex flex-col items-start gap-1 border-t border-[var(--color-divider)] py-2"
                   >
-                    <span
-                      className="num min-w-[52px] text-[18px] font-semibold"
-                      style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontWeight: 600,
+                    <CheckpointCardDateRow
+                      checkpoint={checkpoint}
+                      dateClassName="num text-[18px] leading-none"
+                      dateStyle={{
                         color: 'color-mix(in srgb, var(--color-text) 62%, transparent)',
                       }}
-                    >
-                      {checkpoint.date || '—'}
-                    </span>
+                    />
                     <span
-                      className="text-[13px]"
+                      className="mt-2 line-clamp-5 w-full min-w-0 text-left text-[12px] leading-snug"
                       style={{
                         fontFamily: 'var(--font-body)',
                         color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',

@@ -5,7 +5,7 @@ FROM node:20-alpine3.19 AS base
 # Install dependencies only when needed
 FROM base AS deps
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat git openssl
+RUN apk add --no-cache libc6-compat git su-exec openssl
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -21,7 +21,7 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["sh", "-c", "npm install && npm run dev"]
+CMD ["npm", "run", "dev"]
 
 # Rebuild the source code only when needed
 FROM base AS builder

@@ -130,7 +130,7 @@ function TabIcon({ id }: { id: TabId }) {
 
 export default function ProjectDetailModal({ project, onClose, onUpdated, onDeleted }: ProjectDetailModalProps) {
   const titleId = useId();
-  const [activeTab, setActiveTab] = useState<TabId>('graph');
+  const [activeTab, setActiveTab] = useState<TabId>('checkpoints');
   const [tasksRefreshKey, setTasksRefreshKey] = useState(0);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -141,11 +141,11 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
 
   const tabs = useMemo(
     (): TabDef[] => [
+      { id: 'checkpoints', label: 'Checkpoints' },
       { id: 'graph', label: 'Grafo' },
       { id: 'features', label: 'Features' },
       { id: 'milestones', label: 'Milestones' },
       { id: 'plans', label: 'Planos' },
-      { id: 'checkpoints', label: 'Checkpoints' },
       { id: 'tasks', label: 'Tasks' },
       { id: 'settings', label: 'Settings' },
     ],
@@ -194,7 +194,7 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
 
   useEffect(() => {
     if (!project) return;
-    setActiveTab('graph');
+    setActiveTab('checkpoints');
     setTasksRefreshKey((key) => key + 1);
     setDataRefreshKey((key) => key + 1);
     setMilestoneDraft(null);

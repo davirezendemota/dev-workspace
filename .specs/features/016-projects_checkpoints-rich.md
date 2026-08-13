@@ -20,6 +20,7 @@ projeto.
 
 ### Dentro do escopo
 - Campos `description` (markdown, sem limite) e `atas` (array `{ title?, content }`) no JSON
+- Campo `date` no formato canônico `DD/MM/YYYY HH:mm` (campo `time` legado é absorvido na normalização)
 - Normalização/serialização retrocompatível com checkpoints legados (`summary` preservado)
 - Botão expandir ao lado de “Gerar resumo” abre sidebar à direita com título, atas e descrição renderizada
 - Resumo IA (`summary`) continua na timeline como preview curto
@@ -32,7 +33,7 @@ projeto.
 ## 4. Requisitos
 
 ### Funcionais
-- **RF1:** Checkpoint aceita `description` (string markdown) e `atas` (array de objetos com `title` e `content`).
+- **RF1:** Checkpoint usa `date` em `DD/MM/YYYY HH:mm`; `description` (markdown) e `atas` (array de objetos com `title` e `content`).
 - **RF2:** API GET/PUT de checkpoints persiste os novos campos sem truncar `description`.
 - **RF3:** Na timeline, o resumo curto (`summary`) permanece visível; descrição completa só no painel expandido.
 - **RF4:** Botão expandir abre sidebar à direita com título, lista de atas em coluna e descrição em markdown.
@@ -59,7 +60,7 @@ projeto.
 
 ```json
 {
-  "date": "12/08/2026",
+  "date": "12/08/2026 18:00",
   "title": "Kickoff com cliente",
   "summary": "Alinhamento de escopo e cronograma.",
   "description": "## Entregas\n\n- Spec 012 aprovada\n- **Próximo passo:** milestones",

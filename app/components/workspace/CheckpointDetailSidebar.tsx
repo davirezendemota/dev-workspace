@@ -2,7 +2,7 @@
 
 import {
   checkpointExpandedDescription,
-  formatCheckpointDate,
+  getCheckpointDisplayDateTime,
   type Checkpoint,
 } from '@/app/lib/checkpoints';
 import Markdown from './Markdown';
@@ -38,7 +38,9 @@ export default function CheckpointDetailSidebar({
 }: CheckpointDetailSidebarProps) {
   const title = checkpoint.title.trim() || 'Checkpoint sem título';
   const description = checkpointExpandedDescription(checkpoint);
-  const displayDate = formatCheckpointDate(date);
+  const { date: displayDate, time: displayTime } = getCheckpointDisplayDateTime({
+    date: date || checkpoint.date,
+  });
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end" role="presentation">
@@ -64,16 +66,29 @@ export default function CheckpointDetailSidebar({
               {title}
             </h2>
             {displayDate ? (
-              <time
-                className="mt-1 block text-[12px]"
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
-                }}
-                dateTime={date || undefined}
-              >
-                {displayDate}
-              </time>
+              <div className="mt-1 flex items-baseline gap-2">
+                <time
+                  className="block text-[12px]"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+                  }}
+                  dateTime={date || checkpoint.date || undefined}
+                >
+                  {displayDate}
+                </time>
+                {displayTime ? (
+                  <span
+                    className="num text-[11px] leading-none"
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+                    }}
+                  >
+                    {displayTime}
+                  </span>
+                ) : null}
+              </div>
             ) : null}
           </div>
 
