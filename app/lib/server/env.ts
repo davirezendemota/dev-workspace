@@ -11,4 +11,6 @@ export const serverEnv = {
   /** Raiz dos projetos no host — usada no Docker para remapear local_path ao mount. */
   WORKSPACE_LOCAL_PROJECTS_ROOT:
     process.env.WORKSPACE_LOCAL_PROJECTS_ROOT?.trim() ?? '',
+  /** Postgres com pgvector para embeddings da IA de consulta. */
+  DATABASE_URL: process.env.DATABASE_URL?.trim() ?? '',
 };
