@@ -27,9 +27,9 @@ Principais capacidades:
 - **AI input** — perguntas contextuais sobre projetos
 - **AI summary** — resumo de status derivado das specs
 - **Tasks** — tarefas do projeto (embedded no registro DW)
-- **Bridge** — `install-kit/` instala `.dev-workspace/.env` nos consumidores para o agente falar com a API
+- **Bridge** — `install-kit/` instala `.dev-workspace/.env`, consumidor MCP e skill nos consumidores
 
-Separação: [.specs/](./docs/specs-workflow.md) no repo · **skill `/dev-workspace-planning`** para API DW · ver [install-kit/ARCHITECTURE.md](./install-kit/ARCHITECTURE.md).
+Separação: [.specs/](./docs/specs-workflow.md) no repo · **MCP + skill `dev-workspace`** para o agente consumir o DW.
 
 ## Screenshots
 
@@ -117,18 +117,19 @@ Comandos úteis de agente (Cursor/Claude): `/bootstrap-specs`, `/update-specs`, 
 
 ## Bridge — conectar outros projetos ao Dev Workspace
 
-Um comando instala **`.dev-workspace/.env`** + **skill `dev-workspace`** (tudo na skill — sem bootstrap manual).
+Um comando instala **`.dev-workspace/.env`**, **consumidor MCP** (`.cursor/mcp.json`) e **skill `dev-workspace`**.
 
 ```bash
 ./install-kit/install.sh /path/to/consumer --dw-root /path/to/dev-workspace
 ```
 
-Token API: gerado no container (`DEV_WORKSPACE_API_TOKEN` nos logs).
+- **MCP:** servidor único no DW (`localhost:3011/mcp` em dev); cada repo = consumidor com token scoped.
+- **Token consumidor:** `GET /api/projects/{id}/connection` na UI DW (não use admin no repo consumidor).
 
 - **Specs no repo** → `.specs/`
-- **Planejamento, pendências, tasks, resumo IA** → skill `dev-workspace`
+- **Planejamento, checkpoints (PDF), pendências, tasks, resumo IA** → MCP (preferido) ou skill `dev-workspace`
 
-Ver [install-kit/README.md](./install-kit/README.md).
+Ver [install-kit/README.md](./install-kit/README.md) e [mcp-server/README.md](./mcp-server/README.md).
 ## Roadmap
 
 - [x] Settings (pastas, IA, prompt de resumo)
