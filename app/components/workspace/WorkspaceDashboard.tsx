@@ -1,24 +1,27 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import AiResponseSkeleton from '@/app/components/AiResponseSkeleton';
+import ProjectAiChatPanel from './ProjectAiChatPanel';
+import WorkspaceHeader from './WorkspaceHeader';
+import WorkspaceNavSidebar from './WorkspaceNavSidebar';
+import { WorkspaceGradientDefs } from './WorkspaceGradientDefs';
 import ProjectAiSummary from './ProjectAiSummary';
 import AddProjectModal, { type ProjectApiResponse } from './AddProjectModal';
 import AddAgentModal from './AddAgentModal';
 import AgentCard from './AgentCard';
 import AgentDetailModal from './AgentDetailModal';
 import ProjectDetailModal from './ProjectDetailModal';
+import RepoBadge, { RepoHueContext, buildRepoHueMap, useRepoBadgeStyle } from './RepoBadge';
+import ProjectsTableView from './ProjectsTableView';
 import SettingsPanel, { isAiConfigured, type WorkspaceSettings } from './SettingsPanel';
 import {
   readPinnedPromptIds,
   writePinnedPromptIds,
 } from '@/app/lib/pinned-prompts';
+import { cn } from '@/app/lib/utils';
 import {
   DEFAULT_SORT,
   SORT_OPTIONS,
-  TABS,
-  tabHref,
   mapApiAgentToCard,
   mapApiProjectToCard,
   resolveGithubHref,
@@ -33,26 +36,6 @@ import {
   latestCheckpointSortKey,
   type Checkpoint,
 } from '@/app/lib/checkpoints';
-
-function IconSend() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <line x1="12" y1="19" x2="12" y2="5" />
-      <polyline points="5 12 12 5 19 12" />
-    </svg>
-  );
-}
-
-function IconExpand() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <polyline points="15 3 21 3 21 9" />
-      <polyline points="9 21 3 21 3 15" />
-      <line x1="21" y1="3" x2="14" y2="10" />
-      <line x1="3" y1="21" x2="10" y2="14" />
-    </svg>
-  );
-}
 
 function IconSearch() {
   return (
@@ -87,12 +70,32 @@ function IconCheck() {
   );
 }
 
-function IconRefresh() {
+function IconKanban() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <polyline points="23 4 23 10 17 10" />
-      <polyline points="1 20 1 14 7 14" />
-      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="7" height="18" rx="1" />
+      <rect x="14" y="3" width="7" height="12" rx="1" />
+    </svg>
+  );
+}
+
+function IconTable() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="4" width="18" height="16" rx="1" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <line x1="3" y1="15" x2="21" y2="15" />
+      <line x1="9" y1="4" x2="9" y2="20" />
+    </svg>
+  );
+}
+
+function IconLayers() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
     </svg>
   );
 }
@@ -113,19 +116,6 @@ function IconPlus({ size = 30 }: { size?: number }) {
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   );
-}
-
-function detectProjectFromPrompt(prompt: string, projects: Project[]): string | null {
-  const query = prompt.toLowerCase();
-  for (const project of projects) {
-    if (project.name && query.includes(project.name.toLowerCase())) {
-      return project.id;
-    }
-    if (project.client && project.client !== '—' && query.includes(project.client.toLowerCase())) {
-      return project.id;
-    }
-  }
-  return null;
 }
 
 const checkpointTimeMutedStyle = {
@@ -167,12 +157,10 @@ function ProjectCard({
   project,
   index,
   onExpand,
-  onAiUpdated,
 }: {
   project: Project;
   index: number;
   onExpand?: (project: Project) => void;
-  onAiUpdated?: (projectId: string, ai: string) => void;
 }) {
   const githubHref = resolveGithubHref(project);
   const repoBranch =
@@ -181,33 +169,50 @@ function ProjectCard({
       : project.sourceType === 'local_repo'
         ? project.localRepoBranch?.trim() || 'main'
         : null;
-  const repoLabel =
+  const repoTitle =
     repoBranch && project.repo !== '—'
       ? `${project.repo}:${repoBranch}`
       : project.repo;
+  const hasRepo = project.repo !== '—';
+  const repoBadgeStyle = useRepoBadgeStyle(project.repo);
+  const repoBadge =
+    hasRepo ? (
+      <RepoBadge repo={project.repo} title={repoTitle} className="mt-2" />
+    ) : null;
 
-  const repoMutedStyle = {
-    fontFamily: 'var(--font-body)',
-    color: 'color-mix(in srgb, var(--color-text) 52%, transparent)',
-  } as const;
+  const openProject = (
+    event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
+  ) => {
+    onExpand?.(project);
+    event.currentTarget.blur();
+  };
 
   return (
     <article
       id={`project-card-${project.id}`}
-      className="project-card group relative anim-fade-up flex h-full w-[330px] flex-none flex-col gap-[18px] border border-[var(--color-divider)] px-[22px] py-6"
-      style={{ animationDelay: `${0.08 + index * 0.06}s` }}
+      className="project-card group relative anim-fade-up flex w-[330px] flex-none cursor-pointer flex-col gap-[18px] border border-[var(--color-divider)] px-[22px] py-6"
+      style={{
+        animationDelay: `${0.08 + index * 0.06}s`,
+        ...(hasRepo
+          ? {
+              ...repoBadgeStyle,
+              borderTopWidth: 2,
+              borderTopColor:
+                'hsl(calc(var(--repo-badge-hue) * 1deg) 48% 48% / 0.72)',
+            }
+          : {}),
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir ${project.name}`}
+      onClick={openProject}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openProject(event);
+        }
+      }}
     >
-      {onExpand ? (
-        <button
-          type="button"
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center border border-[var(--color-divider)] bg-[var(--color-bg)] opacity-0 transition-[opacity,border-color,color] duration-150 group-hover:opacity-100 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-          style={{ color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}
-          aria-label={`Expandir ${project.name}`}
-          onClick={() => onExpand(project)}
-        >
-          <IconExpand />
-        </button>
-      ) : null}
       <header className="border-b border-[var(--color-divider)] pb-4 text-center">
         <h3
           className="font-[family-name:var(--font-heading)] text-[27px] font-semibold leading-[1.1] tracking-[0.01em]"
@@ -215,82 +220,63 @@ function ProjectCard({
         >
           {project.name}
         </h3>
-        {githubHref ? (
+        {githubHref && repoBadge ? (
           <a
             href={githubHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-[3px] block text-[13px] italic transition-colors hover:text-[var(--color-accent)]"
-            style={repoMutedStyle}
+            className="flex justify-center transition-opacity hover:opacity-80"
+            onClick={(event) => event.stopPropagation()}
           >
-            {repoLabel}
+            {repoBadge}
           </a>
         ) : (
-          <p className="mt-[3px] text-[13px] italic" style={repoMutedStyle}>
-            {repoLabel}
-          </p>
+          repoBadge
         )}
       </header>
 
-      <ProjectAiSummary
-        projectId={project.id}
-        summary={project.ai}
-        onUpdated={(ai) => onAiUpdated?.(project.id, ai)}
-      />
+      <div className="flex flex-col gap-5">
+        <ProjectAiSummary summary={project.ai} />
 
-      <div>
-        {project.checkpoints.length > 0 ? (
-          <>
-            <div className="mb-3 flex flex-col items-start gap-1">
-              <CheckpointCardDateRow
-                checkpoint={project.checkpoints[0]}
-                fallbackDate={project.topDate}
-                dateClassName="num text-[30px] leading-none text-[var(--color-accent-700)]"
-              />
-              <span
-                className="mt-2 line-clamp-5 w-full min-w-0 text-left text-[12px] italic leading-snug"
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
-                }}
-              >
-                {project.checkpoints[0]?.summary ||
-                  project.checkpoints[0]?.title ||
-                  'checkpoint resume'}
-              </span>
-            </div>
-            {project.checkpoints.length > 1 ? (
-              <div className="flex flex-col">
-                {project.checkpoints.slice(1).map((checkpoint, i) => (
-                  <div
-                    key={`${project.id}-cp-${i + 1}-${checkpoint.date}-${checkpoint.title}`}
-                    className="flex flex-col items-start gap-1 border-t border-[var(--color-divider)] py-2"
-                  >
-                    <CheckpointCardDateRow
-                      checkpoint={checkpoint}
-                      dateClassName="num text-[18px] leading-none"
-                      dateStyle={{
-                        color: 'color-mix(in srgb, var(--color-text) 62%, transparent)',
-                      }}
-                    />
-                    <span
-                      className="mt-2 line-clamp-5 w-full min-w-0 text-left text-[12px] leading-snug"
-                      style={{
-                        fontFamily: 'var(--font-body)',
-                        color: 'color-mix(in srgb, var(--color-text) 45%, transparent)',
-                      }}
-                    >
-                      {checkpoint.summary || checkpoint.title || 'checkpoint resume'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </>
-        ) : null}
+        {project.checkpoints.map((checkpoint, i) => (
+          <div
+            key={`${project.id}-cp-${i}-${checkpoint.date}-${checkpoint.title}`}
+            className="flex flex-col items-start gap-1"
+          >
+            <CheckpointCardDateRow
+              checkpoint={checkpoint}
+              fallbackDate={i === 0 ? project.topDate : undefined}
+              dateClassName={
+                i === 0
+                  ? 'num text-[30px] leading-none text-[var(--color-accent-700)]'
+                  : 'num text-[18px] leading-none'
+              }
+              dateStyle={
+                i === 0
+                  ? undefined
+                  : { color: 'color-mix(in srgb, var(--color-text) 62%, transparent)' }
+              }
+            />
+            <span
+              className={cn(
+                'mt-2 line-clamp-5 w-full min-w-0 text-left text-[12px] leading-snug',
+                i === 0 && 'italic',
+              )}
+              style={{
+                fontFamily: 'var(--font-body)',
+                color:
+                  i === 0
+                    ? 'color-mix(in srgb, var(--color-text) 55%, transparent)'
+                    : 'color-mix(in srgb, var(--color-text) 45%, transparent)',
+              }}
+            >
+              {checkpoint.summary || checkpoint.title || 'checkpoint resume'}
+            </span>
+          </div>
+        ))}
       </div>
 
-      <div className="border-t border-[var(--color-divider)] pt-1">
+      <div>
         {project.checklist.map((item) => (
           <div
             key={item.label}
@@ -331,21 +317,15 @@ function ProjectCard({
 }
 
 export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) {
-  const [prompt, setPrompt] = useState('');
-  const [aiReply, setAiReply] = useState<string | null>(null);
-  const [lastQuestion, setLastQuestion] = useState<string | null>(null);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [referencedProject, setReferencedProject] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
+  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortId | null>(null);
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [groupByRepo, setGroupByRepo] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -375,6 +355,15 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
     );
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [projects]);
+
+  const repos = useMemo(() => {
+    const set = new Set(
+      projects.map((p) => p.repo).filter((r) => r && r !== '—'),
+    );
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [projects]);
+
+  const repoHueMap = useMemo(() => buildRepoHueMap(repos), [repos]);
 
   const handleSettingsChange = useCallback((settings: WorkspaceSettings) => {
     setProjectsFolder(settings.projects_folder);
@@ -507,14 +496,6 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
     setSelectedProject((current) => (current?.id === id ? null : current));
   };
 
-  const handleAiSummaryUpdated = useCallback((projectId: string, ai: string) => {
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === projectId ? { ...project, ai } : project,
-      ),
-    );
-  }, []);
-
   const handleAgentCreated = (apiAgent: AgentApiResponse) => {
     const card = mapApiAgentToCard(apiAgent);
     setAgents((prev) => {
@@ -556,6 +537,10 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
       list = list.filter((p) => selectedClients.includes(p.client));
     }
 
+    if (selectedRepo) {
+      list = list.filter((p) => p.repo === selectedRepo);
+    }
+
     const activeSort = sortBy ?? DEFAULT_SORT;
 
     if (activeSort === 'checkpoint') {
@@ -571,7 +556,7 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
     }
 
     return list;
-  }, [projects, searchQuery, selectedClients, sortBy]);
+  }, [projects, searchQuery, selectedClients, selectedRepo, sortBy]);
 
   const filteredAgents = useMemo(() => {
     let list = [...agents];
@@ -611,284 +596,111 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
     );
   };
 
+  const toggleRepo = (repo: string) => {
+    setSelectedRepo((prev) => (prev === repo ? null : repo));
+  };
+
+  const [navOpen, setNavOpen] = useState(false);
+
   const scrollToProject = useCallback((projectId: string) => {
     requestAnimationFrame(() => {
-      document
-        .getElementById(`project-card-${projectId}`)
-        ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    });
-  }, []);
+      if (viewMode === 'table') {
+        document
+          .getElementById(`project-table-group-${projectId}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
 
-  useEffect(() => {
-    if (!referencedProject) return;
+      const card = document.getElementById(`project-card-${projectId}`);
+      const scroller = card?.closest('.pcards');
+      if (!(card instanceof HTMLElement) || !(scroller instanceof HTMLElement)) {
+        return;
+      }
 
-    const dismissReferencedProject = () => {
-      setReferencedProject(null);
-    };
+      const containerRect = scroller.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const delta =
+        cardRect.left +
+        cardRect.width / 2 -
+        (containerRect.left + containerRect.width / 2);
 
-    document.addEventListener('click', dismissReferencedProject);
-    return () => {
-      document.removeEventListener('click', dismissReferencedProject);
-    };
-  }, [referencedProject]);
-
-  const submitPrompt = async (text: string) => {
-    if (!aiConfigured || aiLoading) return;
-
-    const question = text.trim();
-    if (!question) return;
-
-    setLastQuestion(question);
-    setReferencedProject(null);
-    setAiLoading(true);
-    setAiError(null);
-
-    try {
-      const response = await fetch('/api/projects/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: question }),
+      scroller.scrollTo({
+        left: scroller.scrollLeft + delta,
+        behavior: 'smooth',
       });
-
-      if (!response.ok) {
-        let detail = 'Falha ao consultar a IA.';
-        try {
-          const body = await response.json();
-          if (typeof body?.detail === 'string') detail = body.detail;
-        } catch {
-          /* ignore */
-        }
-        throw new Error(detail);
-      }
-
-      const data: { answer?: string; referenced_project_id?: string | null } =
-        await response.json();
-      const answer = typeof data.answer === 'string' ? data.answer.trim() : '';
-      if (!answer) {
-        throw new Error('A IA retornou uma resposta vazia.');
-      }
-
-      setAiReply(answer);
-
-      const projectId =
-        (typeof data.referenced_project_id === 'string' && data.referenced_project_id) ||
-        detectProjectFromPrompt(question, projects);
-
-      const referenced = projects.find((project) => project.id === projectId);
-      if (referenced) {
-        setReferencedProject({ id: referenced.id, name: referenced.name });
-        scrollToProject(referenced.id);
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Falha ao consultar a IA.';
-      setAiError(message);
-      setAiReply(null);
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const handleSend = async () => {
-    const text = prompt.trim();
-    if (!text) return;
-    setPrompt('');
-    await submitPrompt(text);
-  };
-
-  const handleResend = async () => {
-    if (!lastQuestion) return;
-    await submitPrompt(lastQuestion);
-  };
+    });
+  }, [viewMode]);
 
   return (
-    <div className="flex min-h-dvh w-full flex-1 flex-col px-6 pb-[72px] pt-8 md:px-10">
-      {/* Tabs */}
-      <nav
-        className="anim-fade-up mb-9 flex shrink-0 items-baseline justify-center gap-10 pb-4"
-        aria-label="Seções"
-      >
-        {TABS.map((tab) => {
-          const active = activeTab === tab.id;
-          return (
-            <Link
-              key={tab.id}
-              href={tabHref(tab.id)}
-              className="cursor-pointer border-b-2 px-0.5 py-1 text-[18px] font-semibold tracking-[0.01em] transition-[color,border-color] duration-150"
-              style={{
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 600,
-                color: active
-                  ? 'var(--color-accent)'
-                  : 'color-mix(in srgb, var(--color-text) 55%, transparent)',
-                borderBottomColor: active ? 'var(--color-accent)' : 'transparent',
-                background: 'transparent',
-                textDecoration: 'none',
-              }}
-              aria-current={active ? 'page' : undefined}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </nav>
+    <div className="workspace-shell flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <WorkspaceGradientDefs />
+      <WorkspaceNavSidebar
+        activeTab={activeTab}
+        open={navOpen}
+        onOpenChange={setNavOpen}
+      />
 
+      <WorkspaceHeader open={navOpen} onOpenChange={setNavOpen} />
+
+      <div className="workspace-app-shell flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-[88px] pt-6 md:px-10">
       {activeTab === 'projects' && (
-        <div className="grid min-h-0 flex-1 grid-rows-[auto_auto_minmax(0,1fr)]">
-          {/* Prompt panel */}
-          <section
-            className="anim-fade-up relative mb-[52px] flex shrink-0 flex-col gap-4"
-            style={{
-              animationDelay: '0.05s',
-              minHeight: !aiConfigured && settingsLoaded ? 280 : undefined,
-            }}
-          >
-            {!aiConfigured && settingsLoaded && (
-              <div
-                className="anim-fade-in absolute inset-0 z-10 flex items-center justify-center px-6 py-8"
-                style={{
-                  background:
-                    'color-mix(in srgb, var(--color-bg) 88%, transparent)',
-                }}
-              >
-                <div className="w-full max-w-[460px] border border-[var(--color-divider)] bg-[var(--color-bg)] px-8 py-7 text-center shadow-[var(--shadow-md)]">
-                  <p className="chk mb-4">IA não configurada</p>
-                  <p
-                    className="mx-auto m-0 max-w-[34ch] text-[15px] leading-relaxed"
-                    style={{
-                      fontFamily: 'var(--font-body)',
-                      color: 'color-mix(in srgb, var(--color-text) 78%, transparent)',
-                    }}
-                  >
-                    Configure o provedor, modelo e API token em Settings antes de
-                    usar o assistente de IA.
-                  </p>
-                  <Link href={tabHref('settings')} className="btn btn-primary mt-6">
-                    Ir para Settings
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            <div
-              className="flex flex-col gap-4"
-              style={
-                !aiConfigured && settingsLoaded
-                  ? { opacity: 0.35, pointerEvents: 'none' }
-                  : undefined
-              }
-              aria-hidden={!aiConfigured && settingsLoaded}
-            >
-              <div className="relative mx-auto w-1/2">
-                <input
-                  className="input input-ai w-full text-base"
-                  style={{
-                    minHeight: 50,
-                    fontSize: 16,
-                    paddingRight: prompt.trim() ? 52 : undefined,
-                  }}
-                  placeholder="Descreva a tarefa ou faça uma pergunta ao agente…"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void handleSend();
-                  }}
-                  disabled={!aiConfigured || aiLoading}
-                />
-                {prompt.trim() ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary anim-fade-in absolute top-1/2 right-1.5 -translate-y-1/2"
-                    style={{ width: 38, minHeight: 38, padding: 0 }}
-                    aria-label="Enviar"
-                    onClick={() => void handleSend()}
-                    disabled={!aiConfigured || aiLoading}
-                  >
-                    <IconSend />
-                  </button>
-                ) : null}
-              </div>
-              {lastQuestion && (aiLoading || aiReply || aiError) ? (
-                <div className="anim-fade-in min-h-[150px] border border-[var(--color-divider)] p-5">
-                  <div className="mb-1.5 flex items-start justify-between gap-3">
-                    <p
-                      className="m-0 flex-1 text-[14px] leading-relaxed italic"
-                      style={{
-                        fontFamily: 'var(--font-body)',
-                        color: 'color-mix(in srgb, var(--color-text) 68%, transparent)',
-                      }}
-                    >
-                      {lastQuestion}
-                    </p>
-                    <button
-                      type="button"
-                      className="btn shrink-0"
-                      style={{ width: 36, minHeight: 36, padding: 0, border: 'none' }}
-                      onClick={() => void handleResend()}
-                      disabled={!aiConfigured || aiLoading}
-                      aria-label="Reenviar"
-                    >
-                      <IconRefresh />
-                    </button>
-                  </div>
-
-                  {aiLoading ? (
-                    <>
-                      <div className="chk mb-3.5">Consultando os projetos…</div>
-                      <AiResponseSkeleton />
-                    </>
-                  ) : null}
-
-                  {!aiLoading && aiError ? (
-                    <div
-                      className="text-[14px]"
-                      style={{
-                        background: 'var(--color-accent-100)',
-                        color: 'var(--color-accent-800)',
-                        fontFamily: 'var(--font-body)',
-                      }}
-                      role="alert"
-                    >
-                      {aiError}
-                    </div>
-                  ) : null}
-
-                  {!aiLoading && aiReply ? (
-                    <>
-                      <div className="chk mb-3.5">Resposta</div>
-                      <p
-                        className="m-0 text-[15px] leading-relaxed"
-                        style={{ fontFamily: 'var(--font-body)' }}
-                      >
-                        {aiReply}
-                      </p>
-                      {referencedProject ? (
-                        <p
-                          className="anim-fade-in m-0 mt-4 border-t border-[var(--color-divider)] pt-4 text-[14px]"
-                          style={{ fontFamily: 'var(--font-body)' }}
-                        >
-                          Projeto referenciado:{' '}
-                          <strong>{referencedProject.name}</strong>
-                        </p>
-                      ) : null}
-                    </>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          </section>
-
+        <RepoHueContext.Provider value={repoHueMap}>
+        <div className="flex flex-col">
           {/* Projects header + controls */}
           <div
-            className="anim-fade-up mb-1.5 flex min-h-10 shrink-0 items-start gap-5"
-            style={{ animationDelay: '0.1s' }}
+            className="anim-fade-up mb-1.5 flex shrink-0 flex-col gap-3"
+            style={{ animationDelay: '0.05s' }}
           >
-            <div className="flex flex-1 items-center gap-4 pt-2">
-              <span className="chk">Projects</span>
-              <span className="h-px flex-1 bg-[var(--color-divider)]" />
-            </div>
+            <div className="flex min-h-10 flex-wrap items-center gap-3 pt-2">
+              <span className="chk shrink-0">Projects</span>
 
-            <div className="flex flex-col items-end gap-3">
+              <div className="projects-view-toggle shrink-0">
+                <button
+                  type="button"
+                  className="fbtn"
+                  aria-pressed={viewMode === 'kanban'}
+                  onClick={() => setViewMode('kanban')}
+                  style={{
+                    background: viewMode === 'kanban' ? 'var(--color-accent-100)' : 'transparent',
+                    color: viewMode === 'kanban' ? 'var(--color-accent-700)' : 'var(--color-text)',
+                  }}
+                >
+                  <IconKanban />
+                  Kanban
+                </button>
+                <button
+                  type="button"
+                  className="fbtn"
+                  aria-pressed={viewMode === 'table'}
+                  onClick={() => setViewMode('table')}
+                  style={{
+                    background: viewMode === 'table' ? 'var(--color-accent-100)' : 'transparent',
+                    color: viewMode === 'table' ? 'var(--color-accent-700)' : 'var(--color-text)',
+                  }}
+                >
+                  <IconTable />
+                  Tabela
+                </button>
+              </div>
+
+              {viewMode === 'table' ? (
+                <button
+                  type="button"
+                  className="fbtn shrink-0"
+                  aria-pressed={groupByRepo}
+                  onClick={() => setGroupByRepo((value) => !value)}
+                  style={{
+                    background: groupByRepo ? 'var(--color-accent-100)' : 'transparent',
+                    borderColor: groupByRepo ? 'var(--color-accent)' : 'var(--color-divider)',
+                    color: groupByRepo ? 'var(--color-accent-700)' : 'var(--color-text)',
+                  }}
+                >
+                  <IconLayers />
+                  Agrupar por repositório
+                </button>
+              ) : null}
+
+              <span className="h-px min-w-8 flex-1 bg-[var(--color-divider)]" />
               <div className="flex items-center gap-2.5">
                 <button
                   type="button"
@@ -931,6 +743,30 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
                     <span>Buscar</span>
                   )}
                 </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {repos.length > 0 ? (
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    {repos.map((repo) => (
+                      <RepoBadge
+                        key={repo}
+                        repo={repo}
+                        active={selectedRepo === repo}
+                        onClick={() => toggleRepo(repo)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+
+                {repos.length > 0 ? (
+                  <span
+                    className="hidden h-5 w-px bg-[var(--color-divider)] sm:block"
+                    aria-hidden
+                  />
+                ) : null}
 
                 <button
                   type="button"
@@ -968,7 +804,7 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
               </div>
 
               {filterOpen && (
-                <div className="anim-fade-in flex flex-wrap items-center justify-end gap-2">
+                <div className="anim-fade-in flex flex-wrap items-center gap-2">
                   <span
                     className="text-[12px] italic"
                     style={{
@@ -1003,7 +839,7 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
               )}
 
               {sortOpen && (
-                <div className="anim-fade-in flex flex-wrap justify-end gap-2">
+                <div className="anim-fade-in flex flex-wrap gap-2">
                   {SORT_OPTIONS.map((opt) => {
                     const active = (sortBy ?? DEFAULT_SORT) === opt.id;
                     return (
@@ -1023,18 +859,24 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
             </div>
           </div>
 
-          {/* Project cards */}
-          <div className="pcards">
-            {filteredProjects.map((project, index) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                index={index}
-                onExpand={setSelectedProject}
-                onAiUpdated={handleAiSummaryUpdated}
-              />
-            ))}
-          </div>
+          {viewMode === 'kanban' ? (
+            <div className="pcards">
+              {filteredProjects.map((project, index) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  index={index}
+                  onExpand={setSelectedProject}
+                />
+              ))}
+            </div>
+          ) : (
+            <ProjectsTableView
+              projects={filteredProjects}
+              groupByRepo={groupByRepo}
+              onExpand={setSelectedProject}
+            />
+          )}
 
           {loadingProjects && (
             <p
@@ -1061,11 +903,19 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
             onUpdated={handleProjectUpdated}
             onDeleted={handleProjectDeleted}
           />
+
+          <ProjectAiChatPanel
+            projects={projects}
+            aiConfigured={aiConfigured}
+            settingsLoaded={settingsLoaded}
+            onReferencedProject={scrollToProject}
+          />
         </div>
+        </RepoHueContext.Provider>
       )}
 
       {activeTab === 'prompts' && (
-        <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)]">
+        <div className="flex flex-col">
           <section
             className="anim-fade-up relative mb-[52px] flex shrink-0 flex-col gap-4"
             style={{ animationDelay: '0.05s' }}
@@ -1157,6 +1007,7 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
       {activeTab === 'settings' && (
         <SettingsPanel onSettingsChange={handleSettingsChange} />
       )}
+      </div>
     </div>
   );
 }
