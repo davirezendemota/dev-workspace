@@ -1,11 +1,15 @@
 services:
   app:
     platform: linux/amd64
-    container_name: dev_workspace_app
+    container_name: dev_workspace_app_production
     env_file:
       - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
     image: ghcr.io/davirezendemota/dev-workspace:latest
-    pull_policy: always
+    pull_policy: if_not_present
     restart: unless-stopped
     depends_on:
       postgres:
@@ -30,7 +34,7 @@ services:
     build:
       context: ./mcp-server
       dockerfile: Dockerfile
-    container_name: dev_workspace_mcp
+    container_name: dev_workspace_mcp_production
     restart: unless-stopped
     depends_on:
       app:
@@ -48,7 +52,7 @@ services:
 
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: dev_workspace_postgres
+    container_name: dev_workspace_postgres_production
     restart: unless-stopped
     env_file:
       - .env
