@@ -7,6 +7,7 @@ import {
   bootstrapGithubProject,
   refreshStaleProjectSummaries,
 } from '@/app/lib/server/project-ai-summary';
+import { syncProjectsKnowledge } from '@/app/lib/server/project-knowledge';
 import {
   createProject,
   listProjects,
@@ -24,6 +25,12 @@ export async function GET(request: Request) {
 
     void refreshStaleProjectSummaries().catch((error) => {
       console.error('Falha ao atualizar resumos de IA em background:', error);
+    });
+
+    void syncProjectsKnowledge(
+      items.map((project) => project.id),
+    ).catch((error) => {
+      console.error('Falha ao indexar conhecimento dos projetos em background:', error);
     });
 
     return Response.json(items);

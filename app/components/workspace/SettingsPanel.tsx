@@ -29,6 +29,53 @@ const UI_MODE_OPTIONS = [
   { value: 'dark', label: 'Escuro' },
 ] as const;
 
+type VectorKnowledgeProjectStatus = {
+  id: string;
+  name: string;
+  expected_chunks: number;
+  indexed_chunks: number;
+  embedded_chunks: number;
+  last_indexed_at: string | null;
+  status: 'synced' | 'partial' | 'pending' | 'empty';
+};
+
+type VectorKnowledgeStatus = {
+  enabled: boolean;
+  database_configured: boolean;
+  embedding_configured: boolean;
+  embedding_provider: string;
+  embedding_model: string;
+  has_embedding_token: boolean;
+  projects_total: number;
+  projects_indexed: number;
+  expected_chunks_total: number;
+  indexed_chunks_total: number;
+  embedded_chunks_total: number;
+  progress_percent: number;
+  last_indexed_at: string | null;
+  projects: VectorKnowledgeProjectStatus[];
+};
+
+function formatDateTime(value: string | null): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('pt-BR');
+}
+
+function projectStatusLabel(status: VectorKnowledgeProjectStatus['status']): string {
+  switch (status) {
+    case 'synced':
+      return 'Sincronizado';
+    case 'partial':
+      return 'Parcial';
+    case 'empty':
+      return 'Sem conteúdo';
+    default:
+      return 'Pendente';
+  }
+}
+
 export type WorkspaceSettings = {
   projects_folder: string;
   agents_folder: string;
@@ -82,6 +129,28 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
   const [aiError, setAiError] = useState<string | null>(null);
   const [summaryPromptError, setSummaryPromptError] = useState<string | null>(null);
   const [appearanceError, setAppearanceError] = useState<string | null>(null);
+  const [vectorStatus, setVectorStatus] = useState<VectorKnowledgeStatus | null>(null);
+  const [vectorLoading, setVectorLoading] = useState(true);
+  const [vectorSyncing, setVectorSyncing] = useState(false);
+  const [vectorError, setVectorError] = useState<string | null>(null);
+
+  const loadVectorStatus = async () => {
+    try {
+      setVectorError(null);
+      const response = await fetch('/api/settings/vector-knowledge');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data: VectorKnowledgeStatus = await response.json();
+      setVectorStatus(data);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível carregar o status do banco vetorial.';
+      setVectorError(message);
+    } finally {
+      setVectorLoading(false);
+    }
+  };
 
   const applySettings = (data: WorkspaceSettings) => {
     setProjectsFolder(data.projects_folder);
@@ -134,11 +203,62 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
     };
 
     load();
+    void loadVectorStatus();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onSettingsChange]);
+
+  useEffect(() => {
+    if (!vectorSyncing) return;
+
+    const interval = window.setInterval(() => {
+      void loadVectorStatus();
+    }, 4000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [vectorSyncing]);
+
+  const handleReindexVectorKnowledge = async () => {
+    try {
+      setVectorSyncing(true);
+      setVectorError(null);
+
+      const response = await fetch('/api/settings/vector-knowledge', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        let detail = `Erro ${response.status}`;
+        try {
+          const body = await response.json();
+          if (typeof body?.detail === 'string') detail = body.detail;
+        } catch {
+          /* ignore */
+        }
+        throw new Error(detail);
+      }
+
+      toast.success('Reindexação do banco vetorial iniciada.');
+      await loadVectorStatus();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Falha ao iniciar reindexação.';
+      setVectorError(message);
+      toast.error(message);
+      setVectorSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!vectorSyncing || !vectorStatus) return;
+    if (vectorStatus.progress_percent >= 100) {
+      setVectorSyncing(false);
+    }
+  }, [vectorSyncing, vectorStatus]);
 
   const persistSettings = async (
     payload: Record<string, string>,
@@ -600,6 +720,231 @@ export default function SettingsPanel({ onSettingsChange }: SettingsPanelProps) 
             </button>
           </div>
         </form>
+      </section>
+
+      <section className="min-w-[min(100%,520px)] flex-[1_1_calc(50%-1rem)] border border-[var(--color-divider)] p-8">
+        <h2
+          className="mb-2 text-[28px] font-semibold"
+          style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}
+        >
+          Banco vetorial
+        </h2>
+        <p
+          className="mb-7 text-[14px] italic"
+          style={{
+            fontFamily: 'var(--font-body)',
+            color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+          }}
+        >
+          Progresso da indexação de embeddings usada pela IA de consulta (RAG).
+        </p>
+
+        {vectorError ? (
+          <div
+            className="mb-4 border border-[var(--color-accent)] px-3 py-2.5 text-[13px]"
+            style={{
+              background: 'var(--color-accent-100)',
+              color: 'var(--color-accent-800)',
+              fontFamily: 'var(--font-body)',
+            }}
+            role="alert"
+          >
+            {vectorError}
+          </div>
+        ) : null}
+
+        {vectorLoading ? (
+          <p
+            className="m-0 text-[14px] italic"
+            style={{
+              fontFamily: 'var(--font-body)',
+              color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+            }}
+          >
+            Carregando status…
+          </p>
+        ) : vectorStatus ? (
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="chk mb-1">
+                  {vectorStatus.enabled ? 'RAG ativo' : 'RAG indisponível'}
+                </p>
+                <p
+                  className="m-0 text-[13px]"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    color: 'color-mix(in srgb, var(--color-text) 65%, transparent)',
+                  }}
+                >
+                  {vectorStatus.embedding_provider} · {vectorStatus.embedding_model}
+                </p>
+              </div>
+              <span
+                className="text-[12px] tracking-[0.06em] uppercase"
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  color: vectorStatus.enabled
+                    ? 'var(--color-accent-700)'
+                    : 'color-mix(in srgb, var(--color-text) 48%, transparent)',
+                }}
+              >
+                {vectorStatus.progress_percent}%
+              </span>
+            </div>
+
+            <div
+              className="h-[6px] w-full bg-[color-mix(in_srgb,var(--color-text)_10%,transparent)]"
+              role="progressbar"
+              aria-valuenow={vectorStatus.progress_percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Progresso de embedding"
+            >
+              <div
+                className="h-full bg-[var(--color-accent)] transition-[width] duration-500"
+                style={{ width: `${vectorStatus.progress_percent}%` }}
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <p
+                className="m-0 text-[13px]"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Projetos:{' '}
+                <strong>
+                  {vectorStatus.projects_indexed}/{vectorStatus.projects_total}
+                </strong>{' '}
+                sincronizados
+              </p>
+              <p
+                className="m-0 text-[13px]"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Chunks:{' '}
+                <strong>
+                  {vectorStatus.embedded_chunks_total}/{vectorStatus.expected_chunks_total}
+                </strong>{' '}
+                com embedding
+              </p>
+              <p
+                className="m-0 text-[13px] sm:col-span-2"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  color: 'color-mix(in srgb, var(--color-text) 65%, transparent)',
+                }}
+              >
+                Última indexação: {formatDateTime(vectorStatus.last_indexed_at)}
+              </p>
+            </div>
+
+            {!vectorStatus.database_configured ? (
+              <p
+                className="m-0 text-[13px]"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  color: 'var(--color-accent-800)',
+                }}
+              >
+                Configure <code>DATABASE_URL</code> para habilitar o Postgres com pgvector.
+              </p>
+            ) : null}
+
+            {vectorStatus.database_configured && !vectorStatus.embedding_configured ? (
+              <p
+                className="m-0 text-[13px]"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  color: 'var(--color-accent-800)',
+                }}
+              >
+                Configure <code>AI_EMBEDDING_API_TOKEN</code> (OpenAI) no ambiente para gerar
+                embeddings.
+              </p>
+            ) : null}
+
+            {vectorStatus.projects.length > 0 ? (
+              <div className="border border-[var(--color-divider)]">
+                <div
+                  className="grid grid-cols-[minmax(0,1.4fr)_auto_auto] gap-3 border-b border-[var(--color-divider)] px-3 py-2 text-[11px] tracking-[0.06em] uppercase"
+                  style={{
+                    fontFamily: 'var(--font-heading)',
+                    color: 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+                  }}
+                >
+                  <span>Projeto</span>
+                  <span>Chunks</span>
+                  <span>Status</span>
+                </div>
+                <ul className="m-0 max-h-[220px] list-none overflow-y-auto p-0">
+                  {vectorStatus.projects.map((project) => (
+                    <li
+                      key={project.id}
+                      className="grid grid-cols-[minmax(0,1.4fr)_auto_auto] items-center gap-3 border-b border-[var(--color-divider)] px-3 py-2.5 last:border-b-0"
+                    >
+                      <div className="min-w-0">
+                        <p
+                          className="m-0 truncate text-[13px] font-medium"
+                          style={{ fontFamily: 'var(--font-body)' }}
+                          title={project.name}
+                        >
+                          {project.name}
+                        </p>
+                        <p
+                          className="m-0 truncate text-[11px]"
+                          style={{
+                            fontFamily: 'var(--font-body)',
+                            color: 'color-mix(in srgb, var(--color-text) 48%, transparent)',
+                          }}
+                        >
+                          {project.id}
+                        </p>
+                      </div>
+                      <span
+                        className="text-[12px] tabular-nums"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      >
+                        {project.embedded_chunks}/{project.expected_chunks}
+                      </span>
+                      <span
+                        className="text-[11px] tracking-[0.04em] uppercase"
+                        style={{
+                          fontFamily: 'var(--font-heading)',
+                          color:
+                            project.status === 'synced'
+                              ? 'var(--color-accent-700)'
+                              : 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+                        }}
+                      >
+                        {projectStatusLabel(project.status)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => void loadVectorStatus()}
+                disabled={vectorLoading || vectorSyncing}
+              >
+                Atualizar
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => void handleReindexVectorKnowledge()}
+                disabled={!vectorStatus.enabled || vectorSyncing}
+              >
+                {vectorSyncing ? 'Reindexando…' : 'Reindexar agora'}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="min-w-[min(100%,520px)] flex-[1_1_calc(50%-1rem)] border border-[var(--color-divider)] p-8">
