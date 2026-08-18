@@ -1,6 +1,6 @@
 # 011 Install-kit · skill-dev-workspace
 
-> **Última atualização:** 2026-07-30
+> **Última atualização:** 2026-08-18
 
 ---
 
@@ -8,13 +8,13 @@
 
 Repos de produto usam `.specs/` genérico para requisitos e checklist. O Dev Workspace
 lê esses arquivos e oferece UI, resumo de IA, tasks e integrações. O agent-cli precisa
-de um caminho **simples** para consumir a API do DW (planejamento, pendências) sem
-dezenas de arquivos de bootstrap no consumidor.
+de um caminho **simples** para consumir o DW (planejamento, pendências) via MCP ou API,
+sem dezenas de arquivos de bootstrap no consumidor.
 
 ## 2. Objetivo
 
-O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`** + **skill
-`dev-workspace`**, copiada de um único arquivo canônico `skill-dev-workspace.md`.
+O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`**, **consumidor MCP**
+(`.cursor/mcp.json`) e **skill `dev-workspace`**, copiada de `skill-dev-workspace.md`.
 
 ## 3. Escopo
 
@@ -22,33 +22,32 @@ O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`** +
 
 **Repo canônico (`dev-workspace`)**
 
-- `install-kit/install.sh` — instala `.env` + skill (Cursor + Claude)
+- `install-kit/install.sh` — instala `.env`, `mcp.json`, skill (Cursor + Claude)
 - `install-kit/skill-dev-workspace.md` — prompt único da skill (fonte de verdade)
-- `install-kit/.env.example`
-- API REST com Bearer token (`WORKSPACE_API_TOKEN` no container, logs no startup)
-- Middleware `/api/*` (same-origin UI exempt)
+- `install-kit/command-dev-workspace.md` — comando `/dev-workspace`
+- `install-kit/mcp.json.example`, `.env.example`
+- Servidor MCP central (spec 017) + API REST com Bearer token
 - README com comando de instalação
 
 **Repo consumidor (após `install.sh`)**
 
-- `.dev-workspace/.env` — conexão (`ROOT` ou `URL` + token)
-- `.dev-workspace/.env.example`, `.dev-workspace/install.sh` (re-run `--merge`)
-- `.cursor/skills/dev-workspace/SKILL.md`
-- `.claude/skills/dev-workspace/SKILL.md`
+- `.dev-workspace/.env` — conexão (`ROOT` ou `URL` + token consumidor + `MCP_URL`)
+- `.cursor/mcp.json` — consumidor scoped (gitignored)
+- `.cursor/skills/dev-workspace/SKILL.md`, `.claude/skills/dev-workspace/SKILL.md`
 
 **Skill `dev-workspace`**
 
+- Preferir MCP; fallback API (`curl`)
 - Lê `.dev-workspace/.env`
-- Resolve projetos DW por `local_path` = raiz do repo (`GET /api/projects`)
-- Pendências, tasks, checklist agregado, resumo IA, `ask` cross-project
-- Diferencia uso vs `.specs/` (specs no repo; DW para planejamento consolidado)
+- Resolve projetos DW por `local_path` = raiz do repo
+- Pendências, tasks, checkpoints (incl. PDF), milestones, plans, resumo IA, `ask`
+- Diferencia uso vs `.specs/`
 
 ### Fora do escopo
 
 - `projects.json` ou outro manifesto de projetos no consumidor
-- Pasta `templates/`, rules, commands, bootstrap manual no consumidor
-- Instalar `.dev-workspace/` na raiz do repo `dev-workspace`
-- Servidor MCP
+- Pasta `templates/`, rules, bootstrap manual no consumidor
+- Instalar `.dev-workspace/` na raiz do repo `dev-workspace` (exceto testes locais)
 - Substituir o kit `.specs/` nos repos de produto
 
 ## 4. Requisitos
@@ -57,10 +56,11 @@ O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`** +
 
 - **RF1:** `install.sh` copia `skill-dev-workspace.md` → skills Cursor e Claude.
 - **RF2:** `install.sh` cria ou preserva ( `--merge`) `.dev-workspace/.env`.
-- **RF3:** Skill documenta conexão, modos (local/api/auto), endpoints e setup curl.
-- **RF4:** Container DW gera `DEV_WORKSPACE_API_TOKEN` no startup e exibe nos logs.
-- **RF5:** API externa exige `Authorization: Bearer <token>`; UI same-origin sem token.
-- **RF6:** Um repo consumidor pode mapear a vários projetos DW (filtro `local_path`).
+- **RF3:** Skill documenta MCP (consumidor), API, endpoints e distinção vs `.specs/`.
+- **RF4:** `install.sh` gera `.cursor/mcp.json` com token consumidor e `DEV_WORKSPACE_MCP_URL`.
+- **RF5:** Container DW gera `DEV_WORKSPACE_API_TOKEN` no startup e exibe nos logs.
+- **RF6:** API externa exige `Authorization: Bearer <token>`; UI same-origin sem token.
+- **RF7:** Um repo consumidor pode mapear a vários projetos DW (filtro `local_path`).
 
 ### Não-funcionais
 
@@ -73,13 +73,13 @@ O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`** +
 ### Instalação
 
 1. Na raiz do consumidor: `./install-kit/install.sh . --dw-root /path/to/dev-workspace`.
-2. Script cria `.dev-workspace/.env` e instala skill em `.cursor/` e `.claude/`.
-3. Usuário registra projeto no DW com `local_path` → consumidor.
+2. Script cria `.dev-workspace/.env`, `.cursor/mcp.json` e skills em `.cursor/` e `.claude/`.
+3. Usuário registra projeto no DW com `local_path` → consumidor; recarrega MCP no Cursor.
 
 ### Uso pelo agente
 
-1. Usuário pede pendências, tasks ou resumo → skill `dev-workspace` ativada.
-2. Skill lê `.env`, resolve projeto(s), chama API DW.
+1. Usuário pede pendências, tasks, checkpoint de PDF ou resumo → skill `dev-workspace` + MCP.
+2. Skill/MCP usam token consumidor; scope por `local_path`.
 3. Autorar specs / editar ACs → fluxo `.specs/` (permitido em paralelo).
 
 ### Arquitetura de responsabilidades
@@ -88,7 +88,7 @@ O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`** +
 |--------|--------|
 | `.specs/` no repo | Specs genéricas — ler/editar no repo |
 | Dev Workspace | Lê `.specs` dos repos, UI + API + resumo IA + tasks |
-| `skill-dev-workspace` | Consome API DW para planejamento e pendências |
+| `skill-dev-workspace` | Consome DW via MCP (preferido) ou API |
 
 ## 6. Critérios de aceite
 
@@ -96,7 +96,7 @@ O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`** +
 - **AC2:** Dado um diretório temporário, quando `install.sh` roda, então existem `.dev-workspace/.env` e skills em `.cursor/skills/dev-workspace/` e `.claude/skills/dev-workspace/` copiadas de `skill-dev-workspace.md`.
 - **AC3:** Dado `--merge`, quando `install.sh` roda com `.env` existente, então `.env` é preservado e a skill é atualizada.
 - **AC4:** Dado o container DW ao iniciar, então `DEV_WORKSPACE_API_TOKEN` aparece nos logs.
-- **AC5:** Dado `skill-dev-workspace.md`, quando lido, então cobre conexão, resolução de projetos, endpoints API e distinção vs `.specs/`.
+- **AC5:** Dado `skill-dev-workspace.md`, quando lido, então cobre MCP consumidor, API, projetos e vs `.specs/`.
 - **AC6:** Dado o README do repo canônico, quando lido, então há seção Bridge com instalação em um comando.
 
 ## 7. Decisões e alternativas consideradas

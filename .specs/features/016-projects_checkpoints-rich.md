@@ -1,6 +1,6 @@
 # 016 Projects · Checkpoints com atas e descrição markdown
 
-> **Última atualização:** 2026-08-12
+> **Última atualização:** 2026-08-18
 
 ---
 
@@ -24,10 +24,12 @@ projeto.
 - Normalização/serialização retrocompatível com checkpoints legados (`summary` preservado)
 - Botão expandir ao lado de “Gerar resumo” abre sidebar à direita com título, atas e descrição renderizada
 - Resumo IA (`summary`) continua na timeline como preview curto
+- `POST /api/projects/{id}/checkpoints/parse-pdf` — extrai texto de PDF (transcrição)
+- Agentes: criar/alterar checkpoints via MCP após aprovação (spec 017 + skill)
 
 ### Fora do escopo
-- Editor in-app de checkpoints/atas (continua via JSON)
-- Upload de anexos binários
+- Editor in-app de checkpoints/atas (JSON / MCP após aprovação)
+- Armazenar PDF binário no DW (só texto extraído em `atas`)
 - Vínculo formal ata ↔ milestone
 
 ## 4. Requisitos
