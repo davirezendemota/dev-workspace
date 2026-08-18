@@ -1,6 +1,6 @@
 # 006 Projects · Modal dashboard
 
-> **Última atualização:** 2026-07-30
+> **Última atualização:** 2026-08-18
 
 ---
 
@@ -21,9 +21,9 @@ repositório local ou GitHub vinculado ao projeto.
 
 ### Dentro do escopo
 - Botão expandir no card de projeto (hover) abre `ProjectDetailModal`
-- Modal com cabeçalho (nome, repo) e abas **Spec checklist**, **Tasks** (spec 008) e **Settings** (spec 009)
-- `ProjectSpecChecklist` com métricas agregadas de ACs (AC2 — pendente na UI)
-- Tabela por spec: AC, descrição, status (badge), data de conclusão, issues e PRs
+- Modal com cabeçalho (nome, repo) e abas **Features** (specs/ACs), **Tasks** (spec 008), **Settings** (spec 009), mais Grafo, Milestones, Planos e Checkpoints
+- Métricas agregadas de ACs no backend (`stats` em spec-checklist); cards de estatística na UI (AC2 — pendente)
+- Aba Features: sidebar de specs + lista de ACs com descrição, badge de status, data de conclusão, issues e PRs
 - Busca por AC, descrição, status, hash ou data de conclusão
 - API `GET /api/projects/{id}/spec-checklist`
 - Leitura do checklist a partir de:

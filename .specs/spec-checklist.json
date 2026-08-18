@@ -1,7 +1,7 @@
 {
   "$schema": "./spec-checklist.schema.json",
   "version": 1,
-  "updatedAt": "2026-07-30T22:00:00-03:00",
+  "updatedAt": "2026-08-18",
   "projects": [
     {
       "id": "workspace",
@@ -224,9 +224,10 @@
             {
               "ac": "AC4",
               "description": "Criação GitHub grava JSON local e lê specs do spec-checklist remoto",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "6da6797fe7a89730cf015c146abd5d4d3148283e"
             },
             {
               "ac": "AC5",
@@ -643,9 +644,10 @@
             {
               "ac": "AC7",
               "description": "Projeto GitHub legado com tasks remotas migra para JSON embutido",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "6da6797fe7a89730cf015c146abd5d4d3148283e"
             }
           ]
         },
@@ -733,46 +735,51 @@
             {
               "ac": "AC1",
               "description": "Settings exibe seletores separados de Tema e Modo",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "d67bb7b7d063c51a99b700040cbd7528db681353"
             },
             {
               "ac": "AC2",
               "description": "Tema e modo são persistidos e aplicados imediatamente",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "d67bb7b7d063c51a99b700040cbd7528db681353"
             },
             {
               "ac": "AC3",
               "description": "Tema GitHub oferece identidade visual própria em claro e escuro",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "d67bb7b7d063c51a99b700040cbd7528db681353"
             },
             {
               "ac": "AC4",
               "description": "Configuração legada preserva modo e migra para Classic",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "d67bb7b7d063c51a99b700040cbd7528db681353"
             },
             {
               "ac": "AC5",
               "description": "Tema e modo recarregam sem flash visual",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "d67bb7b7d063c51a99b700040cbd7528db681353"
             }
           ]
         },
@@ -784,36 +791,40 @@
             {
               "ac": "AC1",
               "description": "install-kit/ com install.sh, .env.example e skill-dev-workspace.md na raiz",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "61dfe895e996a217f8bd170b92ff56c3ea8be012"
             },
             {
               "ac": "AC2",
               "description": "install.sh instala .env e skills Cursor/Claude no consumidor",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "61dfe895e996a217f8bd170b92ff56c3ea8be012"
             },
             {
               "ac": "AC3",
               "description": "install.sh --merge preserva .env e atualiza skill",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "61dfe895e996a217f8bd170b92ff56c3ea8be012"
             },
             {
               "ac": "AC4",
               "description": "API token gerado no container e exibido nos logs",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "7a3c85a64d1793ea1e2b934fe5cf40db6dd5fc9d"
             },
             {
               "ac": "AC5",
@@ -828,12 +839,13 @@
             {
               "ac": "AC6",
               "description": "README documenta instalação Bridge em um comando",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "b43324cb2b950c74e7c8b24b172c5496708d106a"
             }
           ]
         },
@@ -845,59 +857,65 @@
             {
               "ac": "AC1",
               "description": "Aba Milestones no modal de projeto para todos os tipos",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "426993726be3cf9dd175fb0854b8decb041fe08d"
             },
             {
               "ac": "AC2",
               "description": "GET milestones retorna lista vazia quando ausente",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "10b30c40ecd32efc3bd54ea535d005326f48fc44"
             },
             {
               "ac": "AC3",
               "description": "CRUD persiste milestones no JSON do projeto",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "10b30c40ecd32efc3bd54ea535d005326f48fc44"
             },
             {
               "ac": "AC4",
               "description": "UI vincula e exibe specs do checklist por specIds",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC3"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "426993726be3cf9dd175fb0854b8decb041fe08d"
             },
             {
               "ac": "AC5",
               "description": "Checkpoint Planejar milestone pré-preenche sem vínculo",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC3"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "426993726be3cf9dd175fb0854b8decb041fe08d"
             },
             {
               "ac": "AC6",
               "description": "PUT com title vazio retorna 400",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "10b30c40ecd32efc3bd54ea535d005326f48fc44"
             }
           ]
         },
@@ -912,59 +930,65 @@
             {
               "ac": "AC1",
               "description": "Aba Planos no modal de projeto para todos os tipos",
-              "status": "in-progress",
+              "status": "done",
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "426993726be3cf9dd175fb0854b8decb041fe08d"
             },
             {
               "ac": "AC2",
               "description": "GET plans retorna lista vazia quando ausente",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC1"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "10b30c40ecd32efc3bd54ea535d005326f48fc44"
             },
             {
               "ac": "AC3",
               "description": "POST generate adiciona plano com passos via IA",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "10b30c40ecd32efc3bd54ea535d005326f48fc44"
             },
             {
               "ac": "AC4",
               "description": "UI lista planos da milestone do mais recente ao mais antigo",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "426993726be3cf9dd175fb0854b8decb041fe08d"
             },
             {
               "ac": "AC5",
               "description": "Expandir plano exibe o texto do plano",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC4"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "426993726be3cf9dd175fb0854b8decb041fe08d"
             },
             {
               "ac": "AC6",
               "description": "Skill documenta PUT plans após aprovação e tasks somente leitura",
-              "status": "in-progress",
+              "status": "done",
               "after": [
                 "AC2"
               ],
               "issues": [],
-              "prs": []
+              "prs": [],
+              "completedCommit": "61dfe895e996a217f8bd170b92ff56c3ea8be012"
             }
           ]
         },
@@ -1081,6 +1105,124 @@
               "issues": [],
               "prs": [],
               "completedCommit": "256d9ee36a788e07a2bbdd61a85fe65b49893ec5"
+            }
+          ]
+        },
+        {
+          "specId": "016",
+          "specFile": "features/016-projects_checkpoints-rich.md",
+          "title": "Checkpoints com atas e descrição markdown",
+          "after": [
+            "003"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Descrição markdown renderizada no painel expandido",
+              "status": "done",
+              "issues": [],
+              "prs": [],
+              "completedCommit": "085ce6f54bf30e547ef42fc74f35b1b150ee3c75"
+            },
+            {
+              "ac": "AC2",
+              "description": "Atas listadas em coluna no painel expandido",
+              "status": "done",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "085ce6f54bf30e547ef42fc74f35b1b150ee3c75"
+            },
+            {
+              "ac": "AC3",
+              "description": "Checkpoint legado com summary exibe fallback no painel",
+              "status": "done",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "085ce6f54bf30e547ef42fc74f35b1b150ee3c75"
+            },
+            {
+              "ac": "AC4",
+              "description": "API persiste description e atas sem truncar",
+              "status": "done",
+              "after": [
+                "AC1",
+                "AC2"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "085ce6f54bf30e547ef42fc74f35b1b150ee3c75"
+            }
+          ]
+        },
+        {
+          "specId": "017",
+          "specFile": "features/017-mcp-server.md",
+          "title": "MCP Python para Cursor",
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "mcp-server/ com FastMCP, Dockerfile e README",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "compose files incluem service mcp com porta exposta",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Tools cobrem endpoints principais da API DW",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": ".env.example e README documentam portas e consumidor MCP",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "MCP repassa Bearer do cliente; install-kit gera mcp.json scoped",
+              "status": "in-progress",
+              "after": [
+                "AC1",
+                "AC3"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "MCP/API: criar checkpoint, PDF transcrição, resumo IA",
+              "status": "in-progress",
+              "after": [
+                "AC3",
+                "AC5"
+              ],
+              "issues": [],
+              "prs": []
             }
           ]
         }

@@ -1,5 +1,11 @@
 import { ApiError } from './api-error';
 import { listProjects } from './projects';
+import {
+  buildKnowledgeContext,
+  isProjectKnowledgeEnabled,
+  searchProjectKnowledge,
+  syncProjectsKnowledge,
+} from './project-knowledge';
 import { aiConfig, isAiConfigured } from './workspace-config';
 
 export type ProjectAskResult = {
@@ -37,10 +43,23 @@ export async function askAboutProjects(
     allowedProjectIds && allowedProjectIds.length > 0
       ? items.filter((project) => allowedProjectIds.includes(project.id))
       : items;
-  const summaries = scopedItems.map((project) => summarizeProject(project));
-  const validIds = summaries.map((project) => project.id);
+  const validIds = scopedItems.map((project) => project.id);
 
-  const systemPrompt = buildSystemPrompt(summaries);
+  if (isProjectKnowledgeEnabled()) {
+    await syncProjectsKnowledge(validIds);
+    const matches = await searchProjectKnowledge(userPrompt, validIds, 12);
+    if (matches.length > 0) {
+      const systemPrompt = buildRagSystemPrompt(
+        scopedItems.map((project) => ({ id: project.id, name: project.name })),
+        matches,
+      );
+      const raw = await completeChat(systemPrompt, userPrompt);
+      return parseAiResponse(raw, validIds);
+    }
+  }
+
+  const summaries = scopedItems.map((project) => summarizeProject(project));
+  const systemPrompt = buildLegacySystemPrompt(summaries);
   const raw = await completeChat(systemPrompt, userPrompt);
 
   return parseAiResponse(raw, validIds);
@@ -78,7 +97,38 @@ function summarizeProject(project: {
   };
 }
 
-function buildSystemPrompt(projects: ProjectSummary[]): string {
+function buildRagSystemPrompt(
+  projects: Array<{ id: string; name: string }>,
+  matches: Array<{ project_id: string; source_kind: string; source_ref: string; content: string }>,
+): string {
+  const context = buildKnowledgeContext(
+    matches.map((match) => ({
+      id: 0,
+      project_id: match.project_id,
+      source_kind: match.source_kind,
+      source_ref: match.source_ref,
+      chunk_index: 0,
+      content: match.content,
+      metadata: {},
+      similarity: 0,
+    })),
+    projects,
+  );
+
+  return [
+    'Você é um assistente que responde dúvidas sobre os projetos de um workspace.',
+    'Use apenas os trechos de contexto recuperados abaixo. Se não souber, diga que não encontrou a informação.',
+    'Quando a pergunta for sobre um projeto específico, preencha referenced_project_id com o id exato desse projeto.',
+    'Quando a pergunta for geral ou envolver vários projetos, use referenced_project_id como null.',
+    'Responda em português do Brasil.',
+    'Responda APENAS com JSON válido no formato:',
+    '{"answer":"texto da resposta","referenced_project_id":"id-do-projeto ou null"}',
+    '',
+    context,
+  ].join('\n');
+}
+
+function buildLegacySystemPrompt(projects: ProjectSummary[]): string {
   return [
     'Você é um assistente que responde dúvidas sobre os projetos de um workspace.',
     'Use apenas as informações dos projetos fornecidos. Se não souber, diga que não encontrou a informação.',

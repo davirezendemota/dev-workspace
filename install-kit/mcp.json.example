@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "dev-workspace": {
+      "url": "http://localhost:3011/mcp",
+      "headers": {
+        "Authorization": "Bearer <DEV_WORKSPACE_API_TOKEN>"
+      }
+    }
+  }
+}

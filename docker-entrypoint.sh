@@ -39,6 +39,11 @@ echo "DEV_WORKSPACE_API_TOKEN=$WORKSPACE_API_TOKEN"
 echo "============================================================"
 echo ""
 
+if [ "${NODE_ENV:-}" = "development" ] && [ -f /app/package.json ]; then
+  npm install
+  chown -R "${PUID}:${PGID}" /app/node_modules /app/.next 2>/dev/null || true
+fi
+
 run_as_app() {
   exec su-exec "${PUID}:${PGID}" env WORKSPACE_API_TOKEN="$WORKSPACE_API_TOKEN" "$@"
 }

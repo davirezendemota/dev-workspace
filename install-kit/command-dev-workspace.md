@@ -1,15 +1,17 @@
 # /dev-workspace
 
-Consumir o Dev Workspace **via API** usando a skill `.cursor/skills/dev-workspace/SKILL.md`.
+Consumir o Dev Workspace via **MCP** (preferido) ou API, usando a skill `.cursor/skills/dev-workspace/SKILL.md`.
 
 ## Regras
 
-1. `source .dev-workspace/.env` — exige `DEV_WORKSPACE_URL` + `DEV_WORKSPACE_API_TOKEN`.
-2. **Não** ler `workspace_data/` nem JSON de projetos com Read/Grep — só `curl` na API.
-3. Resolver o project id deste repo quando o pedido for sobre **este** projeto (`GET /api/projects`, filtrar `local_path`).
-4. Formatar respostas conforme a skill (checkpoints, milestones, plans, features, tasks, projects, pendências → diagrama ASCII; importar → gravar arquivo).
-5. **Plano aprovado** pelo usuário → cadastrar no DW via `PUT /api/projects/{id}/plans` com **`id` único**; informar o `id` ao usuário (ver skill § Plans).
-6. **Tasks:** somente `GET` — **nunca** `PUT /api/projects/{id}/tasks`.
+1. `source .dev-workspace/.env` — exige `DEV_WORKSPACE_URL` + `DEV_WORKSPACE_API_TOKEN` (consumidor).
+2. **Preferir tools MCP** `dev-workspace` (`.cursor/mcp.json`) — `list_projects`, `get_checkpoints`, `add_checkpoint_from_pdf`, etc.
+3. Fallback API: **não** ler `workspace_data/` — só `curl` se MCP indisponível.
+4. Resolver o project id deste repo quando o pedido for sobre **este** projeto (`list_projects` / `GET /api/projects`).
+5. Formatar respostas conforme a skill (diagrama ASCII para listas; importar → gravar arquivo).
+6. **Plano aprovado** → `update_plans` (MCP) ou `PUT /api/projects/{id}/plans` com **`id` único**.
+7. **Checkpoint / PDF reunião** → `add_checkpoint_from_pdf` ou `upsert_checkpoint` após aprovação; opcional `generate_checkpoint_summary`.
+8. **Tasks:** somente leitura — nunca `PUT` tasks.
 
 Pedido: `$ARGUMENTS`
 
@@ -17,20 +19,20 @@ Pedido: `$ARGUMENTS`
 
 | Pedido | Ação |
 |--------|------|
-| Vazio | Checkpoints deste repo (diagrama ASCII) |
-| `milestones` / `roadmap` | Milestones (diagrama ASCII) |
-| `plans` / `plano` / `P001` / `plan {id}` / `plan-milestone` | Planos de ação (diagrama ASCII; citar `PXXX` ou `id`) |
-| `features` / `specs` | Features do checklist (diagrama ASCII) |
-| `tasks` / `tarefas` | Tasks do projeto (diagrama ASCII) |
-| `projects` / `projetos` | Projetos deste repo no DW (diagrama ASCII) |
-| `pendências` / `checklist` | ACs pendentes (diagrama ASCII) |
-| `importar …` / `import …` | Buscar prompt na API → gravar `.cursor/commands/{id}.md` + atualizar `.dev-workspace/imported-prompts.json` (ver skill § Importar prompt) |
-| Outros | Seguir skill (`pendências`, `tasks`, `milestones`, `plans`, `resumo`, listar prompts, …) |
+| Vazio | Checkpoints deste repo (MCP `get_checkpoints` ou API) |
+| `milestones` / `roadmap` | Milestones |
+| `plans` / `plano` / `P001` | Planos de ação |
+| `features` / `specs` | Features do checklist |
+| `tasks` / `tarefas` | Tasks (somente leitura) |
+| `projects` / `projetos` | Projetos deste repo no DW |
+| `pendências` / `checklist` | ACs pendentes |
+| PDF / transcrição / reunião | `parse_pdf_transcript` → aprovar → `add_checkpoint_from_pdf` |
+| `importar …` / `import …` | Prompt da API → `.cursor/commands/{id}.md` |
+| Outros | Seguir skill (resumo, ask, …) |
 
 Exemplos:
 
 - `/dev-workspace importar o prompt gsync main`
-- `/dev-workspace importar gsync-main`
 - `/dev-workspace checkpoints`
 - `/dev-workspace milestones`
 - `/dev-workspace plans`

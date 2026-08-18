@@ -5,6 +5,7 @@ import path from 'path';
 import { ApiError } from './api-error';
 import {
   latestCheckpointSortKey,
+  normalizeCheckpointDateString,
   normalizeCheckpoints,
   serializeCheckpoints,
   type Checkpoint,
@@ -339,7 +340,7 @@ export function updateProjectCheckpoints(
 
   const latestDate = checkpoints.find((item) => item.date.trim())?.date.trim();
   if (latestDate) {
-    body.topDate = latestDate;
+    body.topDate = normalizeCheckpointDateString(latestDate);
   }
 
   overwriteJsonFile(filePath, withMeta(body, meta));

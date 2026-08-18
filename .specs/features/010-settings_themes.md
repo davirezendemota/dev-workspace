@@ -1,6 +1,6 @@
 # 010 Settings · Temas visuais
 
-> **Última atualização:** 2026-07-28
+> **Última atualização:** 2026-08-18
 
 ---
 

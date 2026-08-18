@@ -1,8 +1,8 @@
 ---
 name: dev-workspace
-description: Dev Workspace — planejamento, pendências, tasks, checkpoints, milestones, plans, importar prompts, checklist agregado e resumo IA via API. Use quando pedir status do projeto, importar prompt do DW, checkpoints, milestones, planos, roadmap, resumo, ou perguntas sobre o workspace. Specs no repo continuam em .specs/ (ler/editar direto ou /spec-checklist).
+description: Dev Workspace — planejamento, pendências, tasks, checkpoints (incl. PDF), milestones, plans, prompts, checklist e resumo IA via MCP (preferido) ou API. Use para status, checkpoints de reunião, milestones, planos, pendências, resumo ou ask. Specs no repo em .specs/.
 disable-model-invocation: true
-argument-hint: [checkpoints | milestones | plans | features | tasks | projects | pendências | importar prompt | resumo]
+argument-hint: [checkpoints | PDF reunião | milestones | plans | features | tasks | projects | pendências | importar prompt | resumo]
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
@@ -13,20 +13,21 @@ Conexão: `.dev-workspace/.env`
 | Variável | Uso |
 |----------|-----|
 | `DEV_WORKSPACE_ROOT` | Modo local (`workspace_data/`) |
-| `DEV_WORKSPACE_URL` + `DEV_WORKSPACE_API_TOKEN` | Modo API — use o **token do consumidor** do projeto (não o admin global) |
+| `DEV_WORKSPACE_URL` + `DEV_WORKSPACE_API_TOKEN` | Modo API/MCP — **token do consumidor** (não admin) |
+| `DEV_WORKSPACE_MCP_URL` | URL do servidor MCP central (ex. `http://localhost:3011/mcp`) |
 
 **Tokens:** cada repo com `local_path` no DW recebe um token **scoped** (só os projetos desse path). Token admin global (logs do container) acessa tudo — **não** coloque no consumidor.
 
-**Consumo via agent-cli:** com URL + token no `.env`, use **somente a API** (`curl` no shell). **Não** leia `workspace_data/` com Read/Grep — o humano testa sempre pela IA, não por curl manual.
+**Consumo via agent-cli:** preferir **MCP** (`dev-workspace` em `.cursor/mcp.json`, token scoped no header). Fallback: API (`curl` no shell). **Não** leia `workspace_data/` com Read/Grep.
 
-Modos: só ROOT → local (dev sem container) · URL+token → api · ambos → **sempre API primeiro** (local só se API falhar).
+Modos: só ROOT → local (dev sem container) · URL+token → MCP/API · ambos → **MCP/API primeiro** (local só se falhar).
 
 ## Escrita vs leitura (agentes no consumidor)
 
 | Recurso | Ler (`GET`) | Escrever (`PUT`/`POST`) pelo agente |
 |---------|-------------|--------------------------------------|
 | spec-checklist / features (repo) | ✅ API + `.specs/` | ✅ só no repo (`.specs/`, `/spec-checklist`) |
-| checkpoints | ✅ | ❌ UI do DW |
+| checkpoints | ✅ | ✅ **via MCP** (`update_checkpoints`, `upsert_checkpoint`, `add_checkpoint_from_pdf`) após aprovação |
 | milestones | ✅ | ❌ UI do DW |
 | **plans** | ✅ | ✅ **após aprovação do usuário** (ver § Plans) |
 | **tasks** | ✅ | ❌ **somente leitura** — nunca `PUT` tasks |
@@ -34,7 +35,7 @@ Modos: só ROOT → local (dev sem container) · URL+token → api · ambos → 
 
 ## vs `.specs/`
 
-| | `.specs/` | Esta skill (DW API) |
+| | `.specs/` | Esta skill (MCP / API DW) |
 |---|-----------|---------------------|
 | Editar specs / ACs no arquivo | ✅ `/new-spec`, `/spec-checklist` | — |
 | Ler specs no repo | ✅ direto | — |
@@ -48,6 +49,38 @@ REPO="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 ```
 
 Header em todas as chamadas API: `Authorization: Bearer $DEV_WORKSPACE_API_TOKEN`
+
+## MCP (consumidor por repo)
+
+Servidor MCP **único** no DW (`DEV_WORKSPACE_MCP_URL`, ex. `http://localhost:3011/mcp`). Cada repo consumidor conecta como **consumidor** com o token scoped deste `local_path` — não é um MCP por repo, é um **consumidor MCP por repo**.
+
+Após `install.sh`, `.cursor/mcp.json` inclui:
+
+```json
+{
+  "mcpServers": {
+    "dev-workspace": {
+      "url": "http://localhost:3011/mcp",
+      "headers": {
+        "Authorization": "Bearer <consumer_api_token>"
+      }
+    }
+  }
+}
+```
+
+O MCP repassa o `Authorization` à API DW; o scope é o mesmo da skill (só projeto(s) deste repo). **Não** use token admin no consumidor.
+
+Tools MCP espelham a API. Principais:
+
+| Ler | Escrever (após aprovação) |
+|-----|---------------------------|
+| `list_projects`, `get_spec_checklist`, `get_tasks`, `get_checkpoints`, `get_milestones`, `get_plans`, `get_feature`, `ask_projects` | `update_checkpoints`, `upsert_checkpoint`, `add_checkpoint_from_pdf`, `update_plans` |
+| `parse_pdf_transcript`, `parse_checkpoint_pdf` | `generate_checkpoint_summary` |
+
+Preferir MCP no Cursor quando conectado; `curl` permanece fallback.
+
+`get_connection` no MCP exige token admin (UI DW) — consumidores recebem 403.
 
 ## Resolver projetos deste repo
 
@@ -69,6 +102,9 @@ Fallback local (só se API indisponível e **sem** URL+token): scan `$DEV_WORKSP
 | Pendências / checklist | `GET /api/projects/{id}/spec-checklist` |
 | Tasks (**somente leitura**) | `GET /api/projects/{id}/tasks` — **não** usar `PUT` |
 | Checkpoints | `GET /api/projects/{id}/checkpoints` |
+| **Criar/alterar checkpoints** | `PUT /api/projects/{id}/checkpoints` ou MCP `upsert_checkpoint` / `add_checkpoint_from_pdf` |
+| **PDF → transcrição** | `POST /api/projects/{id}/checkpoints/parse-pdf` (multipart ou `pdf_base64`) · MCP `parse_pdf_transcript` |
+| **Resumo IA do checkpoint** | `POST /api/projects/{id}/checkpoints/{index}/summary` · MCP `generate_checkpoint_summary` |
 | Milestones (planejamento futuro) | `GET /api/projects/{id}/milestones` |
 | Salvar milestones | `PUT /api/projects/{id}/milestones` — **UI do DW**; agentes não gravam |
 | Planos de ação (por milestone) | `GET /api/projects/{id}/plans` |
@@ -177,6 +213,17 @@ CHECKPOINTS · {nome do projeto}
 ```
 
 Título do marco em linha `● {título}`; linha vazia `│` entre título e resumo; resumo indentado com `│   ` (quebrar linhas longas ~60 chars).
+
+### PDF de transcrição → checkpoint (MCP)
+
+Quando o usuário enviar **PDF de reunião/transcrição** e pedir criar checkpoint:
+
+1. Confirmar título, data (`DD/MM/YYYY HH:mm`) e projeto DW.
+2. MCP `add_checkpoint_from_pdf` com `project_id`, `pdf_base64`, `title`, opcional `date`, `description`, `filename`.
+3. Ou fluxo em duas etapas: `parse_pdf_transcript` → revisar com usuário → `upsert_checkpoint`.
+4. Opcional: `generate_checkpoint_summary(project_id, index)` para resumo curto na timeline (`index` 0 = mais recente após prepend).
+
+PDF só texto; scans sem OCR podem falhar. Limite ~20MB.
 
 ## Milestones
 

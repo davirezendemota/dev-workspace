@@ -83,6 +83,68 @@ ensure_gitignore_dev_workspace() {
   fi
 }
 
+install_mcp_config() {
+  local env_file="$BRIDGE/.env"
+  local mcp_json="$TARGET/.cursor/mcp.json"
+  local mcp_url="http://localhost:3011/mcp"
+  local token=""
+
+  if [[ -f "$env_file" ]]; then
+    token="$(grep -E '^DEV_WORKSPACE_API_TOKEN=' "$env_file" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)"
+    local url_line
+    url_line="$(grep -E '^DEV_WORKSPACE_MCP_URL=' "$env_file" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)"
+    if [[ -n "$url_line" ]]; then
+      mcp_url="$url_line"
+    fi
+  fi
+
+  if [[ -z "$token" ]]; then
+    echo "     (mcp.json omitido — defina DEV_WORKSPACE_API_TOKEN em .dev-workspace/.env)"
+    return 0
+  fi
+
+  mkdir -p "$TARGET/.cursor"
+  python3 - "$mcp_json" "$mcp_url" "$token" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+mcp_url = sys.argv[2]
+token = sys.argv[3]
+
+data: dict = {}
+if path.is_file():
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        data = {}
+
+servers = data.setdefault("mcpServers", {})
+servers["dev-workspace"] = {
+    "url": mcp_url,
+    "headers": {"Authorization": f"Bearer {token}"},
+}
+
+path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+PY
+
+  local gitignore="$TARGET/.gitignore"
+  if [[ -f "$gitignore" ]]; then
+    if ! grep -qE '(^|/)\.cursor/mcp\.json$' "$gitignore"; then
+      if [[ -n "$(tail -c1 "$gitignore" 2>/dev/null || true)" ]]; then
+        printf '\n' >> "$gitignore"
+      fi
+      {
+        echo '# Dev Workspace MCP consumer (token scoped — install-kit)'
+        echo '.cursor/mcp.json'
+      } >> "$gitignore"
+    fi
+  fi
+
+  echo "     .cursor/mcp.json → consumidor dev-workspace (token scoped)"
+}
+
 resolve_source
 TARGET="$(cd "$TARGET" && pwd)"
 BRIDGE="$TARGET/.dev-workspace"
@@ -107,6 +169,7 @@ if [[ "$MERGE" != true || ! -f "$BRIDGE/.env" ]]; then
   if [[ -n "$API_TOKEN" ]]; then
     {
       echo "DEV_WORKSPACE_URL=$API_URL"
+      echo "DEV_WORKSPACE_MCP_URL=http://localhost:3011/mcp"
       echo "DEV_WORKSPACE_API_TOKEN=$API_TOKEN"
       [[ -n "$DW_ROOT" ]] && echo "DEV_WORKSPACE_ROOT=$DW_ROOT"
     } > "$BRIDGE/.env"
@@ -132,7 +195,9 @@ fi
 
 ensure_gitignore_dev_workspace
 
-# Remover artefatos legados (instalação antiga)
+install_mcp_config
+
+# Remover artefatos legados
 rm -rf \
   "$BRIDGE/templates" \
   "$BRIDGE/ARCHITECTURE.md" \
@@ -151,4 +216,5 @@ if [[ -n "$CLEANUP" ]]; then rm -rf "$CLEANUP"; fi
 
 echo "OK → $BRIDGE/.env + skill dev-workspace (Cursor + Claude)"
 echo "     .gitignore → .dev-workspace/ ignorado"
+echo "     MCP: servidor DW central; este repo = consumidor (token em mcp.json)"
 echo "Projeto DW: registrar local_path → $TARGET"

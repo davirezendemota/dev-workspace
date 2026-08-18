@@ -60,3 +60,7 @@ docker-compose.override.yml
 
 # Workspace data (mantém estrutura; ignora conteúdo dos projetos)
 workspace_data
+# Dev Workspace bridge (secrets local — install-kit)
+.dev-workspace/
+# Dev Workspace MCP consumer (token scoped — install-kit)
+.cursor/mcp.json

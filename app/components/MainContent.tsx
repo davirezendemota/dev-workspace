@@ -6,7 +6,7 @@ interface MainContentProps {
 
 export default function MainContent({ children }: MainContentProps) {
   return (
-    <main className="flex min-h-dvh w-full flex-col">
+    <main className="flex h-dvh w-full flex-col overflow-hidden">
       {children}
     </main>
   );

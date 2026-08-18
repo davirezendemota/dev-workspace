@@ -100,6 +100,11 @@ function buildCheckpointContext(
       date: checkpoint.date || null,
       title: checkpoint.title || null,
       current_summary: checkpoint.summary || null,
+      description: checkpoint.description || null,
+      atas: checkpoint.atas.map((ata) => ({
+        title: ata.title || null,
+        content: ata.content || null,
+      })),
     },
     other_checkpoints: checkpoints
       .filter((_, i) => i !== index)
