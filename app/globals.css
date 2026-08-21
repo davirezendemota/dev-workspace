@@ -453,12 +453,32 @@ h1, h2, h3, h4, h5, h6 {
 
 .projects-view-toggle {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
-.projects-table-view {
+.projects-table-view,
+.projects-timeline-view {
   padding: 0 4px 20px;
+}
+
+.projects-calendar-view {
+  padding: 0 4px 0;
+  min-height: 0;
+}
+
+.projects-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: auto repeat(6, minmax(0, 1fr));
+}
+
+.projects-calendar-chip {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
 }
 
 .projects-table-cell {

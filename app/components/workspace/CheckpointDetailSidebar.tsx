@@ -5,12 +5,17 @@ import {
   getCheckpointDisplayDateTime,
   type Checkpoint,
 } from '@/app/lib/checkpoints';
+import CheckpointDocuments from './CheckpointDocuments';
 import Markdown from './Markdown';
+import type { ProjectApiResponse } from './AddProjectModal';
 
 type CheckpointDetailSidebarProps = {
+  projectId: string;
+  checkpointIndex: number;
   checkpoint: Checkpoint;
   date: string;
   onClose: () => void;
+  onUpdated: (checkpoints: Checkpoint[], project?: ProjectApiResponse) => void;
 };
 
 function IconClose() {
@@ -32,9 +37,12 @@ function IconClose() {
 }
 
 export default function CheckpointDetailSidebar({
+  projectId,
+  checkpointIndex,
   checkpoint,
   date,
   onClose,
+  onUpdated,
 }: CheckpointDetailSidebarProps) {
   const title = checkpoint.title.trim() || 'Checkpoint sem título';
   const description = checkpointExpandedDescription(checkpoint);
@@ -164,6 +172,13 @@ export default function CheckpointDetailSidebar({
               Sem descrição registrada.
             </p>
           )}
+
+          <CheckpointDocuments
+            projectId={projectId}
+            checkpointIndex={checkpointIndex}
+            documents={checkpoint.documents ?? []}
+            onUpdated={onUpdated}
+          />
         </div>
       </aside>
     </div>

@@ -13,6 +13,8 @@ import AgentDetailModal from './AgentDetailModal';
 import ProjectDetailModal from './ProjectDetailModal';
 import RepoBadge, { RepoHueContext, buildRepoHueMap, useRepoBadgeStyle } from './RepoBadge';
 import ProjectsTableView from './ProjectsTableView';
+import ProjectsCalendarView from './ProjectsCalendarView';
+import ProjectsTimelineView from './ProjectsTimelineView';
 import SettingsPanel, { isAiConfigured, type WorkspaceSettings } from './SettingsPanel';
 import {
   readPinnedPromptIds,
@@ -96,6 +98,29 @@ function IconLayers() {
       <polygon points="12 2 2 7 12 12 22 7 12 2" />
       <polyline points="2 17 12 22 22 17" />
       <polyline points="2 12 12 17 22 12" />
+    </svg>
+  );
+}
+
+function IconCalendar() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="4" width="18" height="18" rx="1" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function IconTimeline() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="2.5" />
+      <circle cx="12" cy="12" r="2.5" />
+      <circle cx="12" cy="19" r="2.5" />
+      <line x1="12" y1="7.5" x2="12" y2="9.5" />
+      <line x1="12" y1="14.5" x2="12" y2="16.5" />
     </svg>
   );
 }
@@ -316,6 +341,8 @@ function ProjectCard({
   );
 }
 
+type ProjectsViewMode = 'kanban' | 'table' | 'calendar' | 'timeline';
+
 export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -324,11 +351,12 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortId | null>(null);
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [viewMode, setViewMode] = useState<ProjectsViewMode>('kanban');
   const [groupByRepo, setGroupByRepo] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedCheckpointIndex, setSelectedCheckpointIndex] = useState<number | null>(null);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [projectsFolder, setProjectsFolder] = useState<string | null>(null);
   const [agentsFolder, setAgentsFolder] = useState<string | null>(null);
@@ -494,7 +522,13 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
   const handleProjectDeleted = (id: string) => {
     setProjects((prev) => prev.filter((p) => p.id !== id));
     setSelectedProject((current) => (current?.id === id ? null : current));
+    setSelectedCheckpointIndex(null);
   };
+
+  const openProject = useCallback((project: Project, checkpointIndex?: number) => {
+    setSelectedCheckpointIndex(checkpointIndex ?? null);
+    setSelectedProject(project);
+  }, []);
 
   const handleAgentCreated = (apiAgent: AgentApiResponse) => {
     const card = mapApiAgentToCard(apiAgent);
@@ -611,6 +645,13 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
         return;
       }
 
+      if (viewMode === 'calendar' || viewMode === 'timeline') {
+        document
+          .querySelector(`[data-project-anchor="${projectId}"]`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
+
       const card = document.getElementById(`project-card-${projectId}`);
       const scroller = card?.closest('.pcards');
       if (!(card instanceof HTMLElement) || !(scroller instanceof HTMLElement)) {
@@ -642,10 +683,20 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
 
       <WorkspaceHeader open={navOpen} onOpenChange={setNavOpen} />
 
-      <div className="workspace-app-shell flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-[88px] pt-6 md:px-10">
+      <div
+        className={cn(
+          'workspace-app-shell flex min-h-0 flex-1 flex-col px-6 pb-[88px] pt-6 md:px-10',
+          activeTab === 'projects' && viewMode === 'calendar' ? 'overflow-hidden' : 'overflow-y-auto',
+        )}
+      >
       {activeTab === 'projects' && (
         <RepoHueContext.Provider value={repoHueMap}>
-        <div className="flex flex-col">
+        <div
+          className={cn(
+            'flex flex-col',
+            viewMode === 'calendar' && 'min-h-0 flex-1',
+          )}
+        >
           {/* Projects header + controls */}
           <div
             className="anim-fade-up mb-1.5 flex shrink-0 flex-col gap-3"
@@ -680,6 +731,32 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
                 >
                   <IconTable />
                   Tabela
+                </button>
+                <button
+                  type="button"
+                  className="fbtn"
+                  aria-pressed={viewMode === 'calendar'}
+                  onClick={() => setViewMode('calendar')}
+                  style={{
+                    background: viewMode === 'calendar' ? 'var(--color-accent-100)' : 'transparent',
+                    color: viewMode === 'calendar' ? 'var(--color-accent-700)' : 'var(--color-text)',
+                  }}
+                >
+                  <IconCalendar />
+                  Calendário
+                </button>
+                <button
+                  type="button"
+                  className="fbtn"
+                  aria-pressed={viewMode === 'timeline'}
+                  onClick={() => setViewMode('timeline')}
+                  style={{
+                    background: viewMode === 'timeline' ? 'var(--color-accent-100)' : 'transparent',
+                    color: viewMode === 'timeline' ? 'var(--color-accent-700)' : 'var(--color-text)',
+                  }}
+                >
+                  <IconTimeline />
+                  Timeline
                 </button>
               </div>
 
@@ -866,15 +943,25 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
                   key={project.id}
                   project={project}
                   index={index}
-                  onExpand={setSelectedProject}
+                  onExpand={openProject}
                 />
               ))}
             </div>
-          ) : (
+          ) : viewMode === 'table' ? (
             <ProjectsTableView
               projects={filteredProjects}
               groupByRepo={groupByRepo}
-              onExpand={setSelectedProject}
+              onExpand={openProject}
+            />
+          ) : viewMode === 'calendar' ? (
+            <ProjectsCalendarView
+              projects={filteredProjects}
+              onOpenCheckpoint={openProject}
+            />
+          ) : (
+            <ProjectsTimelineView
+              projects={filteredProjects}
+              onOpenCheckpoint={openProject}
             />
           )}
 
@@ -899,7 +986,11 @@ export default function WorkspaceDashboard({ activeTab }: { activeTab: TabId }) 
 
           <ProjectDetailModal
             project={selectedProject}
-            onClose={() => setSelectedProject(null)}
+            initialCheckpointIndex={selectedCheckpointIndex}
+            onClose={() => {
+              setSelectedProject(null);
+              setSelectedCheckpointIndex(null);
+            }}
             onUpdated={handleProjectUpdated}
             onDeleted={handleProjectDeleted}
           />

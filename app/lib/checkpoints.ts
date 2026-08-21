@@ -1,6 +1,17 @@
+export const CHECKPOINT_DOCUMENT_ACCEPT =
+  '.pdf,.txt,.md,.csv,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp';
+
 export type CheckpointAta = {
   title: string;
   content: string;
+};
+
+export type CheckpointDocument = {
+  id: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
 };
 
 export type Checkpoint = {
@@ -10,6 +21,7 @@ export type Checkpoint = {
   summary: string;
   description: string;
   atas: CheckpointAta[];
+  documents: CheckpointDocument[];
   summaryUpdatedAt: string | null;
 };
 
@@ -21,7 +33,8 @@ const SLASH_WITH_TIME =
   /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(\d{1,2}:\d{2}(?::\d{2})?)$/;
 
 type DateParts = { day: number; month: number; year: number };
-type DateTimeParts = DateParts & { hour: number; minute: number };
+export type CheckpointDateTimeParts = DateParts & { hour: number; minute: number };
+type DateTimeParts = CheckpointDateTimeParts;
 
 /** Slash dates in checkpoints are always DD/MM[/YYYY] (pt-BR). */
 function parseCheckpointDateParts(value: string): DateParts | null {
@@ -165,6 +178,34 @@ function normalizeAtas(raw: unknown): CheckpointAta[] {
     .filter((item): item is CheckpointAta => item !== null);
 }
 
+const DOCUMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizeDocuments(raw: unknown): CheckpointDocument[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const obj = entry as Record<string, unknown>;
+      const id = typeof obj.id === 'string' ? obj.id.trim() : '';
+      const filename = typeof obj.filename === 'string' ? obj.filename.trim() : '';
+      if (!DOCUMENT_ID.test(id) || !filename) return null;
+
+      const mimeType =
+        typeof obj.mimeType === 'string' && obj.mimeType.trim()
+          ? obj.mimeType.trim()
+          : 'application/octet-stream';
+      const size = typeof obj.size === 'number' && Number.isFinite(obj.size) ? obj.size : 0;
+      const uploadedAt =
+        typeof obj.uploadedAt === 'string' && obj.uploadedAt.trim()
+          ? obj.uploadedAt.trim()
+          : new Date(0).toISOString();
+
+      return { id, filename, mimeType, size, uploadedAt };
+    })
+    .filter((item): item is CheckpointDocument => item !== null);
+}
+
 export function isCheckpointDateString(value: string): boolean {
   const trimmed = value.trim();
   return DATE_ONLY.test(trimmed) || CANONICAL_DATETIME.test(trimmed) || SLASH_WITH_TIME.test(trimmed);
@@ -184,6 +225,7 @@ function normalizeCheckpointRecord(
     summary: partial.summary ?? '',
     description: partial.description ?? '',
     atas: partial.atas ?? [],
+    documents: partial.documents ?? [],
     summaryUpdatedAt: partial.summaryUpdatedAt ?? null,
   };
 }
@@ -211,12 +253,22 @@ export function normalizeCheckpoints(raw: unknown, topDate?: string): Checkpoint
         const summary = String(obj.summary ?? '').trim();
         const description = String(obj.description ?? '').trim();
         const atas = normalizeAtas(obj.atas);
+        const documents = normalizeDocuments(obj.documents);
         const summaryUpdatedAt =
           typeof obj.summaryUpdatedAt === 'string' && obj.summaryUpdatedAt.trim()
             ? obj.summaryUpdatedAt.trim()
             : null;
 
-        if (!date && !title && !summary && !description && atas.length === 0) return null;
+        if (
+          !date &&
+          !title &&
+          !summary &&
+          !description &&
+          atas.length === 0 &&
+          documents.length === 0
+        ) {
+          return null;
+        }
 
         return normalizeCheckpointRecord({
           date,
@@ -225,6 +277,7 @@ export function normalizeCheckpoints(raw: unknown, topDate?: string): Checkpoint
           summary,
           description,
           atas,
+          documents,
           summaryUpdatedAt,
         });
       }
@@ -285,6 +338,15 @@ export function serializeCheckpoint(checkpoint: Checkpoint): Record<string, unkn
       })
       .filter((item) => Object.keys(item).length > 0);
   }
+  if (checkpoint.documents.length > 0) {
+    payload.documents = checkpoint.documents.map((doc) => ({
+      id: doc.id,
+      filename: doc.filename,
+      mimeType: doc.mimeType,
+      size: doc.size,
+      uploadedAt: doc.uploadedAt,
+    }));
+  }
   if (checkpoint.summaryUpdatedAt) payload.summaryUpdatedAt = checkpoint.summaryUpdatedAt;
 
   return payload;
@@ -325,6 +387,18 @@ export function formatCheckpointTime(value: string): string {
   const parts = parseCheckpointDateTimeParts(value);
   if (!parts) return '';
   return formatTimeParts(parts);
+}
+
+/** Parsed date/time parts, or null when the value cannot be interpreted. */
+export function getCheckpointDateTimeParts(date: string): CheckpointDateTimeParts | null {
+  return parseCheckpointDateTimeParts(date);
+}
+
+/** Zero-padded YYYY-MM-DD for calendar grouping, or null when undated. */
+export function checkpointIsoDayKey(date: string): string | null {
+  const parts = parseCheckpointDateTimeParts(date.trim());
+  if (!parts) return null;
+  return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
 }
 
 /** Parses a checkpoint datetime for sorting (later = larger). Invalid/empty → -Infinity. */

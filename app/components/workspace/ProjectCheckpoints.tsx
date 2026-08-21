@@ -1,11 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import AiResponseSkeleton from '@/app/components/AiResponseSkeleton';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   checkpointDayKey,
-  checkpointExpandedDescription,
   formatCheckpointDate,
   getCheckpointDisplayDateTime,
   resolveCheckpointDatesForTimeline,
@@ -19,7 +16,7 @@ import type { Project } from './data';
 type ProjectCheckpointsProps = {
   project: Project;
   onUpdated?: (project: ProjectApiResponse) => void;
-  onPlanMilestone?: (draft: { title: string; description: string }) => void;
+  initialExpandedIndex?: number | null;
 };
 
 type DayGroup = {
@@ -89,27 +86,6 @@ function buildTimelineEntries(checkpoints: Checkpoint[]): TimelineEntry[] {
   return entries;
 }
 
-function IconRefresh({ spinning }: { spinning?: boolean }) {
-  return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className={cn('shrink-0', spinning && 'animate-spin')}
-    >
-      <polyline points="23 4 23 10 17 10" />
-      <polyline points="1 20 1 14 7 14" />
-      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-    </svg>
-  );
-}
-
 function IconExpand() {
   return (
     <svg
@@ -135,20 +111,13 @@ function IconExpand() {
 function CheckpointContent({
   checkpoint,
   index,
-  loading,
-  onRefresh,
   onExpand,
-  onPlanMilestone,
 }: {
   checkpoint: Checkpoint;
   index: number;
-  loading: boolean;
-  onRefresh: (index: number) => void;
   onExpand: (index: number) => void;
-  onPlanMilestone?: (draft: { title: string; description: string }) => void;
 }) {
   const label = checkpoint.title.trim() || 'Checkpoint sem título';
-  const expandedDescription = checkpointExpandedDescription(checkpoint);
 
   return (
     <>
@@ -160,39 +129,19 @@ function CheckpointContent({
           {label}
         </h3>
 
-        <div className="flex flex-none items-center gap-0.5">
-          <button
-            type="button"
-            className={cn(
-              'flex h-6 w-6 items-center justify-center transition-colors',
-              loading
-                ? 'text-[var(--color-accent)]'
-                : 'text-[color-mix(in_srgb,var(--color-text)_55%,transparent)] hover:text-[var(--color-accent)]',
-            )}
-            aria-label="Gerar resumo novamente"
-            title="Gerar resumo novamente"
-            onClick={() => onRefresh(index)}
-            disabled={loading}
-          >
-            <IconRefresh spinning={loading} />
-          </button>
-
-          <button
-            type="button"
-            className="flex h-6 w-6 items-center justify-center text-[color-mix(in_srgb,var(--color-text)_55%,transparent)] transition-colors hover:text-[var(--color-accent)]"
-            aria-label="Expandir checkpoint"
-            title="Expandir checkpoint"
-            onClick={() => onExpand(index)}
-          >
-            <IconExpand />
-          </button>
-        </div>
+        <button
+          type="button"
+          className="flex h-6 w-6 flex-none items-center justify-center text-[color-mix(in_srgb,var(--color-text)_55%,transparent)] transition-colors hover:text-[var(--color-accent)]"
+          aria-label="Expandir checkpoint"
+          title="Expandir checkpoint"
+          onClick={() => onExpand(index)}
+        >
+          <IconExpand />
+        </button>
       </div>
 
       <div className="mt-3">
-        {loading ? (
-          <AiResponseSkeleton />
-        ) : checkpoint.summary ? (
+        {checkpoint.summary ? (
           <p
             className="text-[14px] leading-relaxed"
             style={{
@@ -232,39 +181,30 @@ function CheckpointContent({
             })}
           </p>
         ) : null}
-      </div>
 
-      {onPlanMilestone ? (
-        <button
-          type="button"
-          className="mt-3 text-[12px] text-[var(--color-accent)] hover:underline"
-          style={{ fontFamily: 'var(--font-heading)' }}
-          onClick={() =>
-            onPlanMilestone({
-              title: checkpoint.title.trim() || label,
-              description: expandedDescription,
-            })
-          }
-        >
-          Planejar milestone
-        </button>
-      ) : null}
+        {checkpoint.documents?.length ? (
+          <p
+            className="mt-2 text-[12px]"
+            style={{
+              fontFamily: 'var(--font-body)',
+              color: 'color-mix(in srgb, var(--color-text) 50%, transparent)',
+            }}
+          >
+            {checkpoint.documents.length} documento
+            {checkpoint.documents.length === 1 ? '' : 's'}
+          </p>
+        ) : null}
+      </div>
     </>
   );
 }
 
 function TimelineEntryRow({
   entry,
-  refreshingIndex,
-  onRefresh,
   onExpand,
-  onPlanMilestone,
 }: {
   entry: TimelineEntry;
-  refreshingIndex: number | null;
-  onRefresh: (index: number) => void;
   onExpand: (index: number) => void;
-  onPlanMilestone?: (draft: { title: string; description: string }) => void;
 }) {
   const { date: displayDate, time: displayTime } = getCheckpointDisplayDateTime({
     date: entry.date,
@@ -332,10 +272,7 @@ function TimelineEntryRow({
         <CheckpointContent
           checkpoint={entry.checkpoint}
           index={entry.index}
-          loading={refreshingIndex === entry.index}
-          onRefresh={onRefresh}
           onExpand={onExpand}
-          onPlanMilestone={onPlanMilestone}
         />
       </div>
     </li>
@@ -345,13 +282,13 @@ function TimelineEntryRow({
 export default function ProjectCheckpoints({
   project,
   onUpdated,
-  onPlanMilestone,
+  initialExpandedIndex = null,
 }: ProjectCheckpointsProps) {
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>(project.checkpoints);
   const [loading, setLoading] = useState(true);
-  const [refreshingIndex, setRefreshingIndex] = useState<number | null>(null);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const appliedInitialKey = useRef<string | null>(null);
 
   const timelineEntries = useMemo(() => buildTimelineEntries(checkpoints), [checkpoints]);
 
@@ -400,6 +337,15 @@ export default function ProjectCheckpoints({
   }, [load]);
 
   useEffect(() => {
+    if (loading || typeof initialExpandedIndex !== 'number') return;
+    const key = `${project.id}:${initialExpandedIndex}`;
+    if (appliedInitialKey.current === key) return;
+    if (!checkpoints[initialExpandedIndex]) return;
+    setExpandedIndex(initialExpandedIndex);
+    appliedInitialKey.current = key;
+  }, [checkpoints, initialExpandedIndex, loading, project.id]);
+
+  useEffect(() => {
     if (expandedIndex === null) return;
 
     const onKey = (event: KeyboardEvent) => {
@@ -409,48 +355,6 @@ export default function ProjectCheckpoints({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [expandedIndex]);
-
-  const refreshSummary = useCallback(
-    async (index: number) => {
-      if (refreshingIndex !== null) return;
-
-      setRefreshingIndex(index);
-      setError(null);
-      try {
-        const response = await fetch(
-          `/api/projects/${project.id}/checkpoints/${index}/summary`,
-          { method: 'POST' },
-        );
-        if (!response.ok) {
-          let detail = 'Não foi possível gerar o resumo.';
-          try {
-            const body = await response.json();
-            if (typeof body?.detail === 'string') detail = body.detail;
-          } catch {
-            /* ignore */
-          }
-          throw new Error(detail);
-        }
-
-        const data = await response.json();
-        if (Array.isArray(data.checkpoints)) {
-          setCheckpoints(data.checkpoints);
-        }
-        if (data.project) {
-          onUpdated?.(data.project as ProjectApiResponse);
-        }
-        toast.success('Resumo do checkpoint atualizado.');
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Não foi possível gerar o resumo.';
-        setError(message);
-        toast.error(message);
-      } finally {
-        setRefreshingIndex(null);
-      }
-    },
-    [onUpdated, project.id, refreshingIndex],
-  );
 
   if (loading) {
     return (
@@ -550,10 +454,7 @@ export default function ProjectCheckpoints({
               <TimelineEntryRow
                 key={`${entry.index}-${entry.checkpoint.title}`}
                 entry={entry}
-                refreshingIndex={refreshingIndex}
-                onRefresh={refreshSummary}
                 onExpand={setExpandedIndex}
-                onPlanMilestone={onPlanMilestone}
               />
             ))}
           </ol>
@@ -562,9 +463,15 @@ export default function ProjectCheckpoints({
 
       {expandedEntry ? (
         <CheckpointDetailSidebar
+          projectId={project.id}
+          checkpointIndex={expandedEntry.index}
           checkpoint={expandedEntry.checkpoint}
           date={expandedEntry.date}
           onClose={() => setExpandedIndex(null)}
+          onUpdated={(next, nextProject) => {
+            setCheckpoints(next);
+            if (nextProject) onUpdated?.(nextProject);
+          }}
         />
       ) : null}
     </>

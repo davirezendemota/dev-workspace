@@ -216,6 +216,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Deploy da v2.1 em staging com auth refresh e rate limiting validados.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
       {
@@ -224,6 +225,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Dois PRs críticos revisados e mergeados na main.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
       {
@@ -232,6 +234,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Escopo de webhooks v2 fechado com o cliente.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
       {
@@ -240,6 +243,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Planejamento inicial da migração para Postgres 16.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
     ],
@@ -265,6 +269,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Tema escuro disponível em todas as páginas principais.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
       {
@@ -273,6 +278,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Experimento A/B do hero iniciado com duas variantes.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
       {
@@ -281,6 +287,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Checkout refatorado para reduzir abandono de carrinho.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
       {
@@ -289,6 +296,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Prioridades do Q3 definidas com o time de produto.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
     ],
@@ -314,6 +322,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Notificações push liberadas para grupo beta no iOS.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
       {
@@ -322,6 +331,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Crash em cold start no iOS 17 corrigido.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
       {
@@ -330,6 +340,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Novo fluxo de onboarding com menos etapas.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
     ],
@@ -355,6 +366,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Autocomplete para zsh publicado na v0.4.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
       {
@@ -363,6 +375,7 @@ export const INITIAL_PROJECTS: Project[] = [
         summary: 'Schema de configuração v1 documentado e validado.',
         description: '',
         atas: [],
+        documents: [],
         summaryUpdatedAt: null,
       },
     ],

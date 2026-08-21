@@ -896,17 +896,6 @@
               "completedCommit": "426993726be3cf9dd175fb0854b8decb041fe08d"
             },
             {
-              "ac": "AC5",
-              "description": "Checkpoint Planejar milestone pré-preenche sem vínculo",
-              "status": "done",
-              "after": [
-                "AC3"
-              ],
-              "issues": [],
-              "prs": [],
-              "completedCommit": "426993726be3cf9dd175fb0854b8decb041fe08d"
-            },
-            {
               "ac": "AC6",
               "description": "PUT com title vazio retorna 400",
               "status": "done",
@@ -1220,6 +1209,127 @@
               "after": [
                 "AC3",
                 "AC5"
+              ],
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "018",
+          "specFile": "features/018-projects_calendar-timeline.md",
+          "title": "Views Calendário e Timeline",
+          "after": [
+            "003",
+            "016"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Toggle Calendário e Timeline na aba Projects",
+              "status": "in-progress",
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Calendário posiciona checkpoints no dia da date resolvida",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Timeline agrupa checkpoints de todos os projetos visíveis por dia",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Clique no checkpoint abre o modal na aba Checkpoints expandida",
+              "status": "in-progress",
+              "after": [
+                "AC2",
+                "AC3"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC5",
+              "description": "Busca e filtros da aba Projects aplicam-se às duas views",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC6",
+              "description": "Estados vazios e checkpoints sem data no Calendário e na Timeline",
+              "status": "in-progress",
+              "after": [
+                "AC2",
+                "AC3"
+              ],
+              "issues": [],
+              "prs": []
+            }
+          ]
+        },
+        {
+          "specId": "019",
+          "specFile": "features/019-projects_checkpoint-documents.md",
+          "title": "Documentos em checkpoints",
+          "after": [
+            "016"
+          ],
+          "checklist": [
+            {
+              "ac": "AC1",
+              "description": "Upload no painel expandido persiste arquivo e metadado",
+              "status": "in-progress",
+              "before": [
+                "AC2",
+                "AC3"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC2",
+              "description": "Download devolve o arquivo com o nome original",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC3",
+              "description": "Excluir remove item da lista e arquivo do disco",
+              "status": "in-progress",
+              "after": [
+                "AC1"
+              ],
+              "issues": [],
+              "prs": []
+            },
+            {
+              "ac": "AC4",
+              "description": "Checkpoint legado sem documents aceita upload",
+              "status": "in-progress",
+              "after": [
+                "AC1"
               ],
               "issues": [],
               "prs": []

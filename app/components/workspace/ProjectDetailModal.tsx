@@ -6,7 +6,7 @@ import { cn } from '@/app/lib/utils';
 import type { ProjectApiResponse } from './AddProjectModal';
 import type { Project } from './data';
 import ProjectCheckpoints from './ProjectCheckpoints';
-import ProjectMilestones, { type MilestoneDraft } from './ProjectMilestones';
+import ProjectMilestones from './ProjectMilestones';
 import ProjectPlans from './ProjectPlans';
 import ProjectTasks from './ProjectTasks';
 import ProjectSettingsPanel from './ProjectSettingsPanel';
@@ -18,6 +18,7 @@ type ProjectDetailModalProps = {
   onClose: () => void;
   onUpdated?: (project: ProjectApiResponse) => void;
   onDeleted?: (id: string) => void;
+  initialCheckpointIndex?: number | null;
 };
 
 type TabId =
@@ -128,13 +129,18 @@ function TabIcon({ id }: { id: TabId }) {
   }
 }
 
-export default function ProjectDetailModal({ project, onClose, onUpdated, onDeleted }: ProjectDetailModalProps) {
+export default function ProjectDetailModal({
+  project,
+  onClose,
+  onUpdated,
+  onDeleted,
+  initialCheckpointIndex = null,
+}: ProjectDetailModalProps) {
   const titleId = useId();
   const [activeTab, setActiveTab] = useState<TabId>('checkpoints');
   const [tasksRefreshKey, setTasksRefreshKey] = useState(0);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [milestoneDraft, setMilestoneDraft] = useState<MilestoneDraft | null>(null);
   const [featuresSpecId, setFeaturesSpecId] = useState<string | null>(null);
 
   useLockBodyScroll(project !== null);
@@ -161,18 +167,6 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
     setFeaturesSpecId(null);
   }, []);
 
-  const consumeMilestoneDraft = useCallback(() => {
-    setMilestoneDraft(null);
-  }, []);
-
-  const handlePlanMilestone = useCallback((draft: { title: string; description: string }) => {
-    setMilestoneDraft({
-      title: draft.title,
-      description: draft.description,
-    });
-    setActiveTab('milestones');
-  }, []);
-
   const handleRefresh = useCallback(async () => {
     if (refreshing || !project) return;
 
@@ -197,7 +191,6 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
     setActiveTab('checkpoints');
     setTasksRefreshKey((key) => key + 1);
     setDataRefreshKey((key) => key + 1);
-    setMilestoneDraft(null);
     setFeaturesSpecId(null);
   }, [project?.id]);
 
@@ -324,20 +317,15 @@ export default function ProjectDetailModal({ project, onClose, onUpdated, onDele
             </div>
           ) : null}
           {activeTab === 'milestones' ? (
-            <ProjectMilestones
-              key={dataRefreshKey}
-              project={project}
-              draft={milestoneDraft}
-              onDraftConsumed={consumeMilestoneDraft}
-            />
+            <ProjectMilestones key={dataRefreshKey} project={project} />
           ) : null}
           {activeTab === 'plans' ? <ProjectPlans key={dataRefreshKey} project={project} /> : null}
           {activeTab === 'checkpoints' ? (
             <ProjectCheckpoints
-              key={dataRefreshKey}
+              key={`${dataRefreshKey}-${initialCheckpointIndex ?? 'none'}`}
               project={project}
               onUpdated={(updated) => onUpdated?.(updated)}
-              onPlanMilestone={handlePlanMilestone}
+              initialExpandedIndex={initialCheckpointIndex}
             />
           ) : null}
           {mountTasks ? (

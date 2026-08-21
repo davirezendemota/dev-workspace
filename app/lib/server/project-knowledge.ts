@@ -335,6 +335,9 @@ function buildProjectKnowledgeChunks(
       checkpoint.summary ? `Resumo: ${checkpoint.summary}` : null,
       checkpoint.description ? `Descrição: ${checkpoint.description}` : null,
       checkpoint.date ? `Data: ${checkpoint.date}` : null,
+      checkpoint.documents.length > 0
+        ? `Documentos: ${checkpoint.documents.map((doc) => doc.filename).join(', ')}`
+        : null,
     ].filter(Boolean);
 
     if (lines.length === 0) return;

@@ -55,7 +55,9 @@ Specs descrevem comportamento e critérios de aceite com IDs estáveis (`AC1`, `
     ├── 014-projects_spec-graph.md
     ├── 015-projects_local-repo-branch.md
     ├── 016-projects_checkpoints-rich.md
-    └── 017-mcp-server.md
+    ├── 017-mcp-server.md
+    ├── 018-projects_calendar-timeline.md
+    └── 019-projects_checkpoint-documents.md
 ```
 
 A pasta `.obsidian/` (se existir) é configuração local do editor Obsidian e não faz parte do fluxo de specs.

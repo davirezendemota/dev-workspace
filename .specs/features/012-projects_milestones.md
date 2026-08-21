@@ -1,6 +1,6 @@
 # 012 Projects · Milestones
 
-> **Última atualização:** 2026-08-18
+> **Última atualização:** 2026-08-21
 
 ---
 
@@ -27,10 +27,10 @@ cada milestone a uma ou mais specs planejadas.
 - API `GET` e `PUT /api/projects/{id}/milestones`
 - Vínculo **milestone ↔ specs** (`specIds` referenciando `specId` do checklist)
 - Timeline visual orientada ao futuro (por `targetDate`)
-- Ação opcional em checkpoint: **Planejar milestone** (copia título/resumo; sem FK)
 
 ### Fora do escopo
 
+- Atalho em checkpoint para pré-preencher milestone (removido da UI)
 - Vínculo obrigatório ou persistido entre checkpoint e milestone
 - Edição do spec-checklist pela aba Milestones (somente seleção de specs existentes)
 - Milestones no card compacto da listagem
@@ -45,7 +45,6 @@ cada milestone a uma ou mais specs planejadas.
 - **RF3:** `PUT /api/projects/{id}/milestones` valida e persiste no JSON local.
 - **RF4:** Item tem `id`, `title`, `targetDate` (opcional), `description` (opcional), `specIds[]`.
 - **RF5:** UI lista specs disponíveis do `GET /api/projects/{id}/spec-checklist` para vincular.
-- **RF6:** Checkpoint pode disparar criação de milestone com título/resumo pré-preenchidos (sem salvar vínculo).
 
 ### Não-funcionais
 
@@ -57,7 +56,6 @@ cada milestone a uma ou mais specs planejadas.
 1. Usuário abre aba Milestones → `GET milestones` + spec-checklist para picker.
 2. Adiciona milestone com título, data alvo opcional, notas e specs vinculadas.
 3. Lista ordenada por `targetDate` (mais próximo primeiro; sem data no final).
-4. Em Checkpoints, botão **Planejar milestone** abre a aba Milestones com formulário pré-preenchido.
 
 ## 6. Critérios de aceite
 
@@ -65,7 +63,6 @@ cada milestone a uma ou mais specs planejadas.
 - **AC2:** Dado projeto sem milestones, quando a API é consultada, então retorna lista vazia.
 - **AC3:** Dado CRUD em projeto manual, quando o usuário salva, então `milestones` persiste após recarregar.
 - **AC4:** Dado specs no checklist, quando o usuário vincula `specIds`, então a UI exibe títulos das specs associadas.
-- **AC5:** Dado checkpoint com título, quando o usuário clica Planejar milestone, então a aba Milestones abre com título/descrição pré-preenchidos sem criar vínculo com o checkpoint.
 - **AC6:** Dado `PUT` com `title` vazio, então a API retorna 400.
 
 ## 8. API

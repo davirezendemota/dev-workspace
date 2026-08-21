@@ -84,9 +84,12 @@ async def upsert_checkpoint_record(
     """index -1 = prepend (mais recente primeiro), -2 = append, >=0 replace."""
     current = await fetch_checkpoints(ctx, project_id)
 
-    if index >= 0:
+    if (index >= 0:
         if index >= len(current):
             raise ValueError(f"Índice {index} inválido — há {len(current)} checkpoint(s).")
+        existing = current[index]
+        if not checkpoint.get("documents") and existing.get("documents"):
+            checkpoint = {**checkpoint, "documents": existing["documents"]}
         current[index] = checkpoint
         saved_index = index
     elif index == -2:

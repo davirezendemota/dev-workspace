@@ -1,6 +1,6 @@
 # 016 Projects · Checkpoints com atas e descrição markdown
 
-> **Última atualização:** 2026-08-18
+> **Última atualização:** 2026-08-21
 
 ---
 
@@ -22,12 +22,13 @@ projeto.
 - Campos `description` (markdown, sem limite) e `atas` (array `{ title?, content }`) no JSON
 - Campo `date` no formato canônico `DD/MM/YYYY HH:mm` (campo `time` legado é absorvido na normalização)
 - Normalização/serialização retrocompatível com checkpoints legados (`summary` preservado)
-- Botão expandir ao lado de “Gerar resumo” abre sidebar à direita com título, atas e descrição renderizada
+- Botão expandir abre sidebar à direita com título, atas e descrição renderizada
 - Resumo IA (`summary`) continua na timeline como preview curto
 - `POST /api/projects/{id}/checkpoints/parse-pdf` — extrai texto de PDF (transcrição)
 - Agentes: criar/alterar checkpoints via MCP após aprovação (spec 017 + skill)
 
 ### Fora do escopo
+- Regenerar resumo IA pela timeline (API `POST .../summary` e MCP permanecem disponíveis)
 - Editor in-app de checkpoints/atas (JSON / MCP após aprovação)
 - Armazenar PDF binário no DW (só texto extraído em `atas`)
 - Vínculo formal ata ↔ milestone

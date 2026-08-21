@@ -1,4 +1,4 @@
-import { normalizeCheckpoints } from '@/app/lib/checkpoints';
+import { normalizeCheckpoints, type Checkpoint } from '@/app/lib/checkpoints';
 import { errorResponse } from '@/app/lib/server/api-error';
 import {
   requireProjectAccess,
@@ -12,6 +12,24 @@ import {
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+function preserveOmittedDocuments(
+  raw: unknown[],
+  incoming: Checkpoint[],
+  existing: Checkpoint[],
+): Checkpoint[] {
+  if (incoming.length !== existing.length) return incoming;
+
+  return incoming.map((checkpoint, index) => {
+    const source = raw[index];
+    const omitted =
+      !source || typeof source !== 'object' || !('documents' in source);
+    if (!omitted) return checkpoint;
+    const previous = existing[index];
+    if (!previous?.documents.length) return checkpoint;
+    return { ...checkpoint, documents: previous.documents };
+  });
+}
 
 export async function GET(request: Request, context: RouteContext) {
   try {
@@ -32,7 +50,9 @@ export async function PUT(request: Request, context: RouteContext) {
     requireProjectAccess(auth, id);
     const body = await request.json();
     const raw = Array.isArray(body?.checkpoints) ? body.checkpoints : [];
-    const checkpoints = normalizeCheckpoints(raw, body?.topDate);
+    const incoming = normalizeCheckpoints(raw, body?.topDate);
+    const existing = getProjectCheckpoints(id);
+    const checkpoints = preserveOmittedDocuments(raw, incoming, existing);
     const project = updateProjectCheckpoints(id, checkpoints);
     if (!project) {
       return Response.json({ detail: 'Project not found' }, { status: 404 });

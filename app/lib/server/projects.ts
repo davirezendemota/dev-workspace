@@ -9,7 +9,12 @@ import {
   normalizeCheckpoints,
   serializeCheckpoints,
   type Checkpoint,
+  type CheckpointDocument,
 } from '@/app/lib/checkpoints';
+import {
+  deleteCheckpointDocumentFile,
+  deleteProjectDocumentDir,
+} from '@/app/lib/server/checkpoint-documents';
 import {
   normalizeMilestones,
   serializeMilestones,
@@ -347,6 +352,68 @@ export function updateProjectCheckpoints(
   return fileToResponse(filePath);
 }
 
+export function addCheckpointDocument(
+  id: string,
+  index: number,
+  document: CheckpointDocument,
+): ProjectResponse | null {
+  const checkpoints = getProjectCheckpoints(id);
+  if (index < 0 || index >= checkpoints.length) {
+    throw new ApiError(404, 'Checkpoint não encontrado.');
+  }
+
+  const next = checkpoints.map((checkpoint, i) =>
+    i === index
+      ? { ...checkpoint, documents: [...checkpoint.documents, document] }
+      : checkpoint,
+  );
+  return updateProjectCheckpoints(id, next);
+}
+
+export function removeCheckpointDocument(
+  id: string,
+  index: number,
+  documentId: string,
+): { project: ProjectResponse; document: CheckpointDocument } | null {
+  const checkpoints = getProjectCheckpoints(id);
+  if (index < 0 || index >= checkpoints.length) {
+    throw new ApiError(404, 'Checkpoint não encontrado.');
+  }
+
+  const document = checkpoints[index].documents.find((item) => item.id === documentId);
+  if (!document) {
+    throw new ApiError(404, 'Documento não encontrado.');
+  }
+
+  const next = checkpoints.map((item, i) =>
+    i === index
+      ? { ...item, documents: item.documents.filter((doc) => doc.id !== documentId) }
+      : item,
+  );
+  const project = updateProjectCheckpoints(id, next);
+  if (!project) return null;
+
+  deleteCheckpointDocumentFile(id, documentId);
+  return { project, document };
+}
+
+export function findCheckpointDocument(
+  id: string,
+  index: number,
+  documentId: string,
+): CheckpointDocument {
+  const checkpoints = getProjectCheckpoints(id);
+  if (index < 0 || index >= checkpoints.length) {
+    throw new ApiError(404, 'Checkpoint não encontrado.');
+  }
+
+  const document = checkpoints[index].documents.find((item) => item.id === documentId);
+  if (!document) {
+    throw new ApiError(404, 'Documento não encontrado.');
+  }
+  return document;
+}
+
 export function getProjectCheckpoints(id: string): Checkpoint[] {
   const filePath = pathForId(id);
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
@@ -379,6 +446,7 @@ export function deleteProject(id: string): boolean {
 
   const backupPath = backupPathForProjectFile(filePath);
   fs.renameSync(filePath, backupPath);
+  deleteProjectDocumentDir(id);
 
   rebuildConsumerTokenRegistry();
   return true;
