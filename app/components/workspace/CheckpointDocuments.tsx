@@ -7,6 +7,7 @@ import {
   type Checkpoint,
   type CheckpointDocument,
 } from '@/app/lib/checkpoints';
+import { formatWorkspaceLocaleDateTime } from '@/app/lib/workspace-timezone';
 import type { ProjectApiResponse } from './AddProjectModal';
 
 type CheckpointDocumentsProps = {
@@ -83,15 +84,7 @@ function formatBytes(size: number): string {
 }
 
 function formatUploadedAt(value: string): string {
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return '';
-  return new Date(parsed).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatWorkspaceLocaleDateTime(value);
 }
 
 async function readApiError(response: Response, fallback: string): Promise<string> {

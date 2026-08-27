@@ -5,10 +5,13 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from mcp.server.mcpserver import Context
 
 from dev_workspace_mcp.client import api_request
+
+WORKSPACE_TZ = ZoneInfo("America/Sao_Paulo")
 
 
 async def fetch_checkpoints(ctx: Context, project_id: str) -> list[dict[str, Any]]:
@@ -38,7 +41,7 @@ async def save_checkpoints(
 
 
 def default_checkpoint_date() -> str:
-    now = datetime.now()
+    now = datetime.now(WORKSPACE_TZ)
     return f"{now.day:02d}/{now.month:02d}/{now.year} {now.hour:02d}:{now.minute:02d}"
 
 
@@ -84,7 +87,7 @@ async def upsert_checkpoint_record(
     """index -1 = prepend (mais recente primeiro), -2 = append, >=0 replace."""
     current = await fetch_checkpoints(ctx, project_id)
 
-    if (index >= 0:
+    if index >= 0:
         if index >= len(current):
             raise ValueError(f"Índice {index} inválido — há {len(current)} checkpoint(s).")
         existing = current[index]

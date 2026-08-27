@@ -1,3 +1,9 @@
+import {
+  getWorkspaceDateTimeParts,
+  parseInstantToWorkspaceDateTimeParts,
+  workspaceDateTimePartsToUtcMs,
+} from '@/app/lib/workspace-timezone';
+
 export const CHECKPOINT_DOCUMENT_ACCEPT =
   '.pdf,.txt,.md,.csv,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp';
 
@@ -50,7 +56,7 @@ function parseCheckpointDateParts(value: string): DateParts | null {
       ? yearRaw.length === 2
         ? 2000 + Number(yearRaw)
         : Number(yearRaw)
-      : new Date().getFullYear();
+      : getWorkspaceDateTimeParts().year;
     return { day, month, year };
   }
 
@@ -120,14 +126,7 @@ function parseCheckpointDateTimeParts(date: string, time = ''): DateTimeParts | 
   if (!dateParts) {
     const parsed = Date.parse(dateTrim);
     if (!Number.isNaN(parsed) && /[T\s]\d/.test(dateTrim)) {
-      const d = new Date(parsed);
-      return {
-        day: d.getDate(),
-        month: d.getMonth() + 1,
-        year: d.getFullYear(),
-        hour: d.getHours(),
-        minute: d.getMinutes(),
-      };
+      return parseInstantToWorkspaceDateTimeParts(parsed);
     }
     return null;
   }
@@ -408,13 +407,7 @@ export function checkpointSortKey(date: string): number {
 
   const parts = parseCheckpointDateTimeParts(trimmed);
   if (parts) {
-    return new Date(
-      parts.year,
-      parts.month - 1,
-      parts.day,
-      parts.hour,
-      parts.minute,
-    ).getTime();
+    return workspaceDateTimePartsToUtcMs(parts);
   }
 
   return Number.NEGATIVE_INFINITY;

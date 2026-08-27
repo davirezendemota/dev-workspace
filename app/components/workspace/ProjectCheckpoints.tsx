@@ -9,6 +9,7 @@ import {
   type Checkpoint,
 } from '@/app/lib/checkpoints';
 import { cn } from '@/app/lib/utils';
+import { formatWorkspaceLocaleDateTime } from '@/app/lib/workspace-timezone';
 import CheckpointDetailSidebar from './CheckpointDetailSidebar';
 import type { ProjectApiResponse } from './AddProjectModal';
 import type { Project } from './data';
@@ -171,14 +172,7 @@ function CheckpointContent({
               color: 'color-mix(in srgb, var(--color-text) 42%, transparent)',
             }}
           >
-            Resumo salvo em{' '}
-            {new Date(checkpoint.summaryUpdatedAt).toLocaleString('pt-BR', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            Resumo salvo em {formatWorkspaceLocaleDateTime(checkpoint.summaryUpdatedAt)}
           </p>
         ) : null}
 
