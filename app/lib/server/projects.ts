@@ -2506,6 +2506,84 @@ export type ProjectConsumerConnection = {
   project_ids: string[];
 };
 
+export function findProjectIdByLocalPath(localPath: string): string | null {
+  const target = normalizeLocalPath(localPath);
+  if (!target) {
+    return null;
+  }
+
+  for (const filePath of listProjectFiles()) {
+    const data = readJsonFile(filePath);
+    const meta =
+      data[META_KEY] && typeof data[META_KEY] === 'object' && !Array.isArray(data[META_KEY])
+        ? (data[META_KEY] as Record<string, unknown>)
+        : null;
+    if (!meta) {
+      continue;
+    }
+
+    const raw =
+      typeof meta.local_path === 'string' ? meta.local_path.trim() : '';
+    if (!raw) {
+      continue;
+    }
+
+    if (normalizeLocalPath(raw) === target) {
+      return path.basename(filePath, '.json');
+    }
+  }
+
+  return null;
+}
+
+export async function registerLocalRepoProject(input: {
+  local_path: string;
+  name?: string | null;
+  local_repo_branch?: string | null;
+}): Promise<ProjectConsumerConnection> {
+  const localPath = requireLocalPath(input.local_path);
+  const existingId = findProjectIdByLocalPath(localPath);
+
+  if (existingId) {
+    rebuildConsumerTokenRegistry();
+    const existing = getProjectConsumerConnection(existingId);
+    if (existing) {
+      return existing;
+    }
+  }
+
+  const displayName = input.name?.trim() || path.basename(localPath);
+  const localRepoBranch = resolveLocalRepoBranchInput(input.local_repo_branch);
+  const resolvedRoot = resolveLocalProjectPath(localPath);
+  if (resolvedRoot) {
+    assertGitBranchExists(resolvedRoot, localRepoBranch);
+  }
+
+  const project = await createProject({
+    source_type: 'local_repo',
+    local_path: localPath,
+    local_repo_branch: localRepoBranch,
+    json_content: {
+      name: displayName,
+      client: '—',
+      ai: '',
+      topDate: '—',
+      checkpoints: [],
+      milestones: [],
+      tasks: [],
+      lastInteractionDays: 0,
+      openDemands: 0,
+    },
+  });
+
+  const connection = getProjectConsumerConnection(project.id);
+  if (!connection) {
+    throw new ApiError(500, 'Failed to issue consumer token after registration.');
+  }
+
+  return connection;
+}
+
 export function getProjectConsumerConnection(projectId: string): ProjectConsumerConnection | null {
   const project = getProject(projectId);
   if (!project?.local_path) {

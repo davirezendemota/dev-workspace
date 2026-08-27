@@ -61,6 +61,7 @@ O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`**, 
 - **RF5:** Container DW gera `DEV_WORKSPACE_API_TOKEN` no startup e exibe nos logs.
 - **RF6:** API externa exige `Authorization: Bearer <token>`; UI same-origin sem token.
 - **RF7:** Um repo consumidor pode mapear a vários projetos DW (filtro `local_path`).
+- **RF8:** `install.sh` com `DEV_WORKSPACE_REGISTER_TOKEN` no env do sistema chama `POST /api/install/register` e grava o token consumidor (idempotente por `local_path`).
 
 ### Não-funcionais
 
@@ -72,9 +73,9 @@ O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`**, 
 
 ### Instalação
 
-1. Na raiz do consumidor: `./install-kit/install.sh . --dw-root /path/to/dev-workspace`.
-2. Script cria `.dev-workspace/.env`, `.cursor/mcp.json` e skills em `.cursor/` e `.claude/`.
-3. Usuário registra projeto no DW com `local_path` → consumidor; recarrega MCP no Cursor.
+1. Na raiz do consumidor: `export DEV_WORKSPACE_REGISTER_TOKEN=...` (logs do container) e `./install-kit/install.sh .`.
+2. Script registra o projeto no DW, cria `.dev-workspace/.env`, `.cursor/mcp.json` e skills em `.cursor/` e `.claude/`.
+3. Recarrega MCP no Cursor.
 
 ### Uso pelo agente
 
@@ -98,6 +99,7 @@ O `install-kit/` instala em qualquer repo consumidor **`.dev-workspace/.env`**, 
 - **AC4:** Dado o container DW ao iniciar, então `DEV_WORKSPACE_API_TOKEN` aparece nos logs.
 - **AC5:** Dado `skill-dev-workspace.md`, quando lido, então cobre MCP consumidor, API, projetos e vs `.specs/`.
 - **AC6:** Dado o README do repo canônico, quando lido, então há seção Bridge com instalação em um comando.
+- **AC7:** Dado `DEV_WORKSPACE_REGISTER_TOKEN` no env, quando `install.sh` roda, então o projeto é registrado no DW e o token consumidor é gravado em `.dev-workspace/.env` sem reiniciar o DW.
 
 ## 7. Decisões e alternativas consideradas
 

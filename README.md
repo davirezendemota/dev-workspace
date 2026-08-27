@@ -120,11 +120,17 @@ Comandos úteis de agente (Cursor/Claude): `/bootstrap-specs`, `/update-specs`, 
 Um comando instala **`.dev-workspace/.env`**, **consumidor MCP** (`.cursor/mcp.json`) e **skill `dev-workspace`**.
 
 ```bash
+# ~/.zshrc (uma vez) — token nos logs do container:
+export DEV_WORKSPACE_REGISTER_TOKEN="<install_token>"
+export DEV_WORKSPACE_URL=http://localhost:3010
+
 ./install-kit/install.sh /path/to/consumer --dw-root /path/to/dev-workspace
 ```
 
+O install **registra o projeto no DW** automaticamente e grava o token consumidor scoped.
+
 - **MCP:** servidor único no DW (`localhost:3011/mcp` em dev); cada repo = consumidor com token scoped.
-- **Token consumidor:** `GET /api/projects/{id}/connection` na UI DW (não use admin no repo consumidor).
+- **Token consumidor:** auto via register, ou `GET /api/projects/{id}/connection` (admin). **Não** use admin no repo consumidor.
 
 - **Specs no repo** → `.specs/`
 - **Planejamento, checkpoints (PDF), pendências, tasks, resumo IA** → MCP (preferido) ou skill `dev-workspace`

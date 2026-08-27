@@ -10,6 +10,11 @@ export function isAuthorizedBearer(token: string): boolean {
     return true;
   }
 
+  const installToken = process.env.WORKSPACE_INSTALL_TOKEN?.trim();
+  if (installToken && trimmed === installToken) {
+    return true;
+  }
+
   try {
     const map = JSON.parse(process.env.WORKSPACE_CONSUMER_TOKENS_JSON ?? '{}') as Record<
       string,

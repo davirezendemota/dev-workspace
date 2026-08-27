@@ -1,7 +1,7 @@
 {
   "$schema": "./spec-checklist.schema.json",
   "version": 1,
-  "updatedAt": "2026-08-21",
+  "updatedAt": "2026-08-27",
   "projects": [
     {
       "id": "workspace",
@@ -846,6 +846,17 @@
               "issues": [],
               "prs": [],
               "completedCommit": "b43324cb2b950c74e7c8b24b172c5496708d106a"
+            },
+            {
+              "ac": "AC7",
+              "description": "install.sh com DEV_WORKSPACE_REGISTER_TOKEN auto-registra repo e grava consumer token",
+              "status": "done",
+              "after": [
+                "AC2"
+              ],
+              "issues": [],
+              "prs": [],
+              "completedCommit": "783b7c5fe8f8c8f8c8f8c8f8c8f8c8f8c8f8c8f8"
             }
           ]
         },

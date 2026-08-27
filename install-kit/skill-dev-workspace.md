@@ -15,8 +15,9 @@ Conexão: `.dev-workspace/.env`
 | `DEV_WORKSPACE_ROOT` | Modo local (`workspace_data/`) |
 | `DEV_WORKSPACE_URL` + `DEV_WORKSPACE_API_TOKEN` | Modo API/MCP — **token do consumidor** (não admin) |
 | `DEV_WORKSPACE_MCP_URL` | URL do servidor MCP central (ex. `http://localhost:3011/mcp`) |
+| `DEV_WORKSPACE_REGISTER_TOKEN` | Env do sistema — `install.sh` auto-registra o repo no DW |
 
-**Tokens:** cada repo com `local_path` no DW recebe um token **scoped** (só os projetos desse path). Token admin global (logs do container) acessa tudo — **não** coloque no consumidor.
+**Tokens:** cada repo com `local_path` no DW recebe um token **scoped** (só os projetos desse path). `DEV_WORKSPACE_REGISTER_TOKEN` (logs do container, env do sistema) só registra repos — não coloque no `.dev-workspace/.env` do consumidor. Token admin global acessa tudo — **não** coloque no consumidor.
 
 **Consumo via agent-cli:** preferir **MCP** (`dev-workspace` em `.cursor/mcp.json`, token scoped no header). Fallback: API (`curl` no shell). **Não** leia `workspace_data/` com Read/Grep.
 

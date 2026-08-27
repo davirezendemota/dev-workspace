@@ -3,13 +3,27 @@
 Instala `.dev-workspace/.env`, skill `dev-workspace`, comando `/dev-workspace` e **consumidor MCP** (`.cursor/mcp.json`).
 
 ```bash
+# 1. No ~/.zshrc (uma vez):
+export DEV_WORKSPACE_REGISTER_TOKEN="<install_token dos logs do container>"
+export DEV_WORKSPACE_URL=http://localhost:3010
+export DEV_WORKSPACE_MCP_URL=http://localhost:3011/mcp
+
+# 2. No repo consumidor:
+./install-kit/install.sh /path/to/consumer --dw-root /path/to/dev-workspace
+```
+
+O install registra o projeto no DW automaticamente e grava o token consumidor em `.dev-workspace/.env`.
+
+Manual (sem auto-register):
+
+```bash
 ./install-kit/install.sh /path/to/consumer \
   --api-url http://localhost:3010 \
   --api-token "<consumer_api_token>" \
   --dw-root /path/to/dev-workspace
 ```
 
-Token consumidor: `GET /api/projects/{id}/connection` na UI DW (admin), ou logs do container só para admin global.
+Token consumidor manual: `GET /api/projects/{id}/connection` na UI DW (admin), ou logs do container só para admin global.
 
 ## MCP (consumidor por repo)
 

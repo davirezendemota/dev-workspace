@@ -6,28 +6,35 @@ UPSTREAM_ARCHIVE="https://github.com/davirezendemota/dev-workspace/archive/refs/
 
 usage() {
   cat <<'EOF'
-Usage: install.sh [TARGET_DIR] [--merge]
+Usage: install.sh [TARGET_DIR] [--merge] [--no-register]
 
 Install into TARGET_DIR/.dev-workspace/.env and skill dev-workspace (Cursor + Claude).
 
-  --merge    Keep existing .env; refresh skill only
+  --merge         Keep existing .env; refresh skill only
+  --no-register   Skip auto-register via DEV_WORKSPACE_REGISTER_TOKEN
 
   --api-url URL
   --api-token TOKEN
   --dw-root PATH
+
+Auto-register (when DEV_WORKSPACE_REGISTER_TOKEN + DEV_WORKSPACE_URL are set):
+  POST /api/install/register → writes consumer token to .dev-workspace/.env
 EOF
 }
 
 TARGET="."
 MERGE=false
+NO_REGISTER=false
 API_URL="http://localhost:3010"
 API_TOKEN=""
+MCP_URL=""
 DW_ROOT=""
 CLEANUP=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --merge) MERGE=true ;;
+    --no-register) NO_REGISTER=true ;;
     --api-url) API_URL="${2:-}"; shift ;;
     --api-token) API_TOKEN="${2:-}"; shift ;;
     --dw-root) DW_ROOT="${2:-}"; shift ;;
@@ -57,6 +64,65 @@ resolve_source() {
     if [[ -f "$SCRIPT_DIR/skill-dev-workspace.md" ]]; then return; fi
   fi
   download_kit
+}
+
+derive_mcp_url() {
+  local base_url="$1"
+  if [[ -n "${DEV_WORKSPACE_MCP_URL:-}" ]]; then
+    echo "${DEV_WORKSPACE_MCP_URL%/}"
+    return
+  fi
+  case "$base_url" in
+    *:3010*) echo "http://localhost:3011/mcp" ;;
+    *:3000*) echo "http://localhost:3001/mcp" ;;
+    *:8080*) echo "http://localhost:8082/mcp" ;;
+    *) echo "http://localhost:3011/mcp" ;;
+  esac
+}
+
+try_register_consumer() {
+  if [[ "$NO_REGISTER" == true ]]; then
+    return 0
+  fi
+
+  local register_token="${DEV_WORKSPACE_REGISTER_TOKEN:-}"
+  local api_url="${DEV_WORKSPACE_URL:-$API_URL}"
+  api_url="${api_url%/}"
+
+  if [[ -z "$register_token" ]]; then
+    return 0
+  fi
+
+  local payload response http_code body consumer_token
+  payload="$(python3 -c 'import json,sys; print(json.dumps({"local_path": sys.argv[1]}))' "$TARGET")"
+
+  response="$(curl -fsS -w "\n%{http_code}" \
+    -X POST "$api_url/api/install/register" \
+    -H "Authorization: Bearer $register_token" \
+    -H "Content-Type: application/json" \
+    -d "$payload" 2>/dev/null)" || {
+    echo "WARN: registro automático falhou (curl) — verifique DEV_WORKSPACE_URL e token" >&2
+    return 0
+  }
+
+  http_code="$(printf '%s' "$response" | tail -n1)"
+  body="$(printf '%s' "$response" | sed '$d')"
+
+  if [[ "$http_code" != "200" && "$http_code" != "201" ]]; then
+    echo "WARN: registro automático falhou (HTTP $http_code): $body" >&2
+    return 0
+  fi
+
+  consumer_token="$(python3 -c "import json,sys; print(json.load(sys.stdin)['consumer_api_token'])" <<< "$body")"
+  if [[ -z "$consumer_token" ]]; then
+    echo "WARN: registro automático sem consumer_api_token na resposta" >&2
+    return 0
+  fi
+
+  API_TOKEN="$consumer_token"
+  API_URL="$api_url"
+  MCP_URL="$(derive_mcp_url "$api_url")"
+  echo "     projeto registrado no DW (HTTP $http_code) → token consumidor obtido"
 }
 
 ensure_gitignore_dev_workspace() {
@@ -150,6 +216,12 @@ TARGET="$(cd "$TARGET" && pwd)"
 BRIDGE="$TARGET/.dev-workspace"
 mkdir -p "$BRIDGE"
 
+if [[ -z "$MCP_URL" ]]; then
+  MCP_URL="$(derive_mcp_url "${DEV_WORKSPACE_URL:-$API_URL}")"
+fi
+
+try_register_consumer
+
 cp "$SCRIPT_DIR/install.sh" "$BRIDGE/install.sh"
 chmod +x "$BRIDGE/install.sh"
 cp "$SCRIPT_DIR/.env.example" "$BRIDGE/.env.example"
@@ -169,7 +241,7 @@ if [[ "$MERGE" != true || ! -f "$BRIDGE/.env" ]]; then
   if [[ -n "$API_TOKEN" ]]; then
     {
       echo "DEV_WORKSPACE_URL=$API_URL"
-      echo "DEV_WORKSPACE_MCP_URL=http://localhost:3011/mcp"
+      echo "DEV_WORKSPACE_MCP_URL=$MCP_URL"
       echo "DEV_WORKSPACE_API_TOKEN=$API_TOKEN"
       [[ -n "$DW_ROOT" ]] && echo "DEV_WORKSPACE_ROOT=$DW_ROOT"
     } > "$BRIDGE/.env"
@@ -217,4 +289,6 @@ if [[ -n "$CLEANUP" ]]; then rm -rf "$CLEANUP"; fi
 echo "OK → $BRIDGE/.env + skill dev-workspace (Cursor + Claude)"
 echo "     .gitignore → .dev-workspace/ ignorado"
 echo "     MCP: servidor DW central; este repo = consumidor (token em mcp.json)"
-echo "Projeto DW: registrar local_path → $TARGET"
+if [[ -z "${DEV_WORKSPACE_REGISTER_TOKEN:-}" && "$NO_REGISTER" != true ]]; then
+  echo "Tip: export DEV_WORKSPACE_REGISTER_TOKEN para auto-registrar no DW (ver logs do container)"
+fi
